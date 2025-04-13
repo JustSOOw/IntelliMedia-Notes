@@ -1,0 +1,9 @@
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/IntelliMedia_Notes.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/edit_cache.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/rebuild_cache.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/list_install_components.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/install.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/install/local.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/install/strip.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/IntelliMedia_Notes_autogen_timestamp_deps.dir
+D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug/CMakeFiles/IntelliMedia_Notes_autogen.dir

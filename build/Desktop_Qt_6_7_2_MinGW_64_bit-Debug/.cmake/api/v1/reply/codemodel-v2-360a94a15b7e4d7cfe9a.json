@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-e90057debaac1f5cd5c0.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "IntelliMedia_Notes",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "IntelliMedia_Notes::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-IntelliMedia_Notes-Debug-38bfeeb49305de195ecd.json",
+					"name" : "IntelliMedia_Notes",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "IntelliMedia_Notes_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-IntelliMedia_Notes_autogen-Debug-68570d8e2b58bb552062.json",
+					"name" : "IntelliMedia_Notes_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "IntelliMedia_Notes_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-IntelliMedia_Notes_autogen_timestamp_deps-Debug-044f7469a13faba337ea.json",
+					"name" : "IntelliMedia_Notes_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes/build/Desktop_Qt_6_7_2_MinGW_64_bit-Debug",
+		"source" : "D:/Users/JUSTsoo/Desktop/IntelliMedia_Notes"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

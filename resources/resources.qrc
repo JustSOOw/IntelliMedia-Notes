@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/Sidebar.qml</file>
+        <file>icons/round_left_fill.svg</file>
+        <file>icons/round_right_fill.svg</file>
+        <file>icons/minis.svg</file>
+        <file>icons/round_close_fill.svg</file>
+        <file>icons/Maximize-filled.svg</file>
+        <file>icons/Minimize-filled.svg</file>
+        <file>icons/month.svg</file>
+        <file>icons/Sun.svg</file>
+        <file>icons/setting.svg</file>
+    </qresource>
+</RCC>

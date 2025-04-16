@@ -1,0 +1,74 @@
+/* Dark Theme */
+
+/* Main Window and Central Widget */
+QMainWindow {
+    background-color: #2d2d2d; /* Dark gray background */
+    color: #f0f0f0; /* Light text */
+}
+
+QWidget#centralwidget {
+    background-color: #2d2d2d;
+}
+
+/* Button Bar (using objectName 'widget') */
+QWidget#widget {
+    background-color: transparent; /* 改为透明背景 */
+    /* border-bottom: 1px solid #505050; */ /* 移除底部边框 */
+}
+
+/* Sidebar and Main Content Area */
+QWidget#sidebarContainer {
+    background-color: #353535; /* 侧边栏使用深灰色 */
+    border: none;
+}
+
+QWidget#mainContentContainer {
+    background-color: #2a2a2a; /* 主内容区使用更深的灰色 */
+    border: none;
+}
+
+/* Splitter Handle Style */
+QSplitter::handle {
+    background-color: #404040; /* 分隔条使用比主背景稍亮的灰色 */
+    border: none; 
+    width: 1px;
+    margin: 0px;
+    padding: 0px;
+}
+
+QSplitter::handle:horizontal {
+}
+
+QSplitter::handle:vertical {
+}
+
+QSplitter::handle:hover {
+    background-color: #555555; /* 悬停时更亮一点 */
+}
+
+/* Buttons (General Style) */
+QToolButton {
+    border: none;
+    background-color: transparent;
+    padding: 4px;
+    border-radius: 4px;
+    /* Icon color needs to be handled separately (see C++ part) */
+}
+
+QToolButton:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Light gray hover */
+}
+
+QToolButton:pressed {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Specific Button Styles */
+QToolButton#closeButton:hover {
+    background-color: #f44336; /* Red hover for close (consistent) */
+}
+QToolButton#closeButton:pressed {
+    background-color: #d32f2f;
+}
+
+/* Add styles for other widgets like QTextEdit later */

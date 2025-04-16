@@ -10,5 +10,7 @@
         <file>icons/month.svg</file>
         <file>icons/Sun.svg</file>
         <file>icons/setting.svg</file>
+        <file>styles/dark_theme.qss</file>
+        <file>styles/light_theme.qss</file>
     </qresource>
 </RCC>

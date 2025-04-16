@@ -1,0 +1,74 @@
+/* Light Theme */
+
+/* Main Window and Central Widget */
+QMainWindow {
+    background-color: #f0f0f0; /* Light gray background */
+}
+
+QWidget#centralwidget {
+    background-color: #f0f0f0;
+}
+
+/* Button Bar (using objectName 'widget') */
+QWidget#widget {
+    background-color: transparent; /* 改为透明背景 */
+    /* border-bottom: 1px solid #d0d0d0; */ /* 移除底部边框 */
+}
+
+/* Sidebar and Main Content Area */
+QWidget#sidebarContainer {
+    background-color: #ffffff; /* 侧边栏用纯白色 */
+    border: none; /* 确保没有边框 */
+}
+
+QWidget#mainContentContainer {
+    background-color: #f8f8f8; /* 主内容区用非常浅的灰色 */
+    border: none; /* 确保没有边框 */
+}
+
+/* Splitter Handle Style */
+QSplitter::handle {
+    background-color: #e0e0e0; /* 分隔条使用浅灰色 */
+    border: none; /* 移除边框 */
+    width: 1px; /* 使分隔条更细 */
+    margin: 0px;
+    padding: 0px;
+}
+
+QSplitter::handle:horizontal {
+    /* height: 1px; */ /* 水平分隔条不需要设置高度 */
+}
+
+QSplitter::handle:vertical {
+    /* width: 1px; */ /* 垂直分隔条在上面已设置 */
+}
+
+QSplitter::handle:hover {
+    background-color: #cccccc; /* 悬停时稍微深一点 */
+}
+
+/* Buttons (General Style) */
+QToolButton {
+    border: none;
+    background-color: transparent;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+QToolButton:hover {
+    background-color: rgba(0, 0, 0, 0.1); /* Light gray hover */
+}
+
+QToolButton:pressed {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Specific Button Styles (Optional refinements) */
+QToolButton#closeButton:hover {
+    background-color: #f44336; /* Red hover for close */
+}
+QToolButton#closeButton:pressed {
+    background-color: #d32f2f;
+}
+
+/* Add styles for other widgets like QTextEdit later */

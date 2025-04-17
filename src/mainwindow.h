@@ -27,6 +27,7 @@
 #include <QSvgRenderer> // 引入SVG渲染
 #include <QPainter> // 引入QPainter
 #include <QIcon> // 引入QIcon
+#include <QtQuickWidgets/QQuickWidget> // 添加 QQuickWidget
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -36,6 +37,9 @@ QT_END_NAMESPACE
 
 class QToolButton; // 前向声明
 class QMouseEvent; // 事件处理的前向声明
+
+// 前向声明侧边栏管理器
+class SidebarManager;
 
 class MainWindow : public QMainWindow
 {
@@ -60,6 +64,7 @@ private slots:
     void toggleTheme();           // 主题切换按钮槽函数
     void openSettings();          // 设置按钮槽函数
     void toggleSidebar();         // 侧边栏切换按钮槽函数
+    void handleNoteSelected(const QString &path, const QString &type); // 处理笔记选择
 
 private:
     Ui::MainWindow *ui;
@@ -108,6 +113,13 @@ private:
     
     // 给SVG图标上色的辅助函数
     QIcon colorizeSvgIcon(const QString &path, const QColor &color);
+    
+    // 侧边栏相关
+    QQuickWidget *m_sidebarWidget;   // 侧边栏QML容器
+    SidebarManager *m_sidebarManager; // 侧边栏管理器
+    
+    // 初始化侧边栏
+    void setupSidebar();
     
     // -----------------------------------------
 };

@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required Qt components (Adjust if you added more modules like QuickWidgets, Sql)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg Core5Compat)
 
 # Tell AutoUic where to find UI files
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/forms)
@@ -21,6 +21,8 @@ set(PROJECT_SOURCES
         src/main.cpp
         src/mainwindow.cpp
         src/mainwindow.h
+        src/sidebarmanager.cpp
+        src/sidebarmanager.h
         forms/mainwindow.ui   # UI file is now in forms/
 )
 
@@ -52,7 +54,13 @@ else()
 endif()
 
 # Link necessary Qt libraries (Ensure QuickWidgets and Sql are linked if used)
-target_link_libraries(IntelliMedia_Notes PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::QuickWidgets Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::Svg)
+target_link_libraries(IntelliMedia_Notes PRIVATE 
+    Qt${QT_VERSION_MAJOR}::Widgets 
+    Qt${QT_VERSION_MAJOR}::QuickWidgets 
+    Qt${QT_VERSION_MAJOR}::Sql 
+    Qt${QT_VERSION_MAJOR}::Svg
+    Qt${QT_VERSION_MAJOR}::Core5Compat
+)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

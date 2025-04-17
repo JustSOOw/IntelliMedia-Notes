@@ -1,16 +1,29 @@
 <RCC>
     <qresource prefix="/">
-        <file>qml/Sidebar.qml</file>
-        <file>icons/round_left_fill.svg</file>
-        <file>icons/round_right_fill.svg</file>
-        <file>icons/minis.svg</file>
-        <file>icons/round_close_fill.svg</file>
+        <file>styles/light_theme.qss</file>
+        <file>styles/dark_theme.qss</file>
+        <file>icons/Sun.svg</file>
+        <file>icons/month.svg</file>
         <file>icons/Maximize-filled.svg</file>
         <file>icons/Minimize-filled.svg</file>
-        <file>icons/month.svg</file>
-        <file>icons/Sun.svg</file>
+        <file>icons/minis.svg</file>
+        <file>icons/round_close_fill.svg</file>
+        <file>icons/round_left_fill.svg</file>
+        <file>icons/round_right_fill.svg</file>
         <file>icons/setting.svg</file>
-        <file>styles/dark_theme.qss</file>
-        <file>styles/light_theme.qss</file>
+        <file>icons/sidebar/user.svg</file>
+        <file>icons/sidebar/add.svg</file>
+        <file>icons/sidebar/file.svg</file>
+        <file>icons/sidebar/ai.svg</file>
+        <file>icons/sidebar/search.svg</file>
+        <file>icons/sidebar/folder.svg</file>
+        <file>icons/sidebar/note.svg</file>
+        <file>qml/Sidebar.qml</file>
+        <file>qml/UserPanel.qml</file>
+        <file>qml/ActionButtons.qml</file>
+        <file>qml/NoteTree.qml</file>
+        <file>qml/AIView.qml</file>
+        <file>qml/FileContextMenu.qml</file>
+        <file>qml/Animations.qml</file>
     </qresource>
 </RCC>

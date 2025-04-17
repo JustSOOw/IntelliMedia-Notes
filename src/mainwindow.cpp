@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-16 15:00:21
+ * @LastEditTime: 2025-04-17 14:50:41
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -10,6 +10,7 @@
  */
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "sidebarmanager.h" // 包含侧边栏管理器头文件
 
 #include <QToolButton>
 #include <QIcon>
@@ -53,6 +54,10 @@ MainWindow::MainWindow(QWidget *parent)
     m_dragging = false;
     m_resizing = false;
     m_resizeRegion = None;
+    
+    // 初始化侧边栏
+    setupSidebar();
+    
     // -----------------------------
 
 
@@ -154,6 +159,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete m_sidebarManager; // 释放侧边栏管理器
 }
 
 // 加载并应用样式表的辅助函数
@@ -436,4 +442,33 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // 例如，如果鼠标恰好在新的边缘上
     // updateCursorShape(mapFromGlobal(QCursor::pos())); 
     // 注意: mapFromGlobal可能需要QWidget*上下文，或者直接使用event中的信息（如果适用）
+}
+
+// 设置侧边栏
+void MainWindow::setupSidebar()
+{
+    // 创建QQuickWidget来显示QML
+    m_sidebarWidget = new QQuickWidget(ui->sidebarContainer);
+    m_sidebarWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    
+    // 创建格局管理器
+    QVBoxLayout *layout = new QVBoxLayout(ui->sidebarContainer);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(m_sidebarWidget);
+    ui->sidebarContainer->setLayout(layout);
+    
+    // 创建侧边栏管理器并初始化
+    m_sidebarManager = new SidebarManager(m_sidebarWidget, this);
+    m_sidebarManager->initialize();
+    
+    // 连接信号和槽
+    connect(m_sidebarManager, &SidebarManager::noteOpened,
+            this, &MainWindow::handleNoteSelected);
+}
+
+// 处理笔记选择
+void MainWindow::handleNoteSelected(const QString &path, const QString &type)
+{
+    qDebug() << "主窗口处理笔记选择:" << path << type;
+    // TODO: 在主内容区域显示选中的笔记
 }

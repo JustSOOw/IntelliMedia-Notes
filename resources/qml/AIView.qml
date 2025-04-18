@@ -162,10 +162,11 @@ Rectangle {
                 color: "#4285F4"
                 
                 Image {
-                    anchors.centerIn: parent
+                    id: sendIcon
                     width: 20
                     height: 20
-                    source: "qrc:/resources/icons/round_right_fill.svg"
+                    source: "qrc:/icons/round_right_fill.svg"
+                    fillMode: Image.PreserveAspectFit
                     
                     ColorOverlay {
                         anchors.fill: parent

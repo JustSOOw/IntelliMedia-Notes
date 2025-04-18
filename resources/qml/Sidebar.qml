@@ -1,11 +1,25 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import Qt5Compat.GraphicalEffects // 导入图形效果模块
 
 // 侧边栏主组件
 Rectangle {
     id: sidebarRoot
-    color: "transparent"
+    // 设置为白色背景，匹配 light_theme.qss 中的 sidebarContainer
+    // 注意：如果需要支持暗色主题，这里需要动态绑定颜色
+    color: "#ffffff"
+    
+    // 添加阴影效果
+    layer.enabled: true
+    layer.effect: DropShadow {
+        horizontalOffset: 1 // 向右偏移一点
+        verticalOffset: 0
+        radius: 8.0
+        samples: 17
+        color: "#1a000000" // 非常淡的黑色阴影
+        source: sidebarRoot // 指定效果源为 sidebarRoot 本身
+    }
     
     // 当前视图模式：file, ai
     property string currentView: "file"

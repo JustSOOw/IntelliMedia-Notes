@@ -32,7 +32,7 @@ Menu {
     Action {
         id: createNoteAction
         text: "创建笔记"
-        icon.source: "qrc:/resources/icons/sidebar/note.svg"
+        icon.source: "qrc:/icons/sidebar/note.svg"
         enabled: isFolder
         onTriggered: createNoteRequest(itemPath)
     }
@@ -41,7 +41,7 @@ Menu {
     Action {
         id: createFolderAction
         text: "创建文件夹"
-        icon.source: "qrc:/resources/icons/sidebar/folder.svg"
+        icon.source: "qrc:/icons/sidebar/folder.svg"
         enabled: isFolder
         onTriggered: createFolderRequest(itemPath)
     }
@@ -60,7 +60,7 @@ Menu {
     Action {
         id: renameAction
         text: "重命名"
-        icon.source: "qrc:/resources/icons/sidebar/note.svg"
+        icon.source: "qrc:/icons/sidebar/note.svg"
         onTriggered: renameRequest(itemPath, itemName)
     }
     
@@ -68,7 +68,7 @@ Menu {
     Action {
         id: deleteAction
         text: "删除"
-        icon.source: "qrc:/resources/icons/round_close_fill.svg"
+        icon.source: "qrc:/icons/round_close_fill.svg"
         onTriggered: deleteRequest(itemPath)
     }
     

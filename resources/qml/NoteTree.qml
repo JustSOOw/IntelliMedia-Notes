@@ -65,7 +65,7 @@ Rectangle {
         // 展开/折叠按钮
         Image {
             id: expandCollapseIcon
-            source: "qrc:/resources/icons/round_right_fill.svg"
+            source: "qrc:/icons/round_right_fill.svg"
             width: 16
             height: 16
             anchors.verticalCenter: parent.verticalCenter
@@ -168,6 +168,7 @@ Rectangle {
             height: 36
             color: selectedNotePath === model.path ? "#e3f2fd" : "transparent"
             radius: 4
+            Behavior on color { ColorAnimation { duration: 150 } }
             
             // 条目布局
             RowLayout {
@@ -179,7 +180,7 @@ Rectangle {
                 // 展开/折叠图标（仅文件夹显示）
                 Image {
                     id: expandIcon
-                    source: "qrc:/resources/icons/round_right_fill.svg"
+                    source: "qrc:/icons/round_right_fill.svg"
                     width: 14
                     height: 14
                     visible: model.type === "folder"
@@ -204,8 +205,8 @@ Rectangle {
                 // 图标
                 Image {
                     source: model.type === "folder" ? 
-                           "qrc:/resources/icons/sidebar/folder.svg" : 
-                           "qrc:/resources/icons/sidebar/note.svg"
+                           "qrc:/icons/sidebar/folder.svg" : 
+                           "qrc:/icons/sidebar/note.svg"
                     width: 16
                     height: 16
                     Layout.alignment: Qt.AlignVCenter
@@ -223,7 +224,7 @@ Rectangle {
                 
                 // 收藏星标（如果有）
                 Image {
-                    source: "qrc:/resources/icons/month.svg"
+                    source: "qrc:/icons/month.svg"
                     width: 16
                     height: 16
                     visible: model.starred === true
@@ -239,8 +240,11 @@ Rectangle {
             
             // 点击选择
             MouseArea {
+                id: itemMouseArea
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
                 
                 onClicked: function(mouse) {
                     if (mouse.button === Qt.LeftButton) {
@@ -257,22 +261,17 @@ Rectangle {
                 }
             }
             
-            // 悬停效果
+            // 定义状态，用于悬停效果
             states: [
                 State {
-                    name: "hovered"
-                    when: mouseArea.containsMouse && selectedNotePath !== model.path
-                    PropertyChanges { target: noteItem; color: "#f5f5f5" }
+                    name: "HOVERED"
+                    when: itemMouseArea.containsMouse && selectedNotePath !== model.path
+                    PropertyChanges {
+                        target: noteItem
+                        color: "#f0f0f0"
+                    }
                 }
             ]
-            
-            // 鼠标区域用于悬停检测
-            MouseArea {
-                id: mouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                acceptedButtons: Qt.NoButton // 不处理点击
-            }
         }
         
         // 滚动条

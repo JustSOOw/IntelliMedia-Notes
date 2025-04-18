@@ -83,7 +83,6 @@ CMakeLists.txt.user*
 
 
 /.cursor/
-/.cursor/rules/*.mdc
 *.mdc
 
 

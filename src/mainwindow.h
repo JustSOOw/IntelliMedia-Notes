@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-16 14:00:04
+ * @LastEditTime: 2025-04-19 15:37:39
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.h
  * @Description: 
  * 
@@ -28,6 +28,7 @@
 #include <QPainter> // 引入QPainter
 #include <QIcon> // 引入QIcon
 #include <QtQuickWidgets/QQuickWidget> // 添加 QQuickWidget
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -116,7 +117,7 @@ private:
     
     // 侧边栏相关
     QQuickWidget *m_sidebarWidget;   // 侧边栏QML容器
-    SidebarManager *m_sidebarManager; // 侧边栏管理器
+    SidebarManager *m_sidebarManager = nullptr; // 侧边栏管理器
     
     // 初始化侧边栏
     void setupSidebar();

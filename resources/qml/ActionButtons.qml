@@ -258,10 +258,9 @@ Rectangle {
                     spacing: 2
 
                     RowLayout {
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        Layout.alignment: Qt.AlignCenter
                         height: parent.height - 4
                         spacing: 5
-                        Layout.alignment: Qt.AlignCenter
                         
                         Image {
                             id: fileIcon // 添加 id
@@ -318,10 +317,9 @@ Rectangle {
                     anchors.fill: parent
                     spacing: 2
                     RowLayout {
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        Layout.alignment: Qt.AlignCenter
                         height: parent.height - 4
                         spacing: 5
-                        Layout.alignment: Qt.AlignCenter
                         
                         Image {
                             id: aiIcon // 添加 id
@@ -373,10 +371,9 @@ Rectangle {
                     anchors.fill: parent
                     spacing: 2
                     RowLayout {
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        Layout.alignment: Qt.AlignCenter
                         height: parent.height - 4
                         spacing: 5
-                        Layout.alignment: Qt.AlignCenter
                         
                         Image {
                             id: searchIcon // 添加 id

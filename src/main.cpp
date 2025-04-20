@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QFile>
 #include <QDebug>
+#include <QQuickStyle>
 
 // 加载并应用样式表的辅助函数
 void loadStyleSheet(const QString &sheetName)
@@ -20,9 +21,12 @@ void loadStyleSheet(const QString &sheetName)
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    
+    // 设置 QML 控件样式为 Fusion (必须在 MainWindow 创建之前)
+    QQuickStyle::setStyle("Fusion");
 
     // 启动时加载默认浅色主题
-    loadStyleSheet("://styles/light_theme.qss"); // 从资源加载
+    loadStyleSheet(":/styles/light_theme.qss"); // 从资源加载
 
     MainWindow w;
     w.show();

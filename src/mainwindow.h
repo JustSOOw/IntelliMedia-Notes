@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-19 15:37:39
+ * @LastEditTime: 2025-04-19 23:00:48
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.h
  * @Description: 
  * 
@@ -47,17 +47,30 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    enum ResizeRegion {
+        None = 0,
+        Top = 1,
+        Bottom = 2,
+        Left = 4,
+        Right = 8,
+        TopLeft = Top | Left,
+        TopRight = Top | Right,
+        BottomLeft = Bottom | Left,
+        BottomRight = Bottom | Right
+    };
+
 protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    
     // 重写鼠标事件处理用于窗口拖动
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     
-    // 根据鼠标位置更新光标的函数
-    void updateCursorShape(const QPoint &pos);
+    // 重写大小调整事件
     void resizeEvent(QResizeEvent *event) override;
 
 private slots:
@@ -85,17 +98,6 @@ private:
     bool m_dragging = false; // 新增：用于跟踪窗口是否正在被拖动
     
     // --- 窗口大小调整变量和枚举 ---
-    enum ResizeRegion {
-        None = 0,
-        Top = 1,
-        Bottom = 2,
-        Left = 4,
-        Right = 8,
-        TopLeft = Top | Left,
-        TopRight = Top | Right,
-        BottomLeft = Bottom | Left,
-        BottomRight = Bottom | Right
-    };
     bool m_resizing = false; 
     ResizeRegion m_resizeRegion = None;
     QPoint m_resizeStartPosGlobal; // 存储全局起始位置
@@ -103,6 +105,12 @@ private:
     
     // 确定调整区域的辅助函数
     ResizeRegion getResizeRegion(const QPoint &pos);
+    
+    // 处理窗口大小调整的函数
+    void handleResize(const QPoint &globalPos);
+    
+    // 根据鼠标位置更新调整大小时光标的函数
+    void updateCursorForResize(const QPoint &pos);
     
     bool m_isDarkTheme; // 当前主题状态
     

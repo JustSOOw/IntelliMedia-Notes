@@ -25,5 +25,6 @@
         <file>qml/AIView.qml</file>
         <file>qml/FileContextMenu.qml</file>
         <file>qml/Animations.qml</file>
+        <file>qml/CustomDialog.qml</file>
     </qresource>
 </RCC>

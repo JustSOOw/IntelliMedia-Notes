@@ -10,8 +10,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required Qt components (Adjust if you added more modules like QuickWidgets, Sql)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg Core5Compat)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg QuickControls2)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg Core5Compat QuickControls2)
 
 # Tell AutoUic where to find UI files
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/forms)
@@ -23,6 +23,8 @@ set(PROJECT_SOURCES
         src/mainwindow.h
         src/sidebarmanager.cpp
         src/sidebarmanager.h
+        src/databasemanager.cpp
+        src/databasemanager.h
         forms/mainwindow.ui   # UI file is now in forms/
 )
 
@@ -57,6 +59,7 @@ endif()
 target_link_libraries(IntelliMedia_Notes PRIVATE 
     Qt${QT_VERSION_MAJOR}::Widgets 
     Qt${QT_VERSION_MAJOR}::QuickWidgets 
+    Qt${QT_VERSION_MAJOR}::QuickControls2
     Qt${QT_VERSION_MAJOR}::Sql 
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Core5Compat

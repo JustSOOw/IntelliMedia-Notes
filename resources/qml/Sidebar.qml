@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qt5Compat.GraphicalEffects // 导入图形效果模块
+import "." as Local // 导入当前目录下的组件
 
 // 侧边栏主组件
 Rectangle {
@@ -26,8 +27,8 @@ Rectangle {
     
     // 信号
     signal noteSelected(string path, string type)
-    signal createNote(string parentPath)
-    signal createFolder(string parentPath)
+    signal createNote(string parentPath, string noteName)
+    signal createFolder(string parentPath, string folderName)
     signal renameItem(string path, string newName)
     signal deleteItem(string path)
     signal sendAIMessage(string message)
@@ -79,9 +80,11 @@ Rectangle {
         onCreateNewNoteClicked: {
             // 默认在当前选中文件夹或根目录创建笔记
             if (noteTree.selectedNoteType === "folder") {
-                createNote(noteTree.selectedNotePath)
+                // 显示创建笔记对话框
+                noteTree.handleCreateNoteRequest(noteTree.selectedNotePath)
             } else {
-                createNote("/root") // 根目录
+                // 显示创建笔记对话框，在根目录下
+                noteTree.handleCreateNoteRequest("/root")
             }
         }
     }
@@ -96,19 +99,19 @@ Rectangle {
         currentIndex: currentView === "file" ? 0 : 1
         
         // 文件树视图
-        NoteTree {
+        Local.NoteTree {
             id: noteTree
             
             onNoteSelected: function(path, type) {
                 sidebarRoot.noteSelected(path, type)
             }
             
-            onCreateFolder: function(parentPath) {
-                sidebarRoot.createFolder(parentPath)
+            onCreateFolder: function(parentPath, folderName) {
+                sidebarRoot.createFolder(parentPath, folderName)
             }
             
-            onCreateNote: function(parentPath) {
-                sidebarRoot.createNote(parentPath)
+            onCreateNote: function(parentPath, noteName) {
+                sidebarRoot.createNote(parentPath, noteName)
             }
             
             onRenameItem: function(path, newName) {

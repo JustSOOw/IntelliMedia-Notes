@@ -12,11 +12,11 @@ Menu {
     property string itemPath: ""
     property string itemName: ""
     
-    // 信号
-    signal createFolderRequest(string parentPath)
-    signal createNoteRequest(string parentPath)
-    signal renameRequest(string path, string name)
-    signal deleteRequest(string path)
+    // 信号 - 修改为请求信号
+    signal createFolderRequested(string parentPath)
+    signal createNoteRequested(string parentPath)
+    signal renameRequested(string path, string name)
+    signal deleteRequested(string path)
     
     // 动画
     enter: Transition {
@@ -34,7 +34,11 @@ Menu {
         text: "创建笔记"
         icon.source: "qrc:/icons/sidebar/note.svg"
         enabled: isFolder
-        onTriggered: createNoteRequest(itemPath)
+        onTriggered: {
+            console.log("[ContextMenu] Create Note Requested for:", itemPath)
+            // 发射请求信号给 NoteTree
+            contextMenu.createNoteRequested(itemPath)
+        }
     }
     
     // 创建文件夹按钮
@@ -43,7 +47,11 @@ Menu {
         text: "创建文件夹"
         icon.source: "qrc:/icons/sidebar/folder.svg"
         enabled: isFolder
-        onTriggered: createFolderRequest(itemPath)
+        onTriggered: {
+            console.log("[ContextMenu] Create Folder Requested for:", itemPath)
+            // 发射请求信号给 NoteTree
+            contextMenu.createFolderRequested(itemPath)
+        }
     }
     
     // 分隔线
@@ -61,7 +69,11 @@ Menu {
         id: renameAction
         text: "重命名"
         icon.source: "qrc:/icons/sidebar/note.svg"
-        onTriggered: renameRequest(itemPath, itemName)
+        onTriggered: {
+            console.log("[ContextMenu] Rename Requested for:", itemPath, "Name:", itemName)
+            // 发射请求信号给 NoteTree
+            contextMenu.renameRequested(itemPath, itemName)
+        }
     }
     
     // 删除按钮
@@ -70,21 +82,13 @@ Menu {
         text: "删除"
         icon.source: "qrc:/icons/round_close_fill.svg"
         icon.color: "#333333"
-        onTriggered: deleteRequest(itemPath)
+        onTriggered: {
+            console.log("[ContextMenu] Delete Requested for:", itemPath)
+            // 发射请求信号给 NoteTree
+            contextMenu.deleteRequested(itemPath)
+        }
     }
     
-    // 菜单项 (移除显式 MenuItem，让 Menu 自动创建)
-    // MenuItem { action: createNoteAction; visible: isFolder }
-    // MenuItem { action: createFolderAction; visible: isFolder }
-    // MenuSeparator { visible: isFolder }
-    // MenuItem { action: renameAction }
-    // MenuItem { action: deleteAction }
-    
-    // 注意：如果需要控制特定项的可见性（如只在文件夹上显示创建），
-    // 可以在 Action 的 visible 属性上绑定，例如：
-    // Action { id: createNoteAction; ... ; visible: contextMenu.isFolder }
-    // 确认 Action 的 enabled 属性已正确绑定 (enabled: isFolder)
-
     background: Rectangle {
         implicitWidth: 180
         color: "#ffffff"

@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-17 14:50:41
+ * @LastEditTime: 2025-04-20 18:35:22
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -29,9 +29,11 @@
 #include <QApplication> // 引入qApp
 #include <QSvgRenderer> // 引入SVG渲染器
 #include <QPainter> // 引入绘图器
+#include <QStyleHints> // 引入QStyleHints
+#include <QWindow> // 引入QWindow
 
 // 定义窗口大小调整敏感区域的大小（像素）
-#define RESIZE_BORDER_SIZE 8 // 增加边缘敏感区域大小，使调整更容易
+#define RESIZE_BORDER_SIZE 8 // 调整区域大小
 
 // 定义所有按钮一致的图标大小
 const QSize BUTTON_ICON_SIZE(20, 20);
@@ -44,8 +46,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // --- 1. 移除标准窗口框架和设置窗口属性 --- 
     setWindowFlags(Qt::FramelessWindowHint);
-    
-
+    setAttribute(Qt::WA_TranslucentBackground);  // 允许使用透明背景
+    setAttribute(Qt::WA_Hover);  // 让Qt生成悬停事件
     
     // 设置窗口最小尺寸，防止调整得太小
     setMinimumSize(800, 600);
@@ -58,10 +60,6 @@ MainWindow::MainWindow(QWidget *parent)
     // 初始化侧边栏
     setupSidebar();
     
-    // -----------------------------
-
-
-
     // --- 4. 创建并配置按钮 ---
     // --- 4a. 侧边栏切换按钮 ---
     toggleSidebarButton = new QToolButton(this); 
@@ -110,8 +108,7 @@ MainWindow::MainWindow(QWidget *parent)
     settingsButton->setToolTip("设置");
     settingsButton->setStyleSheet("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: #555; border-radius: 4px; }");
     connect(settingsButton, &QToolButton::clicked, this, &MainWindow::openSettings);
-    // --------------------------------------
-
+    
     // --- 5. 使用Designer中创建的widget作为按钮容器 ---
     // 获取Designer中添加的widget控件
     QWidget* buttonWidget = ui->widget;  // 确保widget是您在Designer中添加的控件名称
@@ -143,17 +140,18 @@ MainWindow::MainWindow(QWidget *parent)
 
     // --- 6. 启用鼠标跟踪以接收无按钮按下的移动事件 ---
     setMouseTracking(true); 
-    // 对于centralWidget及其子控件也启用，确保事件能到达MainWindow
+    // 确保所有子控件都启用鼠标跟踪，以便能将事件传递给窗口边框
     centralWidget()->setMouseTracking(true); 
-    // 如果按钮栏ui->widget覆盖了边缘，也为它启用
     ui->widget->setMouseTracking(true);
-    // 如果侧边栏或主内容区可能覆盖边缘，也为它们启用
-    // ui->sidebarContainer->setMouseTracking(true);
-    // ui->mainContentContainer->setMouseTracking(true);
+    ui->sidebarContainer->setMouseTracking(true);
+    ui->mainContentContainer->setMouseTracking(true);
 
-    // --- 7. 初始化主题（现在在main.cpp加载初始样式表） ---
+    // --- 7. 初始化主题
     m_isDarkTheme = false; // 以浅色主题开始
     updateButtonIcons(); // 根据默认浅色主题设置初始图标
+    
+    // --- 8. 安装事件过滤器处理窗口边缘和角落拖动事件 ---
+    installEventFilter(this);
 }
 
 MainWindow::~MainWindow()
@@ -170,9 +168,9 @@ void MainWindow::loadAndApplyStyleSheet(const QString &sheetName)
         QString styleSheet = QLatin1String(file.readAll());
         qApp->setStyleSheet(styleSheet); // 应用于整个应用程序
         file.close();
-        qDebug() << "Applied stylesheet:" << sheetName;
+        qDebug() << "应用了样式表:" << sheetName;
     } else {
-        qWarning() << "Could not open stylesheet file:" << sheetName;
+        qWarning() << "无法打开样式表文件:" << sheetName;
     }
 }
 
@@ -208,8 +206,6 @@ QIcon MainWindow::colorizeSvgIcon(const QString &path, const QColor &color)
     coloredPixmap.fill(color); // 用目标颜色填充
     coloredPixmap.setMask(pixmap.createMaskFromColor(Qt::transparent)); // 使用原始形状作为掩码
     
-
-
     return QIcon(coloredPixmap);
 }
 
@@ -278,7 +274,6 @@ void MainWindow::toggleTheme()
     }
     
     updateButtonIcons(); // 为新主题更新图标
-    
 }
 
 void MainWindow::openSettings()
@@ -287,164 +282,219 @@ void MainWindow::openSettings()
     qDebug() << "设置按钮被点击!";
 }
 
-// --- 鼠标事件处理实现 ---
+// 事件过滤器 - 用于处理窗口拖动和调整大小
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    // 处理窗口移动和调整大小
+    if (watched == this) {
+        switch (event->type()) {
+            case QEvent::MouseButtonPress: {
+                auto *mouseEvent = static_cast<QMouseEvent*>(event);
+                if (mouseEvent->button() == Qt::LeftButton) {
+                    if (m_titleBarWidget && m_titleBarWidget->geometry().contains(mouseEvent->pos())) {
+                        // 点击标题栏，准备拖动窗口
+                        m_dragging = true;
+                        m_mouse_pos = mouseEvent->pos();
+                    } else {
+                        // 检查是否在调整区域内点击
+                        m_resizeRegion = getResizeRegion(mouseEvent->pos());
+                        if (m_resizeRegion != None) {
+                            m_resizing = true;
+                            m_resizeStartPosGlobal = mouseEvent->globalPosition().toPoint();
+                            m_resizeStartGeometry = geometry();
+                            return true;
+                        }
+                    }
+                }
+                break;
+            }
+            
+            case QEvent::MouseMove: {
+                auto *mouseEvent = static_cast<QMouseEvent*>(event);
+                
+                if (m_dragging && (mouseEvent->buttons() & Qt::LeftButton)) {
+                    // 移动窗口
+                    move(mouseEvent->globalPosition().toPoint() - m_mouse_pos);
+                    return true;
+                } else if (m_resizing && (mouseEvent->buttons() & Qt::LeftButton)) {
+                    // 调整窗口大小
+                    handleResize(mouseEvent->globalPosition().toPoint());
+                    return true;
+                } else {
+                    // 根据鼠标位置更新光标
+                    updateCursorForResize(mouseEvent->pos());
+                }
+                
+                break;
+            }
+            
+            case QEvent::MouseButtonRelease: {
+                if (static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton) {
+                    m_dragging = false;
+                    m_resizing = false;
+                    m_resizeRegion = None;
+                }
+                break;
+            }
+            
+            case QEvent::Leave: {
+                // 鼠标离开窗口时恢复光标
+                if (!m_resizing && !m_dragging) {
+                    setCursor(Qt::ArrowCursor);
+                }
+                break;
+            }
+            
+            default:
+                break;
+        }
+    }
+    
+    return QMainWindow::eventFilter(watched, event);
+}
 
-// 确定调整大小区域的辅助函数
-MainWindow::ResizeRegion MainWindow::getResizeRegion(const QPoint &clientPos) {
+// 获取调整大小的区域
+MainWindow::ResizeRegion MainWindow::getResizeRegion(const QPoint &pos)
+{
+    if (isMaximized()) {
+        return None; // 最大化时不允许调整大小
+    }
+    
+    int x = pos.x();
+    int y = pos.y();
     int width = this->width();
     int height = this->height();
     
-    bool top = clientPos.y() <= RESIZE_BORDER_SIZE;
-    bool bottom = clientPos.y() >= height - RESIZE_BORDER_SIZE;
-    bool left = clientPos.x() <= RESIZE_BORDER_SIZE;
-    bool right = clientPos.x() >= width - RESIZE_BORDER_SIZE;
-
-    // 优先处理角落
+    bool left = x <= RESIZE_BORDER_SIZE;
+    bool right = x >= width - RESIZE_BORDER_SIZE;
+    bool top = y <= RESIZE_BORDER_SIZE;
+    bool bottom = y >= height - RESIZE_BORDER_SIZE;
+    
     if (top && left) return TopLeft;
     if (top && right) return TopRight;
     if (bottom && left) return BottomLeft;
     if (bottom && right) return BottomRight;
-    // 然后是边缘
-    if (top) return Top;
-    if (bottom) return Bottom;
     if (left) return Left;
     if (right) return Right;
+    if (top) return Top;
+    if (bottom) return Bottom;
     
     return None;
 }
 
-// 根据位置更新光标形状
-void MainWindow::updateCursorShape(const QPoint &pos) {
-    if (isMaximized() || m_resizing) { // 如果已最大化或正在调整大小，不改变光标
-        return;
-    }
-
+// 根据鼠标位置更新光标形状
+void MainWindow::updateCursorForResize(const QPoint &pos)
+{
     ResizeRegion region = getResizeRegion(pos);
     
     switch (region) {
-        case TopLeft:     setCursor(Qt::SizeFDiagCursor); break;
-        case TopRight:    setCursor(Qt::SizeBDiagCursor); break;
-        case BottomLeft:  setCursor(Qt::SizeBDiagCursor); break;
-        case BottomRight: setCursor(Qt::SizeFDiagCursor); break;
-        case Top:         setCursor(Qt::SizeVerCursor);   break;
-        case Bottom:      setCursor(Qt::SizeVerCursor);   break;
-        case Left:        setCursor(Qt::SizeHorCursor);   break;
-        case Right:       setCursor(Qt::SizeHorCursor);   break;
-        default:          unsetCursor(); break; // 使用默认光标
+        case Left:
+        case Right:
+            setCursor(Qt::SizeHorCursor);
+            break;
+        case Top:
+        case Bottom:
+            setCursor(Qt::SizeVerCursor);
+            break;
+        case TopLeft:
+        case BottomRight:
+            setCursor(Qt::SizeFDiagCursor);
+            break;
+        case TopRight:
+        case BottomLeft:
+            setCursor(Qt::SizeBDiagCursor);
+            break;
+        default:
+            setCursor(Qt::ArrowCursor);
+            break;
     }
 }
 
+// 处理窗口大小调整逻辑
+void MainWindow::handleResize(const QPoint &globalPos)
+{
+    if (!m_resizing || isMaximized()) {
+        return;
+    }
+    
+    QPoint delta = globalPos - m_resizeStartPosGlobal;
+    QRect newGeometry = m_resizeStartGeometry;
+    
+    // 根据调整区域修改几何形状
+    if (m_resizeRegion & Left) {
+        newGeometry.setLeft(m_resizeStartGeometry.left() + delta.x());
+    }
+    if (m_resizeRegion & Right) {
+        newGeometry.setRight(m_resizeStartGeometry.right() + delta.x());
+    }
+    if (m_resizeRegion & Top) {
+        newGeometry.setTop(m_resizeStartGeometry.top() + delta.y());
+    }
+    if (m_resizeRegion & Bottom) {
+        newGeometry.setBottom(m_resizeStartGeometry.bottom() + delta.y());
+    }
+    
+    // 应用最小尺寸约束
+    if (newGeometry.width() < minimumWidth()) {
+        if (m_resizeRegion & Left) {
+            newGeometry.setLeft(newGeometry.right() - minimumWidth());
+        } else {
+            newGeometry.setRight(newGeometry.left() + minimumWidth());
+        }
+    }
+    
+    if (newGeometry.height() < minimumHeight()) {
+        if (m_resizeRegion & Top) {
+            newGeometry.setTop(newGeometry.bottom() - minimumHeight());
+        } else {
+            newGeometry.setBottom(newGeometry.top() + minimumHeight());
+        }
+    }
+    
+    // 设置新的几何形状
+    setGeometry(newGeometry);
+}
+
+// 以下是为兼容性保留的鼠标事件处理函数
+// 大部分逻辑已经移至eventFilter中
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
-    // --- 窗口大小调整 --- 
-    // 在按下时计算调整区域
-    ResizeRegion region = getResizeRegion(event->pos());
-    
-    // 检查是否在调整区域内按下左键，并且窗口未最大化
-    if (region != None && event->button() == Qt::LeftButton && !isMaximized()) {
-        m_resizing = true;
-        m_resizeRegion = region; // 存储当前区域
-        m_resizeStartPosGlobal = event->globalPosition().toPoint();
-        m_resizeStartGeometry = geometry();
-        event->accept(); // 接受事件，防止传递给父控件
-        return; // 如果开始调整大小，则不处理拖动
-    }
-
-    // --- 窗口拖动 --- 
     if (event->button() == Qt::LeftButton) {
-         // 检查是否在标题栏区域内按下
-         if (m_titleBarWidget && m_titleBarWidget->rect().contains(event->pos())) {
-             m_mouse_pos = event->pos(); // 存储相对位置
-             m_dragging = true; // 设置拖动标志
-             event->accept(); // 接受事件
-             return;
-         }
+        // 这里我们保留一些旧的逻辑，以防有些情况未被eventFilter捕获
+        m_mouse_pos = event->pos();
     }
-
-    QMainWindow::mousePressEvent(event); // 调用基类实现处理其他情况
+    QMainWindow::mousePressEvent(event);
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    // --- 窗口大小调整 ---
-    if (m_resizing) {
-        QPoint delta = event->globalPosition().toPoint() - m_resizeStartPosGlobal;
-        QRect newGeometry = m_resizeStartGeometry;
-        
-        // 根据调整区域修改几何信息
-        if (m_resizeRegion & Top)    newGeometry.setTop(newGeometry.top() + delta.y());
-        if (m_resizeRegion & Bottom) newGeometry.setBottom(newGeometry.bottom() + delta.y());
-        if (m_resizeRegion & Left)   newGeometry.setLeft(newGeometry.left() + delta.x());
-        if (m_resizeRegion & Right)  newGeometry.setRight(newGeometry.right() + delta.x());
-
-        // 限制最小尺寸 (例如 200x100)
-        if (newGeometry.width() < 200) {
-            if (m_resizeRegion & Left) newGeometry.setLeft(newGeometry.right() - 200);
-            else newGeometry.setWidth(200);
-        }
-        if (newGeometry.height() < 100) {
-            if (m_resizeRegion & Top) newGeometry.setTop(newGeometry.bottom() - 100);
-            else newGeometry.setHeight(100);
-        }
-
-        setGeometry(newGeometry);
-        event->accept();
-        return;
-    }
-
-    // --- 窗口拖动 ---
-    else if (m_dragging && (event->buttons() & Qt::LeftButton)) { // 使用 m_dragging
-        // 检查移动是否在标题栏区域内开始（理论上m_dragging为true时已满足）
-        // if (m_titleBarWidget && m_titleBarWidget->rect().contains(m_mouse_pos)) { // 这个检查可以省略，因为m_dragging已保证
-             move(event->globalPosition().toPoint() - m_mouse_pos);
-             event->accept();
-             return;
-        // }
-    }
-
-    // 仅当不调整大小且不拖动时才更新光标形状
-    updateCursorShape(event->pos()); 
-    QMainWindow::mouseMoveEvent(event); // 调用基类处理其他移动事件
+    // 为兼容性保留
+    QMainWindow::mouseMoveEvent(event);
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
-    // --- 窗口大小调整 ---
-    if (m_resizing && event->button() == Qt::LeftButton) {
-        m_resizing = false; // 重置调整大小状态
-        m_resizeRegion = None; // 重置调整区域
-        unsetCursor(); // 恢复默认光标
-        event->accept();
-        return;
-    }
-    
-    // --- 窗口拖动 ---
-    if (m_dragging && event->button() == Qt::LeftButton) {
-        m_dragging = false; // 重置拖动状态
-        event->accept();
-        return;
-    }
-
-    QMainWindow::mouseReleaseEvent(event); // 调用基类实现
-    unsetCursor(); // 确保在释放时恢复光标
+    // 为兼容性保留
+    QMainWindow::mouseReleaseEvent(event);
 }
-// ------------------------------------
 
-// --- 窗口大小调整事件处理 ---
+// 处理窗口大小变化事件
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-    QMainWindow::resizeEvent(event); // 调用基类实现是良好的实践
+    QMainWindow::resizeEvent(event);
     
-    // 窗口大小改变后，更新最大化/还原按钮的图标
-    updateButtonIcons(); 
-    
-    // 在调整大小后，可能需要重新计算或更新光标形状逻辑（如果光标依赖于窗口尺寸）
-    // 例如，如果鼠标恰好在新的边缘上
-    // updateCursorShape(mapFromGlobal(QCursor::pos())); 
-    // 注意: mapFromGlobal可能需要QWidget*上下文，或者直接使用event中的信息（如果适用）
+    // 如果窗口状态改变，更新最大化/还原按钮图标
+    if (isMaximized() != (maximizeButton->toolTip() == "还原")) {
+        if (isMaximized()) {
+            maximizeButton->setToolTip("还原");
+        } else {
+            maximizeButton->setToolTip("最大化");
+        }
+        updateButtonIcons();
+    }
 }
 
-// 设置侧边栏
+// --- 设置侧边栏 ---
 void MainWindow::setupSidebar()
 {
     // 创建QQuickWidget来显示QML

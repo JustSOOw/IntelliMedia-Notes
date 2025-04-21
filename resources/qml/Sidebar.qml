@@ -7,9 +7,8 @@ import "." as Local // 导入当前目录下的组件
 // 侧边栏主组件
 Rectangle {
     id: sidebarRoot
-    // 设置为白色背景，匹配 light_theme.qss 中的 sidebarContainer
-    // 注意：如果需要支持暗色主题，这里需要动态绑定颜色
-    color: "#ffffff"
+    // 根据主题动态设置背景色
+    color: sidebarManager.isDarkTheme ? "#353535" : "#ffffff"
     
     // 添加阴影效果
     layer.enabled: true
@@ -18,7 +17,7 @@ Rectangle {
         verticalOffset: 0
         radius: 8.0
         samples: 17
-        color: "#1a000000" // 非常淡的黑色阴影
+        color: sidebarManager.isDarkTheme ? "#50000000" : "#1a000000" // 根据主题调整阴影颜色
         source: sidebarRoot // 指定效果源为 sidebarRoot 本身
     }
     

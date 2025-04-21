@@ -18,6 +18,31 @@ Popup {
     property bool isWarning: false   // 是否为警告对话框
     property bool cancelVisible: true // 是否显示取消按钮
     
+    // 主题相关颜色
+    property color dialogBgColor: sidebarManager.isDarkTheme ? "#353535" : "#ffffff"
+    property color titleBarColor: sidebarManager.isDarkTheme ? 
+        (isWarning ? "#503030" : "#304050") : 
+        (isWarning ? "#FFE0E0" : "#F0F7FF")
+    property color titleTextColor: isWarning ? 
+        (sidebarManager.isDarkTheme ? "#ff7070" : "#FF4040") :
+        (sidebarManager.isDarkTheme ? "#90caf9" : "#4285F4")
+    property color messageTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color inputBgColor: sidebarManager.isDarkTheme ? "#454545" : "#f5f5f5"
+    property color inputBorderColor: sidebarManager.isDarkTheme ? 
+        (inputField.activeFocus ? "#90caf9" : "#606060") : 
+        (inputField.activeFocus ? "#4285F4" : "#e0e0e0")
+    property color inputTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color buttonBgColor: sidebarManager.isDarkTheme ? "#454545" : "#f5f5f5"
+    property color buttonHoverColor: sidebarManager.isDarkTheme ? "#555555" : "#f0f0f0" 
+    property color buttonPressedColor: sidebarManager.isDarkTheme ? "#656565" : "#e0e0e0"
+    property color buttonBorderColor: sidebarManager.isDarkTheme ? "#606060" : "#e0e0e0"
+    property color cancelTextColor: sidebarManager.isDarkTheme ? "#cccccc" : "#666666"
+    property color confirmBgColor: "#4285F4" // 确认按钮保持蓝色
+    property color confirmHoverColor: "#5295F5"
+    property color confirmPressedColor: "#3275E5"
+    property color confirmTextColor: "white"
+    property color shadowColor: sidebarManager.isDarkTheme ? "#60000000" : "#30000000"
+    
     // 回调信号
     signal confirmed(string inputText)
     signal cancelled()
@@ -44,7 +69,7 @@ Popup {
     
     // 背景样式
     background: Rectangle {
-        color: "#ffffff"
+        color: dialogBgColor
         radius: 12
         
         // 阴影效果
@@ -55,7 +80,7 @@ Popup {
             verticalOffset: 3
             radius: 12.0
             samples: 25
-            color: "#30000000"
+            color: shadowColor
         }
     }
     
@@ -69,21 +94,21 @@ Popup {
             width: parent.width
             height: 50
             radius: 12
-            color: isWarning ? "#FFE0E0" : "#F0F7FF"
+            color: titleBarColor
             
             // 只设置顶部圆角
             Rectangle {
                 width: parent.width
                 height: parent.height / 2
                 anchors.bottom: parent.bottom
-                color: isWarning ? "#FFE0E0" : "#F0F7FF"
+                color: titleBarColor
             }
             
             Label {
                 text: title
                 font.pixelSize: 16
                 font.bold: true
-                color: isWarning ? "#FF4040" : "#4285F4"
+                color: titleTextColor
                 anchors.centerIn: parent
             }
         }
@@ -101,7 +126,7 @@ Popup {
             Label {
                 text: message
                 font.pixelSize: 14
-                color: "#333333"
+                color: messageTextColor
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -118,12 +143,13 @@ Popup {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 36
                 horizontalAlignment: Text.AlignLeft
+                color: inputTextColor
                 
                 background: Rectangle {
                     radius: 6
-                    color: "#f5f5f5"
+                    color: inputBgColor
                     border.width: 1
-                    border.color: inputField.activeFocus ? "#4285F4" : "#e0e0e0"
+                    border.color: inputBorderColor
                     
                     // 焦点动画
                     Behavior on border.color {
@@ -178,17 +204,17 @@ Popup {
                     contentItem: Text {
                         text: cancelButton.text
                         font.pixelSize: 14
-                        color: "#666666"
+                        color: cancelTextColor
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     
                     background: Rectangle {
                         radius: 6
-                        color: cancelButton.pressed ? "#e0e0e0" : 
-                               cancelButton.hovered ? "#f0f0f0" : "#f5f5f5"
+                        color: cancelButton.pressed ? buttonPressedColor : 
+                               cancelButton.hovered ? buttonHoverColor : buttonBgColor
                         border.width: 1
-                        border.color: "#e0e0e0"
+                        border.color: buttonBorderColor
                         
                         // 悬停效果
                         Behavior on color {
@@ -212,17 +238,15 @@ Popup {
                     contentItem: Text {
                         text: confirmButton.text
                         font.pixelSize: 14
-                        font.bold: true
-                        color: "white"
+                        color: confirmTextColor
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     
                     background: Rectangle {
                         radius: 6
-                        color: confirmButton.pressed ? (isWarning ? "#D32F2F" : "#1A73E8") : 
-                               confirmButton.hovered ? (isWarning ? "#F44336" : "#4285F4") : 
-                               isWarning ? "#FF5252" : "#4285F4"
+                        color: confirmButton.pressed ? confirmPressedColor : 
+                               confirmButton.hovered ? confirmHoverColor : confirmBgColor
                         
                         // 悬停效果
                         Behavior on color {
@@ -249,6 +273,14 @@ Popup {
         if (showInput && inputField.visible) {
             inputField.forceActiveFocus()
             inputField.selectAll()
+        }
+    }
+    
+    // 监听主题变化
+    Connections {
+        target: sidebarManager
+        function onThemeChanged() {
+            // 属性会自动更新，无需额外操作
         }
     }
 } 

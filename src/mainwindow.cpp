@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-20 18:35:22
+ * @LastEditTime: 2025-04-21 21:52:41
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -99,7 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // --- 3c. 主题和设置按钮 ---
     themeToggleButton = new QToolButton(this);
-    // 假设以浅色主题开始，显示月亮图标
+    // 以浅色主题开始，显示月亮图标
     themeToggleButton->setIcon(QIcon("://icons/month.svg")); 
     themeToggleButton->setFixedSize(28, 28);
     themeToggleButton->setToolTip("切换主题");
@@ -278,6 +278,11 @@ void MainWindow::toggleTheme()
     }
     
     updateButtonIcons(); // 为新主题更新图标
+    
+    // 更新侧边栏管理器的主题状态
+    if (m_sidebarManager) {
+        m_sidebarManager->updateTheme(m_isDarkTheme);
+    }
 }
 
 void MainWindow::openSettings()
@@ -533,8 +538,8 @@ void MainWindow::setupSearch()
         return;
     }
     
-    // 创建搜索管理器
-    m_searchManager = new SearchManager(m_sidebarManager->getDatabaseManager(), this);
+    // 创建搜索管理器，传入SidebarManager指针
+    m_searchManager = new SearchManager(m_sidebarManager->getDatabaseManager(), m_sidebarManager, this);
     
     // 连接搜索管理器和主窗口
     connect(m_searchManager, &SearchManager::noteSelected, this, &MainWindow::handleNoteSelected);

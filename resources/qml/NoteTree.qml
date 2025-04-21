@@ -15,6 +15,27 @@ Item {
     property int maxFolderLevel: 4
     property alias folderListModel: folderListModel // 导出列表模型以便外部访问
     
+    // 主题相关颜色（扩展更多颜色定义）
+    property color bgColor: sidebarManager.isDarkTheme ? "transparent" : "transparent"
+    property color textColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color folderTextColor: sidebarManager.isDarkTheme ? "#f2f2f2" : "#444444"
+    property color noteTextColor: sidebarManager.isDarkTheme ? "#cccccc" : "#666666"
+    property color hoverBgColor: sidebarManager.isDarkTheme ? "#454545" : "#f0f0f0"
+    property color selectedBgColor: sidebarManager.isDarkTheme ? "#3a5a8c" : "#e3f2fd"
+    property color selectedItemTextColor: sidebarManager.isDarkTheme ? "#ffffff" : "#1976D2"
+    property color dialogBgColor: sidebarManager.isDarkTheme ? "#3a3a3a" : "#ffffff"
+    property color dialogTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color folderIconColor: sidebarManager.isDarkTheme ? "#80cbc4" : "#4285F4"
+    property color noteIconColor: sidebarManager.isDarkTheme ? "#a5d6a7" : "#43a047"
+    property color dividerColor: sidebarManager.isDarkTheme ? "#454545" : "#e0e0e0"
+    property color expandIconColor: sidebarManager.isDarkTheme ? "#aaaaaa" : "#888888"
+    property color menuIconColor: sidebarManager.isDarkTheme ? "#cccccc" : "#888888"
+    property color itemBorderColor: sidebarManager.isDarkTheme ? "#505050" : "#e0e0e0"
+    property color placeholderTextColor: sidebarManager.isDarkTheme ? "#808080" : "#aaaaaa"
+    property color warningColor: sidebarManager.isDarkTheme ? "#ff6060" : "#c75450"
+    property color scrollBarColor: sidebarManager.isDarkTheme ? "#606060" : "#bbbbbb"
+    property color titleColor: sidebarManager.isDarkTheme ? "#80cbc4" : "#1976D2"
+    
     // 信号
     signal noteSelected(string path, string type)
     signal createFolder(string parentPath, string folderName)
@@ -389,7 +410,7 @@ Item {
     Rectangle {
         id: containerRect
         anchors.fill: parent
-        color: "transparent" // 容器背景透明
+        color: bgColor
         
         // 处理顶部空白区域点击的MouseArea
         MouseArea {
@@ -433,7 +454,7 @@ Item {
             id: headerRect
             width: parent.width
             height: 50
-            color: "#ffffff"
+            color: sidebarManager.isDarkTheme ? "#353535" : "#ffffff"
             radius: 8
             
             // 标题文本
@@ -445,7 +466,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 15
-                color: "#333333"
+                color: titleColor
             }
             
             // 展开/折叠按钮
@@ -470,7 +491,7 @@ Item {
                     ColorOverlay {
                         anchors.fill: parent
                         source: parent
-                        color: "#333333" // 与文件夹图标颜色一致
+                        color: expandIconColor
                     }
                 }
                 
@@ -529,8 +550,19 @@ Item {
                 anchors.fill: parent
                 z: 1 // 置于背景之上，但不应该阻挡emptyAreaMouseArea
             
-            // 使用C++提供的数据代替静态数据
-            model: folderListModel
+                ScrollBar.vertical: ScrollBar {
+                    active: true
+                    policy: ScrollBar.AsNeeded
+                    contentItem: Rectangle {
+                        implicitWidth: 6
+                        implicitHeight: 100
+                        radius: width / 2
+                        color: scrollBarColor
+                    }
+                }
+            
+                // 使用C++提供的数据代替静态数据
+                model: folderListModel
             
                 // 添加空白分隔区域，用于点击取消选中
                 header: Rectangle {
@@ -616,7 +648,7 @@ Item {
                     verticalOffset: 2
                     radius: itemMouseArea.containsMouse || noteTree.selectedNotePath === model.path ? 8.0 : 4.0
                     samples: 17
-                    color: "#20000000"
+                    color: sidebarManager.isDarkTheme ? "#40000000" : "#20000000"
                     source: itemCard
                     visible: true // 始终显示阴影，但强度不同
                     
@@ -628,10 +660,19 @@ Item {
                     id: itemCard
                     anchors.fill: parent
                     radius: 8
-                    color: "#ffffff"
+                    color: {
+                        if (noteTree.selectedNotePath === model.path) {
+                            return selectedBgColor;
+                        } else if (itemMouseArea.containsMouse) {
+                            return hoverBgColor;
+                        } else {
+                            return sidebarManager.isDarkTheme ? "#353535" : "#ffffff";
+                        }
+                    }
                     border.width: 1
                     border.color: itemMouseArea.containsMouse || noteTree.selectedNotePath === model.path ? 
-                                 "#4285F4" : "#e0e0e0"
+                                 (sidebarManager.isDarkTheme ? "#607080" : "#4285F4") : 
+                                 itemBorderColor
                     
                     // 指示条 (选中时)
                     Rectangle {
@@ -642,7 +683,7 @@ Item {
                         anchors.left: parent.left
                         anchors.leftMargin: 4
                         anchors.verticalCenter: parent.verticalCenter
-                        color: "#4285F4"
+                        color: sidebarManager.isDarkTheme ? "#80cbc4" : "#4285F4"
                         visible: noteTree.selectedNotePath === model.path
                         
                         // 淡入淡出
@@ -656,12 +697,12 @@ Item {
                         anchors.rightMargin: 16
                         spacing: 12
                             
-                            // 增加层级指示器（针对超过3级的文件夹）
+                            // 层级指示器
                             Rectangle {
                                 id: levelIndicator
                                 Layout.preferredWidth: model.level > 3 ? 4 : 0
                                 Layout.preferredHeight: 24
-                                color: "#888888"
+                                color: sidebarManager.isDarkTheme ? "#606060" : "#888888"
                                 radius: 2
                                 visible: model.level > 3
                                 
@@ -693,7 +734,7 @@ Item {
                                 ColorOverlay {
                                     anchors.fill: parent
                                     source: parent
-                                    color: "#333333" // 恢复为灰色
+                                    color: expandIconColor
                                 }
                                 
                             Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
@@ -730,8 +771,15 @@ Item {
                             ColorOverlay {
                                 anchors.fill: parent
                                 source: parent
-                                color: noteTree.selectedNotePath === model.path ? 
-                                      "#4285F4" : "#666666" // 选中时图标变蓝
+                                color: {
+                                    if (noteTree.selectedNotePath === model.path) {
+                                        // 选中状态，使用高亮颜色
+                                        return sidebarManager.isDarkTheme ? "#ffffff" : "#4285F4";
+                                    } else {
+                                        // 普通状态，使用类型颜色
+                                        return model.type === "folder" ? folderIconColor : noteIconColor;
+                                    }
+                                }
                             }
                         }
                         
@@ -745,8 +793,13 @@ Item {
                                 elide: Text.ElideMiddle // 从中间省略，而不是右侧
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            color: noteTree.selectedNotePath === model.path ? 
-                                  "#4285F4" : "#333333" // 选中时文字变蓝
+                            color: {
+                                if (noteTree.selectedNotePath === model.path) {
+                                    return selectedItemTextColor;
+                                } else {
+                                    return model.type === "folder" ? folderTextColor : noteTextColor;
+                                }
+                            }
                             
                                 ToolTip {
                                     text: model.name
@@ -775,7 +828,7 @@ Item {
                             ColorOverlay {
                                 anchors.fill: parent
                                 source: parent
-                                color: "#FFD700" // 金色
+                                color: "#FFD700" // 金色，不随主题变化
                             }
                         }
                     }
@@ -831,14 +884,6 @@ Item {
                     
                 Behavior on scale { 
                         NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-                }
-            }
-            
-            ScrollBar.vertical: ScrollBar {
-                id: scrollBar
-                active: true
-                interactive: true
-                policy: ScrollBar.AsNeeded
                 }
             }
         }
@@ -1006,4 +1051,15 @@ Item {
         // console.log("[NoteTree] Opening Delete Dialog...")
         deleteDialog.open()
     }
-} 
+    
+    // 监听主题变化
+    Connections {
+        target: sidebarManager
+        function onThemeChanged() {
+            // 属性会自动更新，无需额外操作
+            console.log("NoteTree: Theme changed to", sidebarManager.isDarkTheme ? "dark" : "light")
+        }
+    }
+}
+
+}

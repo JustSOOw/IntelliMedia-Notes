@@ -13,6 +13,14 @@ Rectangle {
     // 当前选中的按钮 (file, ai, search)
     property string activeButton: "file"
     
+    // 主题相关颜色属性
+    property color activeIndicatorColor: "#4285F4" // 选中指示器颜色保持不变
+    property color activeTextColor: "#f2f4f7" // 选中文本颜色
+    property color inactiveTextColor: sidebarManager.isDarkTheme ? "#b0b0b0" : "#666666" // 非选中文本颜色
+    property color hoverTextColor: "#4285F4" // 悬停文本颜色
+    property color buttonHoverBgColor: sidebarManager.isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" // 按钮悬停背景
+    property color activeBgColor: "#4285F4" // 活动按钮背景色
+    
     // 信号：按钮被点击
     signal fileButtonClicked()
     signal aiButtonClicked()
@@ -76,14 +84,22 @@ Rectangle {
     
     // --- 添加一个函数来更新所有按钮的颜色 ---
     function _updateButtonColors() {
-        if (fileText) fileText.color = (activeButton === "file" ? "#f2f4f7" : (fileClickArea.containsMouse ? "#4285F4" : "#666666"));
-        if (fileIconOverlay) fileIconOverlay.color = (activeButton === "file" ? "#ffffff" : (fileClickArea.containsMouse ? "#4285F4" : "#666666"));
+        if (fileText) fileText.color = (activeButton === "file" ? activeTextColor : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
+        if (fileIconOverlay) fileIconOverlay.color = (activeButton === "file" ? "#ffffff" : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
 
-        if (aiText) aiText.color = (activeButton === "ai" ? "#f2f4f7" : (aiClickArea.containsMouse ? "#4285F4" : "#666666"));
-        if (aiIconOverlay) aiIconOverlay.color = (activeButton === "ai" ? "#ffffff" : (aiClickArea.containsMouse ? "#4285F4" : "#666666"));
+        if (aiText) aiText.color = (activeButton === "ai" ? activeTextColor : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
+        if (aiIconOverlay) aiIconOverlay.color = (activeButton === "ai" ? "#ffffff" : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
 
-        if (searchText) searchText.color = (activeButton === "search" ? "#f2f4f7" : (searchClickArea.containsMouse ? "#4285F4" : "#666666"));
-        if (searchIconOverlay) searchIconOverlay.color = (activeButton === "search" ? "#ffffff" : (searchClickArea.containsMouse ? "#4285F4" : "#666666"));
+        if (searchText) searchText.color = (activeButton === "search" ? activeTextColor : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
+        if (searchIconOverlay) searchIconOverlay.color = (activeButton === "search" ? "#ffffff" : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
+    }
+    
+    // 监听主题变化
+    Connections {
+        target: sidebarManager
+        function onThemeChanged() {
+            _updateButtonColors();
+        }
     }
     // --------------------------------------------
     
@@ -103,8 +119,16 @@ Rectangle {
             gradient: Gradient {
                 id: newButtonGradient
                 orientation: Gradient.Horizontal
-                GradientStop { id: gradientStop1; position: 0.0; color: "#8ccf0f" } // 左侧浅绿
-                GradientStop { id: gradientStop2; position: 1.0; color: "#4285F4" } // 右侧原蓝
+                GradientStop { 
+                    id: gradientStop1
+                    position: 0.0
+                    color: sidebarManager.isDarkTheme ? "#6abf0d" : "#8ccf0f" // 暗色主题调整为深一点的绿色
+                } 
+                GradientStop { 
+                    id: gradientStop2
+                    position: 1.0
+                    color: sidebarManager.isDarkTheme ? "#3275e4" : "#4285F4" // 暗色主题调整为深一点的蓝色
+                }
             }
             
             // 添加阴影效果
@@ -115,7 +139,7 @@ Rectangle {
                 verticalOffset: 2
                 radius: 6.0
                 samples: 16
-                color: "#30000000" // 半透明黑色阴影
+                color: sidebarManager.isDarkTheme ? "#40000000" : "#30000000" // 根据主题调整阴影
             }
             
             // 按钮内容 (图标和文字)
@@ -165,7 +189,7 @@ Rectangle {
                     PropertyChanges { target: gradientStop1; color: Qt.lighter("#8ccf0f", 1.1) }
                     PropertyChanges { target: gradientStop2; color: Qt.lighter("#4285F4", 1.1) }
                     PropertyChanges { target: newButton; scale: 1.03 }
-                    PropertyChanges { target: newButtonShadow; color: "#40000000"; radius: 8.0 }
+                    PropertyChanges { target: newButtonShadow; color: sidebarManager.isDarkTheme ? "#50000000" : "#40000000"; radius: 8.0 }
                 },
                 State {
                     name: "PRESSED"
@@ -174,7 +198,7 @@ Rectangle {
                     PropertyChanges { target: gradientStop1; color: Qt.darker("#8ccf0f", 1.1) }
                     PropertyChanges { target: gradientStop2; color: Qt.darker("#4285F4", 1.1) }
                     PropertyChanges { target: newButton; scale: 0.95 }
-                    PropertyChanges { target: newButtonShadow; color: "#50000000"; verticalOffset: 1; radius: 4.0 }
+                    PropertyChanges { target: newButtonShadow; color: sidebarManager.isDarkTheme ? "#60000000" : "#50000000"; verticalOffset: 1; radius: 4.0 }
                 }
             ]
 
@@ -215,8 +239,14 @@ Rectangle {
                 // 添加渐变背景 (与指示器协调)
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
-                    GradientStop { position: 0.0; color: "#8ccf0f" } //与新建按钮的渐变颜色一致
-                    GradientStop { position: 1.0; color: "#4285F4" } 
+                    GradientStop { 
+                        position: 0.0 
+                        color: sidebarManager.isDarkTheme ? "#6abf0d" : "#8ccf0f" // 与新建按钮保持一致
+                    } 
+                    GradientStop { 
+                        position: 1.0
+                        color: sidebarManager.isDarkTheme ? "#3275e4" : "#4285F4"  // 与新建按钮保持一致
+                    } 
                 }
 
                 // --- 优化动画 Behavior --- 

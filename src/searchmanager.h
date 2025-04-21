@@ -20,6 +20,7 @@
 #include <QDialog>
 #include <QPoint>
 #include "databasemanager.h" // 包含数据库管理器
+#include "sidebarmanager.h" // 新增，便于持有指针
 
 /**
  * @brief 搜索管理器类，处理搜索功能和界面交互
@@ -29,7 +30,7 @@ class SearchManager : public QObject
     Q_OBJECT
 
 public:
-    explicit SearchManager(DatabaseManager *dbManager, QObject *parent = nullptr);
+    explicit SearchManager(DatabaseManager *dbManager, SidebarManager *sidebarManager, QObject *parent = nullptr);
     ~SearchManager();
 
     /**
@@ -97,6 +98,7 @@ signals:
 
 private:
     DatabaseManager *m_dbManager; // 数据库管理器
+    SidebarManager *m_sidebarManager; // 新增：侧边栏管理器指针
     QDialog *m_searchDialog = nullptr; // 搜索对话框
     QQuickWidget *m_searchWidget = nullptr; // QML搜索界面容器
     QQuickItem *m_rootObject = nullptr; // QML根对象

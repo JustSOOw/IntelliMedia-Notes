@@ -29,6 +29,9 @@ class SidebarManager : public QObject
 {
     Q_OBJECT
     
+    // 添加一个主题属性，用于QML获取当前主题状态
+    Q_PROPERTY(bool isDarkTheme READ isDarkTheme NOTIFY themeChanged)
+    
 public:
     explicit SidebarManager(QQuickWidget *quickWidget, QObject *parent = nullptr);
     ~SidebarManager();
@@ -60,6 +63,12 @@ public:
     // 获取数据库管理器
     DatabaseManager* getDatabaseManager() const { return m_dbManager; }
     
+    // 获取当前主题状态
+    bool isDarkTheme() const { return m_isDarkTheme; }
+    
+    // 更新主题设置
+    void updateTheme(bool isDarkTheme);
+    
 public slots:
     // 处理QML中的信号
     void onNoteSelected(const QString &path, const QString &type);
@@ -81,12 +90,14 @@ signals:
     void aiMessageReceived(const QString &message);
     void folderStructureChanged(); // 文件夹结构变化信号
     void searchButtonClicked(); // 搜索按钮点击信号
+    void themeChanged(); // 主题改变的信号
     
 private:
     QQuickWidget *m_quickWidget; // QQuickWidget实例的引用
     QQuickItem *m_rootObject;    // QML根对象
     QString m_rootPath;          // 笔记根目录路径
     DatabaseManager *m_dbManager; // 数据库管理器
+    bool m_isDarkTheme = false;  // 当前主题状态，默认为浅色主题
     
     // 初始化笔记存储目录
     void initializeNoteStorage();

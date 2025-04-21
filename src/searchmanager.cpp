@@ -15,8 +15,8 @@
 #include <QVBoxLayout>
 #include <QDebug>
 
-SearchManager::SearchManager(DatabaseManager *dbManager, QObject *parent)
-    : QObject(parent), m_dbManager(dbManager)
+SearchManager::SearchManager(DatabaseManager *dbManager, SidebarManager *sidebarManager, QObject *parent)
+    : QObject(parent), m_dbManager(dbManager), m_sidebarManager(sidebarManager)
 {
 }
 
@@ -66,6 +66,7 @@ void SearchManager::showSearchDialog()
     // 设置QML上下文
     QQmlContext *context = m_searchWidget->rootContext();
     context->setContextProperty("searchManager", this);
+    context->setContextProperty("sidebarManager", m_sidebarManager);
     
     // 加载QML文件
     m_searchWidget->setSource(QUrl("qrc:///qml/SearchView.qml"));

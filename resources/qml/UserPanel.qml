@@ -15,6 +15,12 @@ Rectangle {
     property string userStatus: "在线"
     property string userAvatar: ""
     
+    // 主题相关颜色属性
+    property color textColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color subtextColor: sidebarManager.isDarkTheme ? "#aaaaaa" : "#888888"
+    property color avatarBgColor: sidebarManager.isDarkTheme ? "#454545" : "#f0f0f0"
+    property color avatarBorderColor: sidebarManager.isDarkTheme ? "#555555" : "#e0e0e0"
+    
     // 添加悬停效果的 MouseArea
     MouseArea {
         anchors.fill: parent
@@ -41,10 +47,10 @@ Rectangle {
             width: 50
             height: 50
             radius: width / 2
-            color: "#f0f0f0"
+            color: avatarBgColor
             Layout.alignment: Qt.AlignVCenter
             border.width: 1
-            border.color: "#e0e0e0"
+            border.color: avatarBorderColor
             // 添加锚点和平滑过渡
             transformOrigin: Item.Center
             Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -94,7 +100,7 @@ Rectangle {
                 text: username
                 font.pixelSize: 16
                 font.bold: true
-                color: "#333333"
+                color: textColor
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }
@@ -102,11 +108,9 @@ Rectangle {
             Text {
                 text: userStatus
                 font.pixelSize: 12
-                color: "#888888"
+                color: subtextColor
                 Layout.fillWidth: true
             }
         }
-        
-
     }
 } 

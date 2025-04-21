@@ -9,6 +9,19 @@ Rectangle {
     width: parent.width
     color: "transparent"
     
+    // 主题相关颜色
+    property color titleTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color userMessageBgColor: sidebarManager.isDarkTheme ? "#3a5a8c" : "#e3f2fd"
+    property color aiMessageBgColor: sidebarManager.isDarkTheme ? "#454545" : "#f5f5f5"
+    property color messageTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color userLabelColor: sidebarManager.isDarkTheme ? "#90caf9" : "#1976D2"
+    property color aiLabelColor: sidebarManager.isDarkTheme ? "#a5d6a7" : "#4CAF50"
+    property color timestampColor: sidebarManager.isDarkTheme ? "#aaaaaa" : "#888888"
+    property color inputBgColor: sidebarManager.isDarkTheme ? "#505050" : "white"
+    property color inputBorderColor: sidebarManager.isDarkTheme ? "#606060" : "#e0e0e0"
+    property color inputTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "black"
+    property color inputPlaceholderColor: sidebarManager.isDarkTheme ? "#808080" : "#aaa"
+    
     // 信号
     signal sendMessage(string message)
     
@@ -27,7 +40,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.leftMargin: 15
-            color: "#333333"
+            color: titleTextColor
         }
     }
     
@@ -53,7 +66,7 @@ Rectangle {
             id: messageItem
             width: ListView.view.width
             implicitHeight: messageLayout.height + 20 // 根据内容调整高度
-            color: model.role === "user" ? "#e3f2fd" : "#f5f5f5"
+            color: model.role === "user" ? userMessageBgColor : aiMessageBgColor
             radius: 8
             anchors.right: model.role === "user" ? parent.right : undefined
             
@@ -69,7 +82,7 @@ Rectangle {
                     text: model.role === "user" ? "你" : "AI 助手"
                     font.pixelSize: 12
                     font.bold: true
-                    color: model.role === "user" ? "#1976D2" : "#4CAF50"
+                    color: model.role === "user" ? userLabelColor : aiLabelColor
                     Layout.alignment: model.role === "user" ? Qt.AlignRight : Qt.AlignLeft
                 }
                 
@@ -78,7 +91,7 @@ Rectangle {
                     text: model.message
                     font.pixelSize: 14
                     wrapMode: Text.Wrap
-                    color: "#333333"
+                    color: messageTextColor
                     Layout.fillWidth: true
                     Layout.alignment: model.role === "user" ? Qt.AlignRight : Qt.AlignLeft
                 }
@@ -87,7 +100,7 @@ Rectangle {
                 Text {
                     text: model.timestamp
                     font.pixelSize: 10
-                    color: "#888888"
+                    color: timestampColor
                     Layout.alignment: model.role === "user" ? Qt.AlignRight : Qt.AlignLeft
                 }
             }
@@ -119,8 +132,9 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
                 border.width: 1
-                border.color: "#e0e0e0"
+                border.color: inputBorderColor
                 radius: 20
+                color: inputBgColor
                 
                 TextInput {
                     id: messageInput
@@ -131,6 +145,7 @@ Rectangle {
                     font.pixelSize: 14
                     clip: true
                     selectByMouse: true
+                    color: inputTextColor
                     
                     property string placeholderText: "输入消息..."
                     
@@ -139,7 +154,7 @@ Rectangle {
                         verticalAlignment: TextInput.AlignVCenter
                         font.pixelSize: 14
                         text: messageInput.placeholderText
-                        color: "#aaa"
+                        color: inputPlaceholderColor
                         visible: !messageInput.text && !messageInput.activeFocus
                     }
                     

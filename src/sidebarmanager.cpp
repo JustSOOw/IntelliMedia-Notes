@@ -22,6 +22,7 @@ SidebarManager::SidebarManager(QQuickWidget *quickWidget, QObject *parent)
     , m_quickWidget(quickWidget)
     , m_rootObject(nullptr)
     , m_dbManager(nullptr)
+    , m_isDarkTheme(false)
 {
     // 初始化笔记存储
     initializeNoteStorage();
@@ -609,5 +610,15 @@ void SidebarManager::resetToDefaultView()
 {
     if (m_rootObject) {
         QMetaObject::invokeMethod(m_rootObject, "resetView");
+    }
+}
+
+// 更新主题设置
+void SidebarManager::updateTheme(bool isDarkTheme)
+{
+    if (m_isDarkTheme != isDarkTheme) {
+        m_isDarkTheme = isDarkTheme;
+        emit themeChanged();
+        qDebug() << "侧边栏主题已更新为:" << (m_isDarkTheme ? "暗色主题" : "亮色主题");
     }
 } 

@@ -6,9 +6,29 @@ import Qt5Compat.GraphicalEffects
 // 搜索视图组件
 Rectangle {
     id: searchRoot
-    color: "#f5f5f5" // 浅灰色背景
+    color: sidebarManager.isDarkTheme ? "#2a2a2a" : "#f5f5f5" // 根据主题设置背景色
     radius: 8 // 添加圆角以匹配无边框窗口
     clip: true // 确保内容在圆角内
+    
+    // 主题相关颜色
+    property color bgColor: sidebarManager.isDarkTheme ? "#2a2a2a" : "#f5f5f5"
+    property color cardBgColor: sidebarManager.isDarkTheme ? "#353535" : "#ffffff"
+    property color titleBarBgColor: sidebarManager.isDarkTheme ? "#353535" : "#ffffff"
+    property color inputBgColor: sidebarManager.isDarkTheme ? "#454545" : "#f0f0f0"
+    property color inputBorderColor: sidebarManager.isDarkTheme ? "#606060" : "transparent"
+    property color inputBorderFocusColor: sidebarManager.isDarkTheme ? "#90caf9" : "#3a7afe"
+    property color inputTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color inputPlaceholderColor: sidebarManager.isDarkTheme ? "#808080" : "#888888"
+    property color primaryColor: "#3a7afe" // 保持蓝色作为主题色
+    property color primaryHoverColor: "#2a6ade" 
+    property color textColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
+    property color secondaryTextColor: sidebarManager.isDarkTheme ? "#aaaaaa" : "#606060"
+    property color dividerColor: sidebarManager.isDarkTheme ? "#454545" : "#e0e0e0"
+    property color hoverBgColor: sidebarManager.isDarkTheme ? "#454545" : "#e8e8e8"
+    property color shadowColor: sidebarManager.isDarkTheme ? "#40000000" : "#1a000000"
+    property color cardBorderColor: sidebarManager.isDarkTheme ? "#505050" : "transparent"
+    property color cardShadowColor: sidebarManager.isDarkTheme ? "#40000000" : "#1a000000"
+    property color iconColor: sidebarManager.isDarkTheme ? "#aaaaaa" : "#555555"
     
     // 信号定义
     signal closeSearch()
@@ -23,7 +43,7 @@ Rectangle {
         id: customTitleBar
         width: parent.width
         height: 40 // 标题栏高度
-        color: "#ffffff" // 修改背景为白色
+        color: titleBarBgColor
         anchors.top: parent.top
         
         // 拖动区域
@@ -68,7 +88,7 @@ Rectangle {
                 ColorOverlay {
                     anchors.fill: parent
                     source: parent
-                    color: closeMouseArea.containsMouse ? "#ffffff" : "#555555"
+                    color: closeMouseArea.containsMouse ? "#ffffff" : (sidebarManager.isDarkTheme ? "#aaaaaa" : "#555555")
                 }
             }
             
@@ -91,7 +111,7 @@ Rectangle {
         id: searchHeader
         width: parent.width
         height: 70
-        color: "#ffffff"
+        color: titleBarBgColor
         anchors.top: customTitleBar.bottom // 锚定到自定义标题栏下方
         
         // 添加阴影效果
@@ -101,7 +121,7 @@ Rectangle {
             verticalOffset: 2
             radius: 8.0
             samples: 17
-            color: "#1a000000"
+            color: shadowColor
         }
         
         RowLayout {
@@ -117,8 +137,8 @@ Rectangle {
                 Layout.fillWidth: true
                 height: 40
                 radius: 20
-                color: "#f0f0f0"
-                border.color: searchField.activeFocus ? "#3a7afe" : "transparent"
+                color: inputBgColor
+                border.color: searchField.activeFocus ? inputBorderFocusColor : inputBorderColor
                 border.width: 1
                 
                 Image {
@@ -130,6 +150,12 @@ Rectangle {
                     anchors.left: parent.left
                     anchors.leftMargin: 15
                     anchors.verticalCenter: parent.verticalCenter
+                    
+                    ColorOverlay {
+                        anchors.fill: parent
+                        source: parent
+                        color: sidebarManager.isDarkTheme ? "#aaaaaa" : "#606060"
+                    }
                 }
                 
                 TextField {
@@ -147,6 +173,18 @@ Rectangle {
                     selectByMouse: true
                     font.pixelSize: 14
                     verticalAlignment: TextInput.AlignVCenter // 垂直居中文本
+                    color: inputTextColor
+                    
+                    // 添加占位文本颜色设置
+                    PlaceholderText {
+                        text: searchField.placeholderText
+                        visible: !searchField.text && !searchField.activeFocus
+                        color: inputPlaceholderColor
+                        font: searchField.font
+                        verticalAlignment: searchField.verticalAlignment
+                        elide: Text.ElideRight
+                        renderType: searchField.renderType
+                    }
                     
                     onAccepted: {
                         searchManager.searchNotes(text.trim(), 0, 0, sortOrder.currentIndex)
@@ -162,7 +200,7 @@ Rectangle {
                     anchors.right: parent.right
                     anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    color: clearMouseArea.containsMouse ? "#e0e0e0" : "transparent"
+                    color: clearMouseArea.containsMouse ? (sidebarManager.isDarkTheme ? "#555555" : "#e0e0e0") : "transparent"
                     visible: searchField.text.length > 0
                     z: 1 // 确保在 TextField 上方
                     
@@ -170,7 +208,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "×"
                         font.pixelSize: 16
-                        color: "#606060" // 恢复为灰色
+                        color: secondaryTextColor
                     }
                     
                     MouseArea {
@@ -193,7 +231,7 @@ Rectangle {
                 width: 100
                 height: 40
                 radius: 20
-                color: searchBtnMouseArea.containsMouse ? "#2a6ade" : "#3a7afe"
+                color: searchBtnMouseArea.containsMouse ? primaryHoverColor : primaryColor
                 
                 Text {
                     anchors.centerIn: parent
@@ -220,7 +258,7 @@ Rectangle {
         id: filterBar
         width: parent.width
         height: 50
-        color: "#ffffff"
+        color: titleBarBgColor
         anchors.top: searchHeader.bottom
         
         RowLayout {
@@ -232,7 +270,7 @@ Rectangle {
             Text {
                 text: "排序:"
                 font.pixelSize: 13
-                color: "#606060"
+                color: secondaryTextColor
             }
             
             // 排序方式 (自定义样式)
@@ -245,16 +283,16 @@ Rectangle {
                 implicitHeight: 32
                 
                 background: Rectangle {
-                    color: sortOrder.hovered ? "#e8e8e8" : "#f0f0f0"
+                    color: sortOrder.hovered ? hoverBgColor : inputBgColor
                     radius: 16
-                    border.color: sortOrder.activeFocus ? "#3a7afe" : "transparent"
+                    border.color: sortOrder.activeFocus ? inputBorderFocusColor : "transparent"
                     border.width: 1
                 }
                 
                 contentItem: Text {
                     text: sortOrder.displayText
                     font: sortOrder.font
-                    color: "#333333"
+                    color: textColor
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
@@ -273,7 +311,7 @@ Rectangle {
                         anchors.fill: parent
                         onPaint: {
                             var ctx = getContext("2d");
-                            ctx.fillStyle = "#606060";
+                            ctx.fillStyle = secondaryTextColor;
                             ctx.beginPath();
                             ctx.moveTo(0, 0);
                             ctx.lineTo(width, 0);
@@ -299,8 +337,8 @@ Rectangle {
                     }
                     
                     background: Rectangle {
-                        color: "#ffffff"
-                        border.color: "#c0c0c0"
+                        color: cardBgColor
+                        border.color: sidebarManager.isDarkTheme ? "#606060" : "#c0c0c0"
                         radius: 5
                     }
                 }
@@ -310,13 +348,13 @@ Rectangle {
                     contentItem: Text {
                         text: modelData
                         font: sortOrder.font
-                        color: highlighted ? "#ffffff" : "#333333"
+                        color: highlighted ? "#ffffff" : textColor
                         elide: Text.ElideRight
                     }
                     highlighted: sortOrder.currentIndex === index
                     
                     background: Rectangle {
-                        color: highlighted ? "#3a7afe" : (hovered ? "#e8e8e8" : "transparent")
+                        color: highlighted ? primaryColor : (hovered ? hoverBgColor : "transparent")
                         radius: 3
                     }
                 }
@@ -335,7 +373,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        color: "#f5f5f5"
+        color: bgColor
         
         // 加载指示器
         BusyIndicator {
@@ -361,13 +399,19 @@ Rectangle {
                     source: "qrc:///icons/sidebar/search.svg"
                     fillMode: Image.PreserveAspectFit
                     opacity: 0.5
+                    
+                    ColorOverlay {
+                        anchors.fill: parent
+                        source: parent
+                        color: secondaryTextColor
+                    }
                 }
                 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: searchField.text.trim().length > 0 ? "未找到匹配的笔记" : "没有笔记，快去创建吧！" // 修改空状态文本
                     font.pixelSize: 16
-                    color: "#808080"
+                    color: secondaryTextColor
                 }
             }
         }
@@ -394,8 +438,8 @@ Rectangle {
                     width: GridView.view.cellWidth - 20 
                     height: GridView.view.cellHeight - 20
                     radius: 8
-                    color: "#ffffff"
-                    border.color: noteMouseArea.containsMouse ? Qt.lighter("#1a000000", 1.5) : "transparent"
+                    color: cardBgColor
+                    border.color: noteMouseArea.containsMouse ? (sidebarManager.isDarkTheme ? "#607080" : Qt.lighter("#1a000000", 1.5)) : cardBorderColor
                     border.width: 1
                     
                     // 添加阴影效果
@@ -405,7 +449,9 @@ Rectangle {
                         verticalOffset: 2
                         radius: noteMouseArea.containsMouse ? 10.0 : 6.0
                         samples: 17
-                        color: noteMouseArea.containsMouse ? "#2a000000" : "#1a000000"
+                        color: noteMouseArea.containsMouse ? 
+                            (sidebarManager.isDarkTheme ? "#50000000" : "#2a000000") : 
+                            cardShadowColor
                         Behavior on radius { NumberAnimation { duration: 150 } }
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
@@ -426,6 +472,12 @@ Rectangle {
                                 Layout.preferredHeight: 20
                                 source: "qrc:///icons/sidebar/note.svg"
                                 fillMode: Image.PreserveAspectFit
+                                
+                                ColorOverlay {
+                                    anchors.fill: parent
+                                    source: parent
+                                    color: sidebarManager.isDarkTheme ? "#a5d6a7" : "#43a047" // 绿色图标
+                                }
                             }
                             
                             // 笔记标题
@@ -436,7 +488,7 @@ Rectangle {
                                 font.pixelSize: 15
                                 font.bold: true
                                 elide: Text.ElideRight
-                                color: "#333333"
+                                color: textColor
                             }
                         }
                         
@@ -444,7 +496,7 @@ Rectangle {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 1
-                            color: "#e0e0e0"
+                            color: dividerColor
                         }
                         
                         // 内容预览
@@ -453,7 +505,7 @@ Rectangle {
                             Layout.preferredHeight: 70
                             text: modelData.previewText || "无内容预览"
                             font.pixelSize: 13
-                            color: "#606060"
+                            color: secondaryTextColor
                             wrapMode: Text.WordWrap
                             elide: Text.ElideRight
                             maximumLineCount: 4
@@ -467,7 +519,7 @@ Rectangle {
                             Text {
                                 text: modelData.updatedAt ? "修改: " + modelData.updatedAt : ""
                                 font.pixelSize: 11
-                                color: "#909090"
+                                color: sidebarManager.isDarkTheme ? "#909090" : "#909090"
                             }
                             
                             // 添加弹性空间将创建时间推到右边
@@ -478,7 +530,7 @@ Rectangle {
                             Text {
                                 text: modelData.createdAt ? "创建: " + modelData.createdAt : ""
                                 font.pixelSize: 11
-                                color: "#909090"
+                                color: sidebarManager.isDarkTheme ? "#909090" : "#909090"
                             }
                         }
                     }
@@ -546,5 +598,14 @@ Rectangle {
         searchResults = []
         sortOrder.currentIndex = 0 // 重置排序
         isLoading = true // 重置时标记为加载中，直到首次数据返回
+    }
+    
+    // 监听主题变化
+    Connections {
+        target: sidebarManager
+        function onThemeChanged() {
+            // 属性会自动更新，无需额外操作
+            console.log("SearchView: Theme changed to", sidebarManager.isDarkTheme ? "dark" : "light")
+        }
     }
 } 

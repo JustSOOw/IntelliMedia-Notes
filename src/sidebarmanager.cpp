@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-17 12:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-19 21:35:59
+ * @LastEditTime: 2025-04-21 20:34:03
  * @FilePath: \IntelliMedia_Notes\src\sidebarmanager.cpp
  * @Description: 侧边栏管理器实现
  * 
@@ -57,18 +57,24 @@ void SidebarManager::initialize()
         QObject::connect(m_rootObject, SIGNAL(noteSelected(QString,QString)),
                         this, SLOT(onNoteSelected(QString,QString)));
         
-        // 注意：我们不再连接这些信号，因为QML直接调用C++方法
-        // QObject::connect(m_rootObject, SIGNAL(createNote(QString,QString)),
-        //                 this, SLOT(onCreateNote(QString,QString)));
-        // QObject::connect(m_rootObject, SIGNAL(createFolder(QString,QString)),
-        //                 this, SLOT(onCreateFolder(QString,QString)));
-        // QObject::connect(m_rootObject, SIGNAL(renameItem(QString,QString)),
-        //                 this, SLOT(onRenameItem(QString,QString)));
-        // QObject::connect(m_rootObject, SIGNAL(deleteItem(QString)),
-        //                 this, SLOT(onDeleteItem(QString)));
+        QObject::connect(m_rootObject, SIGNAL(createNote(QString,QString)),
+                        this, SLOT(onCreateNote(QString,QString)));
+        
+        QObject::connect(m_rootObject, SIGNAL(createFolder(QString,QString)),
+                        this, SLOT(onCreateFolder(QString,QString)));
+        
+        QObject::connect(m_rootObject, SIGNAL(renameItem(QString,QString)),
+                        this, SLOT(onRenameItem(QString,QString)));
+        
+        QObject::connect(m_rootObject, SIGNAL(deleteItem(QString)),
+                        this, SLOT(onDeleteItem(QString)));
         
         QObject::connect(m_rootObject, SIGNAL(sendAIMessage(QString)),
                         this, SLOT(onSendAIMessage(QString)));
+        
+        // 连接搜索按钮点击信号，将QML中的信号转发到C++
+        QObject::connect(m_rootObject, SIGNAL(searchButtonClicked()),
+                        this, SIGNAL(searchButtonClicked()));
     } else {
         qWarning() << "无法获取QML根对象!";
     }
@@ -80,7 +86,7 @@ void SidebarManager::initialize()
 // 获取用户名称
 QString SidebarManager::getUserName() const
 {
-    return "15039630768"; // 固定用户名
+    return "150******768"; // 固定用户名
 }
 
 // 获取用户状态
@@ -595,5 +601,13 @@ bool SidebarManager::renameItem(const QString &path, const QString &newName)
     } else {
         qWarning() << "[SidebarManager] Rename Failed for:" << path;
         return false;
+    }
+}
+
+// 恢复侧边栏到默认视图
+void SidebarManager::resetToDefaultView()
+{
+    if (m_rootObject) {
+        QMetaObject::invokeMethod(m_rootObject, "resetView");
     }
 } 

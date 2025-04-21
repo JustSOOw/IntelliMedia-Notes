@@ -249,6 +249,10 @@ Rectangle {
                 radius: 18
                 color: "transparent"
                 
+                // 布局变化时刷新指示器
+                onWidthChanged: actionButtons._updateIndicatorGeometry()
+                onXChanged: actionButtons._updateIndicatorGeometry()
+                
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 2
@@ -309,6 +313,10 @@ Rectangle {
                 radius: 18
                 color: "transparent" 
                 
+                // 布局变化时刷新指示器
+                onWidthChanged: actionButtons._updateIndicatorGeometry()
+                onXChanged: actionButtons._updateIndicatorGeometry()
+                
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 2
@@ -363,6 +371,10 @@ Rectangle {
                 radius: 18
                 color: "transparent"
 
+                // 布局变化时刷新指示器
+                onWidthChanged: actionButtons._updateIndicatorGeometry()
+                onXChanged: actionButtons._updateIndicatorGeometry()
+                
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 2

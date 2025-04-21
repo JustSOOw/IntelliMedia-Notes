@@ -25,6 +25,8 @@ set(PROJECT_SOURCES
         src/sidebarmanager.h
         src/databasemanager.cpp
         src/databasemanager.h
+        src/searchmanager.cpp
+        src/searchmanager.h
         forms/mainwindow.ui   # UI file is now in forms/
 )
 

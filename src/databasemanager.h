@@ -65,6 +65,17 @@ struct FolderInfo {
     QString created_at;
 };
 
+// 搜索结果结构
+struct SearchResultInfo {
+    int id;
+    QString title;
+    QString previewText;
+    QString path;
+    QString created_at;
+    QString updated_at;
+    int folder_id;
+};
+
 /**
  * @brief 数据库管理类，处理SQLite数据库操作
  */
@@ -205,6 +216,21 @@ public:
      * @return int 清理的文件数量
      */
     int cleanUnusedMediaFiles();
+
+    /**
+     * @brief 搜索笔记
+     * @param keyword 搜索关键词
+     * @param dateFilter 日期筛选类型: 0-全部时间, 1-今天, 2-最近一周, 3-最近一月
+     * @param contentType 内容类型筛选: 0-全部类型, 1-文本, 2-图片, 3-列表
+     * @param sortType 排序方式: 0-最近修改, 1-创建时间, 2-按名称排序
+     * @return QList<SearchResultInfo> 搜索结果
+     */
+    QList<SearchResultInfo> searchNotes(
+        const QString &keyword, 
+        int dateFilter = 0, 
+        int contentType = 0, 
+        int sortType = 0
+    );
 
 private:
     QSqlDatabase m_db; // 数据库连接

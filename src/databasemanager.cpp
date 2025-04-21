@@ -896,4 +896,126 @@ int DatabaseManager::cleanUnusedMediaFiles()
     }
     
     return count;
+}
+
+QList<SearchResultInfo> DatabaseManager::searchNotes(
+    const QString &keyword, 
+    int dateFilter, 
+    int contentType, 
+    int sortType
+) {
+    QList<SearchResultInfo> results;
+    
+    // 构建基本查询
+    QString sql = "SELECT n.note_id, n.title, n.created_at, n.updated_at, n.folder_id, "
+                 "f.path as folder_path, "
+                 "(SELECT c.content_text FROM ContentBlocks c WHERE c.note_id = n.note_id "
+                 "ORDER BY c.position LIMIT 1) as preview "
+                 "FROM Notes n "
+                 "LEFT JOIN Folders f ON n.folder_id = f.folder_id "
+                 "WHERE n.is_trashed = 0 ";
+                 
+    // 添加关键词搜索条件 (如果关键词非空)
+    if (!keyword.isEmpty()) {
+        sql += "AND (n.title LIKE :keyword OR EXISTS (SELECT 1 FROM ContentBlocks c WHERE "
+               "c.note_id = n.note_id AND c.content_text LIKE :keyword)) ";
+    }
+    
+    // 添加日期筛选
+    QString dateCondition;
+    QDateTime now = QDateTime::currentDateTime();
+    
+    switch (dateFilter) {
+        case 1: // 今天
+            dateCondition = QString("AND DATE(n.updated_at) = \'%1\' ")
+                            .arg(now.toString("yyyy-MM-dd"));
+            break;
+        case 2: // 最近一周
+            dateCondition = QString("AND julianday(n.updated_at) >= julianday(\'%1\') - 7 ")
+                            .arg(now.toString("yyyy-MM-dd HH:mm:ss"));
+            break;
+        case 3: // 最近一月
+            dateCondition = QString("AND julianday(n.updated_at) >= julianday(\'%1\') - 30 ")
+                            .arg(now.toString("yyyy-MM-dd HH:mm:ss"));
+            break;
+        default: // 全部时间
+            break;
+    }
+    
+    sql += dateCondition;
+    
+    // 添加内容类型筛选
+    if (contentType > 0) {
+        QString blockType;
+        switch (contentType) {
+            case 1: // 文本
+                blockType = "text";
+                break;
+            case 2: // 图片
+                blockType = "image";
+                break;
+            case 3: // 列表
+                blockType = "list";
+                break;
+        }
+        
+        if (!blockType.isEmpty()) {
+            sql += QString("AND EXISTS (SELECT 1 FROM ContentBlocks c WHERE c.note_id = n.note_id "
+                           "AND c.block_type = \'%1\') ").arg(blockType);
+        }
+    }
+    
+    // 添加排序
+    switch (sortType) {
+        case 1: // 创建时间
+            sql += "ORDER BY n.created_at DESC ";
+            break;
+        case 2: // 按名称排序
+            sql += "ORDER BY n.title COLLATE NOCASE ";
+            break;
+        default: // 最近修改
+            sql += "ORDER BY n.updated_at DESC ";
+            break;
+    }
+    
+    QSqlQuery query;
+    query.prepare(sql);
+    // 只有当关键词非空时才绑定
+    if (!keyword.isEmpty()) {
+        query.bindValue(":keyword", "%" + keyword + "%");
+    }
+    
+    if (query.exec()) {
+        while (query.next()) {
+            SearchResultInfo info;
+            info.id = query.value("note_id").toInt();
+            info.title = query.value("title").toString();
+            info.created_at = query.value("created_at").toString();
+            info.updated_at = query.value("updated_at").toString();
+            info.folder_id = query.value("folder_id").toInt();
+            
+            // 构建路径
+            QString folderPath = query.value("folder_path").toString();
+            info.path = QString("/note_%1").arg(info.id);
+            if (!folderPath.isEmpty() && folderPath != "/root") {
+                info.path = folderPath + info.path;
+            }
+            
+            // 获取预览文本
+            QString preview = query.value("preview").toString();
+            // 限制预览文本长度
+            if (preview.length() > 150) {
+                preview = preview.left(150) + "...";
+            }
+            info.previewText = preview;
+            
+            results.append(info);
+        }
+    } else {
+        qCritical() << "搜索笔记失败:" << query.lastError().text();
+        qCritical() << "SQL:" << query.lastQuery(); // 输出失败的SQL语句
+    }
+    
+    qDebug() << "DatabaseManager::searchNotes - Keyword:" << keyword << "Results count:" << results.size(); // 添加日志
+    return results;
 } 

@@ -11,6 +11,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "sidebarmanager.h" // 包含侧边栏管理器头文件
+#include "searchmanager.h"  // 包含搜索管理器头文件
 
 #include <QToolButton>
 #include <QIcon>
@@ -59,6 +60,9 @@ MainWindow::MainWindow(QWidget *parent)
     
     // 初始化侧边栏
     setupSidebar();
+    
+    // 初始化搜索功能
+    setupSearch();
     
     // --- 4. 创建并配置按钮 ---
     // --- 4a. 侧边栏切换按钮 ---
@@ -514,6 +518,37 @@ void MainWindow::setupSidebar()
     // 连接信号和槽
     connect(m_sidebarManager, &SidebarManager::noteOpened,
             this, &MainWindow::handleNoteSelected);
+    
+    // 连接搜索按钮点击信号
+    connect(m_sidebarManager, &SidebarManager::searchButtonClicked,
+            this, &MainWindow::openSearchDialog);
+}
+
+// 初始化搜索功能
+void MainWindow::setupSearch()
+{
+    // 需要SidebarManager已初始化，因为使用它的数据库管理器
+    if (!m_sidebarManager) {
+        qWarning() << "错误: 在初始化搜索管理器之前, 需要先初始化侧边栏管理器";
+        return;
+    }
+    
+    // 创建搜索管理器
+    m_searchManager = new SearchManager(m_sidebarManager->getDatabaseManager(), this);
+    
+    // 连接搜索管理器和主窗口
+    connect(m_searchManager, &SearchManager::noteSelected, this, &MainWindow::handleNoteSelected);
+    connect(m_searchManager, &SearchManager::searchClosed, this, &MainWindow::onSearchClosed);
+}
+
+// 打开搜索对话框
+void MainWindow::openSearchDialog()
+{
+    if (m_searchManager) {
+        m_searchManager->showSearchDialog();
+    } else {
+        qWarning() << "错误: 搜索管理器尚未初始化";
+    }
 }
 
 // 处理笔记选择
@@ -521,4 +556,12 @@ void MainWindow::handleNoteSelected(const QString &path, const QString &type)
 {
     qDebug() << "主窗口处理笔记选择:" << path << type;
     // TODO: 在主内容区域显示选中的笔记
+}
+
+// 处理搜索对话框关闭
+void MainWindow::onSearchClosed()
+{
+    if (m_sidebarManager) {
+        m_sidebarManager->resetToDefaultView();
+    }
 }

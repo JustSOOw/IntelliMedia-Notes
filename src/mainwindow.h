@@ -39,8 +39,9 @@ QT_END_NAMESPACE
 class QToolButton; // 前向声明
 class QMouseEvent; // 事件处理的前向声明
 
-// 前向声明侧边栏管理器
+// 前向声明侧边栏管理器和搜索管理器
 class SidebarManager;
+class SearchManager;
 
 class MainWindow : public QMainWindow
 {
@@ -79,6 +80,8 @@ private slots:
     void openSettings();          // 设置按钮槽函数
     void toggleSidebar();         // 侧边栏切换按钮槽函数
     void handleNoteSelected(const QString &path, const QString &type); // 处理笔记选择
+    void openSearchDialog();      // 打开搜索对话框
+    void onSearchClosed();        // 处理搜索对话框关闭事件
 
 private:
     Ui::MainWindow *ui;
@@ -126,9 +129,13 @@ private:
     // 侧边栏相关
     QQuickWidget *m_sidebarWidget;   // 侧边栏QML容器
     SidebarManager *m_sidebarManager = nullptr; // 侧边栏管理器
+    SearchManager *m_searchManager = nullptr;   // 搜索管理器
     
     // 初始化侧边栏
     void setupSidebar();
+    
+    // 初始化搜索功能
+    void setupSearch();
     
     // -----------------------------------------
 };

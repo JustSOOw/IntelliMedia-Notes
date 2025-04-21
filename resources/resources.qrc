@@ -26,5 +26,6 @@
         <file>qml/FileContextMenu.qml</file>
         <file>qml/Animations.qml</file>
         <file>qml/CustomDialog.qml</file>
+        <file>qml/SearchView.qml</file>
     </qresource>
 </RCC>

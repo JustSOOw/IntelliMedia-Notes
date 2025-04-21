@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-17 12:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-17 12:00:00
+ * @LastEditTime: 2025-04-21 16:45:54
  * @FilePath: \IntelliMedia_Notes\src\sidebarmanager.h
  * @Description: 侧边栏管理器
  * 
@@ -57,6 +57,9 @@ public:
     Q_INVOKABLE int createNote(const QString &parentPath, const QString &noteName);
     Q_INVOKABLE int createFolder(const QString &parentPath, const QString &folderName);
     
+    // 获取数据库管理器
+    DatabaseManager* getDatabaseManager() const { return m_dbManager; }
+    
 public slots:
     // 处理QML中的信号
     void onNoteSelected(const QString &path, const QString &type);
@@ -69,11 +72,15 @@ public slots:
     // 刷新文件列表
     void refreshNotesList();
     
+    // 恢复侧边栏到默认视图
+    void resetToDefaultView();
+    
 signals:
     // 向QML发送信号
     void noteOpened(const QString &path, const QString &content);
     void aiMessageReceived(const QString &message);
     void folderStructureChanged(); // 文件夹结构变化信号
+    void searchButtonClicked(); // 搜索按钮点击信号
     
 private:
     QQuickWidget *m_quickWidget; // QQuickWidget实例的引用

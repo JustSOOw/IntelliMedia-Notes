@@ -32,6 +32,7 @@ Rectangle {
     signal renameItem(string path, string newName)
     signal deleteItem(string path)
     signal sendAIMessage(string message)
+    signal searchButtonClicked() // 添加搜索按钮点击信号
     
     // 使用 anchors 替换 ColumnLayout
     // ColumnLayout {
@@ -69,8 +70,8 @@ Rectangle {
         }
         
         onSearchButtonClicked: {
-            // 搜索功能暂未实现
-            console.log("搜索功能点击")
+            // 触发搜索按钮点击信号
+            sidebarRoot.searchButtonClicked()
         }
         
         onCreateNewNoteClicked: {
@@ -170,5 +171,12 @@ Rectangle {
         console.log("侧边栏初始化完成")
         // 打印 StackLayout 的高度 (移除)
         // console.log("[Sidebar] stackLayout height on completed:", stackLayout.height)
+    }
+    
+    // QML函数：恢复默认视图
+    function resetView() {
+        currentView = "file"
+        stackLayout.currentIndex = 0
+        actionButtons.activeButton = "file" // 确保ActionButtons也更新
     }
 }

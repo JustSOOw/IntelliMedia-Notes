@@ -22,43 +22,57 @@ Rectangle {
     // 动画
     Animations { id: animations }
     
-    // --- 移动属性、函数、信号处理器到根作用域 --- 
-    property real targetX: _calculateTargetX() // 存储目标X
-    property real targetWidth: _calculateTargetWidth() // 存储目标宽度
+    // --- 目标几何属性 --- 
+    property real targetX: fileButton ? fileButton.x : 0
+    property real targetWidth: fileButton ? fileButton.width : 0
+    property real targetY: 0
+    property real targetHeight: 0
     
+    // --- 计算目标位置和尺寸的函数 ---
     function _calculateTargetX() {
-        // 确保按钮已初始化
-        if (!fileButton || !aiButton || !searchButton) return 0; 
+        if (!fileButton || !aiButton || !searchButton) return 0;
         if (activeButton === "file") return fileButton.x;
         else if (activeButton === "ai") return aiButton.x;
         else if (activeButton === "search") return searchButton.x;
-        else return fileButton.x; // 默认
+        else return fileButton ? fileButton.x : 0;
     }
     function _calculateTargetWidth() {
-        // 确保按钮已初始化
         if (!fileButton || !aiButton || !searchButton) return 0;
         if (activeButton === "file") return fileButton.width;
         else if (activeButton === "ai") return aiButton.width;
         else if (activeButton === "search") return searchButton.width;
-        else return fileButton.width; // 默认
+        else return fileButton ? fileButton.width : 0;
+    }
+    function _calculateTargetY() {
+        // 假设所有按钮的Y坐标和高度都一样，取 fileButton 的即可
+        return fileButton ? fileButton.y : 0;
+    }
+    function _calculateTargetHeight() {
+        return fileButton ? fileButton.height : 0;
     }
     
-    // 观察 activeButton 变化，更新目标值并触发动画
-    onActiveButtonChanged: {
-        targetX = _calculateTargetX();
-        targetWidth = _calculateTargetWidth();
-        var targetY = fileButton ? fileButton.y : -1; // Also check Y
-        var targetHeight = fileButton ? fileButton.height : -1; // Also check Height
-        if (activeIndicator && targetWidth > 0 && targetHeight > 0) {
-             activeIndicator.x = targetX;
-             activeIndicator.width = targetWidth;
-             activeIndicator.y = targetY; // Ensure Y/Height are also updated if needed
-             activeIndicator.height = targetHeight;
-            // 强制重新评估按钮文本/图标颜色
-            _updateButtonColors();
+    // --- 更新指示器几何属性的函数 ---
+    function _updateIndicatorGeometry() {
+        var calcX = _calculateTargetX();
+        var calcWidth = _calculateTargetWidth();
+        if (calcWidth > 0) {
+            targetX = calcX;
+            targetWidth = calcWidth;
+        } else {
+            Qt.callLater(_updateIndicatorGeometry);
         }
     }
-    // ---------------------------------------------
+    
+    // --- 响应 activeButton 变化 ---
+    onActiveButtonChanged: {
+        _updateIndicatorGeometry(); // 更新指示器位置
+        _updateButtonColors();    // 更新按钮颜色
+    }
+    
+    // --- 响应宽度变化 (处理侧边栏拉伸) ---
+    onWidthChanged: {
+        _updateIndicatorGeometry(); // 宽度变化时更新指示器位置
+    }
     
     // --- 添加一个函数来更新所有按钮的颜色 ---
     function _updateButtonColors() {
@@ -189,14 +203,14 @@ Rectangle {
             // --- 流动的背景指示器 (定义在按钮之前，使其位于下方) ---
             Rectangle {
                 id: activeIndicator
-                // 初始绑定于 fileButton，Timer 会更新
+                // x和width跟随target属性，y和height直接绑定fileButton
+                x: targetX
+                width: targetWidth
                 y: fileButton ? fileButton.y : 0
                 height: fileButton ? fileButton.height : 0
                 radius: 18
                 visible: width > 0 && height > 0
                 opacity: 1.0
-                x: fileButton ? fileButton.x : 0      // 初始与文件按钮同位置
-                width: fileButton ? fileButton.width : 0 // 初始与文件按钮同宽
 
                 // 添加渐变背景 (与指示器协调)
                 gradient: Gradient {
@@ -205,43 +219,25 @@ Rectangle {
                     GradientStop { position: 1.0; color: "#4285F4" } 
                 }
 
-                // --- 优化动画 Behavior ---
-                Behavior on x {
-                    NumberAnimation {
-                        duration: 200 // 调整动画时长
-                        easing.type: Easing.OutQuad // 使用更平滑的曲线
-                    }
-                }
-                Behavior on width {
-                    NumberAnimation {
-                        duration: 200 // 调整动画时长
-                        easing.type: Easing.OutQuad // 使用更平滑的曲线
-                    }
-                }
+                // --- 优化动画 Behavior --- 
+                // 动画将自动应用于绑定的 targetX/Width 等属性的变化
+                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                 
-                // --- Timer 逻辑 (移除详细日志) ---
-                Timer {
-                    id: layoutTimer
-                    interval: 20
-                    repeat: false
-                    onTriggered: {
-                        var calcX = actionButtons._calculateTargetX();
-                        var calcWidth = actionButtons._calculateTargetWidth();
-                        var calcY = fileButton ? fileButton.y : 0;
-                        var calcHeight = fileButton ? fileButton.height : 0;
-                        if (calcWidth > 0 && calcHeight > 0) {
-                            activeIndicator.x = calcX;
-                            activeIndicator.width = calcWidth;
-                            activeIndicator.y = calcY;
-                            activeIndicator.height = calcHeight;
-                        }
-                    }
-                }
+                // --- 移除 Timer --- 
+                // Timer {
+                //     id: layoutTimer
+                //     interval: 20
+                //     repeat: false
+                //     onTriggered: { ... }
+                // }
 
                 Component.onCompleted: {
-                    layoutTimer.start();
-                    // 初始化按钮颜色
-                    _updateButtonColors();
+                    // layoutTimer.start(); // 移除启动 Timer
+                    _updateIndicatorGeometry(); // 初始化指示器位置
+                    _updateButtonColors();      // 初始化按钮颜色
                 }
             }
             

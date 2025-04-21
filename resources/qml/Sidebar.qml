@@ -42,8 +42,6 @@ Rectangle {
     UserPanel {
         id: userPanel
         width: parent.width // 宽度填充父级
-        // Layout.fillWidth: true // 移除 Layout 属性
-        // Layout.preferredHeight: 80 // 使用 height
         height: 80
         anchors.top: parent.top
         anchors.left: parent.left
@@ -54,8 +52,6 @@ Rectangle {
     ActionButtons {
         id: actionButtons
         width: parent.width // 宽度填充父级
-        // Layout.fillWidth: true // 移除 Layout 属性
-        // Layout.preferredHeight: 120 // 使用 height
         height: 120
         anchors.top: userPanel.bottom // 锚定在 UserPanel 下方
         anchors.left: parent.left
@@ -78,12 +74,46 @@ Rectangle {
         }
         
         onCreateNewNoteClicked: {
-            // 默认在当前选中文件夹或根目录创建笔记
+            // 默认在当前选中文件夹或笔记的父文件夹下创建笔记
             if (noteTree.selectedNoteType === "folder") {
-                // 显示创建笔记对话框
+                // 如果选中的是文件夹，直接在该文件夹下创建
                 noteTree.handleCreateNoteRequest(noteTree.selectedNotePath)
+            } else if (noteTree.selectedNoteType === "note") {
+                // 如果选中的是笔记，需要获取其父文件夹路径
+                // 查找笔记的父文件夹
+                for (var i = 0; i < noteTree.folderListModel.count; i++) {
+                    var item = noteTree.folderListModel.get(i)
+                    if (item.path === noteTree.selectedNotePath) {
+                        // 找到笔记所在的父文件夹级别
+                        var noteLevel = item.level
+                        var parentIndex = -1
+                        
+                        // 向上查找父文件夹
+                        for (var j = i - 1; j >= 0; j--) {
+                            var potentialParent = noteTree.folderListModel.get(j)
+                            if (potentialParent.level < noteLevel && potentialParent.type === "folder") {
+                                parentIndex = j
+                                break
+                            }
+                        }
+                        
+                        if (parentIndex >= 0) {
+                            // 找到父文件夹
+                            noteTree.handleCreateNoteRequest(noteTree.folderListModel.get(parentIndex).path)
+                        } else {
+                            // 未找到父文件夹，使用根目录
+                            noteTree.handleCreateNoteRequest("/root")
+                        }
+                        break
+                    }
+                }
+                
+                if (i >= noteTree.folderListModel.count) {
+                    // 未找到笔记，使用根目录
+                    noteTree.handleCreateNoteRequest("/root")
+                }
             } else {
-                // 显示创建笔记对话框，在根目录下
+                // 没有选中项，在根目录下创建
                 noteTree.handleCreateNoteRequest("/root")
             }
         }
@@ -103,6 +133,7 @@ Rectangle {
             id: noteTree
             
             onNoteSelected: function(path, type) {
+                // console.log("[Sidebar_Debug] Received noteSelected signal - Path:", path, "Type:", type); // 添加日志
                 sidebarRoot.noteSelected(path, type)
             }
             

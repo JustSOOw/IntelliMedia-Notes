@@ -13,6 +13,7 @@ Item {
     property string selectedNoteType: "" // folder 或 note
     property string selectedNoteName: "" // 当前选中的笔记或文件夹名称
     property int maxFolderLevel: 4
+    property alias folderListModel: folderListModel // 导出列表模型以便外部访问
     
     // 信号
     signal noteSelected(string path, string type)
@@ -20,6 +21,12 @@ Item {
     signal createNote(string parentPath, string noteName)
     signal renameItem(string path, string newName)
     signal deleteItem(string path)
+    signal createNewRequested(string parentPath) // 添加新信号
+    
+    // 监控 selectedNotePath 变化
+    onSelectedNotePathChanged: {
+        // console.log("[NoteTree_Debug] selectedNotePath CHANGED to:", selectedNotePath);
+    }
     
     // 右键菜单
     FileContextMenu {
@@ -58,18 +65,15 @@ Item {
         
         onConfirmed: function(inputText) {
             if (inputText.trim() !== "") {
-                console.log("创建文件夹:", parentPath, inputText.trim())
+                // console.log("创建文件夹:", parentPath, inputText.trim())
                 
                 // 检查是否超过最大嵌套层级
                 if (parentPath !== "/root") {
-                    // 找到父文件夹
                     for (var i = 0; i < folderListModel.count; i++) {
                         var item = folderListModel.get(i)
                         if (item.path === parentPath) {
-                            // 检查层级
                             if (item.level >= noteTree.maxFolderLevel - 1) {
-                                console.error("文件夹嵌套层级已达上限:", noteTree.maxFolderLevel)
-                                // 显示提示
+                                // console.error("文件夹嵌套层级已达上限:", noteTree.maxFolderLevel)
                                 errorMessageDialog.message = "文件夹嵌套层级已达上限（" + noteTree.maxFolderLevel + "层）"
                                 errorMessageDialog.open()
                                 return
@@ -79,19 +83,17 @@ Item {
                     }
                 }
                 
-                // 继续创建文件夹
                 var result = sidebarManager.createFolder(parentPath, inputText.trim())
                 newFolderId = result
                 
                 if (newFolderId > 0) {
-                    console.log("文件夹创建成功:", inputText.trim(), "ID:", newFolderId);
+                    // console.log("文件夹创建成功:", inputText.trim(), "ID:", newFolderId);
                     
-                    // 定义选中函数 (添加重试次数限制)
                     var selectRetryCount = 0
-                    var maxSelectRetries = 5 // 最多重试5次
+                    var maxSelectRetries = 5
                     function selectNewFolder() {
                         if (selectRetryCount >= maxSelectRetries) {
-                            console.warn("选中新文件夹失败，已达最大重试次数")
+                            // console.warn("选中新文件夹失败，已达最大重试次数")
                             return
                         }
                         selectRetryCount++
@@ -104,7 +106,7 @@ Item {
                             if (item.path === folderPath) {
                                 found = true
                                 targetIndex = i
-                                console.log("选中新创建的文件夹 (尝试 "+ selectRetryCount +"):", item.name, "路径:", folderPath)
+                                // console.log("选中新创建的文件夹 (尝试 "+ selectRetryCount +"):", item.name, "路径:", folderPath)
                                 selectedNotePath = folderPath
                                 selectedNoteType = "folder"
                                 selectedNoteName = item.name
@@ -115,16 +117,15 @@ Item {
                         }
                         
                         if (!found) {
-                            console.log("未找到新创建的文件夹，稍后重试 (尝试 " + selectRetryCount + ")")
-                            Qt.callLater(selectNewFolder) // 使用 Qt.callLater 进行下一次尝试
+                            // console.log("未找到新创建的文件夹，稍后重试 (尝试 " + selectRetryCount + ")")
+                            Qt.callLater(selectNewFolder)
                         }
                     }
                     
-                    // 局部插入逻辑
                     var parentIndex = -1
                     var parentLevel = -1
                     if (parentPath === "/root") {
-                        parentIndex = -1 // 表示根目录
+                        parentIndex = -1
                         parentLevel = -1
                     } else {
                         for (var i = 0; i < folderListModel.count; i++) {
@@ -137,22 +138,15 @@ Item {
                     }
                     
                     if (parentPath !== "/root" && parentIndex === -1) {
-                        console.error("未能找到父文件夹用于插入新项目")
+                        // console.error("未能找到父文件夹用于插入新项目")
                         return
                     }
                     
-                    // 确保父文件夹展开 (如果是子文件夹)
                     if (parentIndex !== -1 && !folderListModel.get(parentIndex).expanded) {
-                        console.log("展开父文件夹以插入新项")
-                        toggleFolderExpanded(parentIndex) // 展开会加载内容，但不包括我们刚创建的
+                        // console.log("展开父文件夹以插入新项")
+                        toggleFolderExpanded(parentIndex)
                     }
                     
-                    // *** 获取新创建项的数据 (需要新的C++方法) ***
-                    // 假设 sidebarManager.getFolderInfo(newFolderId) 返回 QVariantMap
-                    // 需要先实现 getFolderInfo
-                    // var newItemData = sidebarManager.getFolderInfo(newFolderId)
-                    
-                    // *** 临时代替：手动构造数据，level 需要正确计算 ***
                     var newItemLevel = parentLevel + 1;
                     var newItemData = {
                         "id": newFolderId,
@@ -162,33 +156,34 @@ Item {
                         "expanded": false,
                         "path": "/folder_" + newFolderId
                     }
-                    console.log("构造新文件夹数据:", JSON.stringify(newItemData));
+                    // console.log("构造新文件夹数据:", JSON.stringify(newItemData));
                     
-                    // 确定插入位置
                     var insertIndex = -1;
-                    if (parentIndex === -1) { // 插入到根目录
-                        // 找到第一个非文件夹项或列表末尾
+                    if (parentIndex === -1) {
+                        // 如果是根目录，将文件夹放在所有文件夹后面
                         insertIndex = 0;
-                        while (insertIndex < folderListModel.count && folderListModel.get(insertIndex).type === 'folder') {
+                        // 找到所有最上层文件夹的最后一个位置
+                        while (insertIndex < folderListModel.count && 
+                               (folderListModel.get(insertIndex).type === 'folder' && 
+                                folderListModel.get(insertIndex).level === 0)) {
                             insertIndex++;
                         }
-                    } else { // 插入到子文件夹
+                    } else { 
                         insertIndex = parentIndex + 1;
-                        // 跳过所有子孙节点
                         while (insertIndex < folderListModel.count && folderListModel.get(insertIndex).level > parentLevel) {
                             insertIndex++;
                         }
                     }
                     
-                    // 执行插入
-                    console.log("在索引 " + insertIndex + " 处插入新文件夹")
+                    // console.log("在索引 " + insertIndex + " 处插入新文件夹")
                     folderListModel.insert(insertIndex, newItemData)
                     
-                    // 延迟执行选中
                     Qt.callLater(selectNewFolder)
                     
                 } else {
-                    console.error("文件夹创建失败:", inputText.trim());
+                    // console.error("文件夹创建失败:", inputText.trim());
+                    errorMessageDialog.message = "创建文件夹失败：" + inputText.trim()
+                    errorMessageDialog.open()
                 }
             }
         }
@@ -207,18 +202,14 @@ Item {
         
         onConfirmed: function(inputText) {
             if (inputText.trim() !== "") {
-                console.log("创建笔记:", parentPath, inputText.trim())
+                // console.log("创建笔记:", parentPath, inputText.trim())
                 
-                // 检查是否超过最大嵌套层级
                 if (parentPath !== "/root") {
-                    // 找到父文件夹
                     for (var i = 0; i < folderListModel.count; i++) {
                         var item = folderListModel.get(i)
                         if (item.path === parentPath) {
-                            // 检查层级
                             if (item.level >= noteTree.maxFolderLevel - 1) {
-                                console.error("文件夹嵌套层级已达上限:", noteTree.maxFolderLevel)
-                                // 显示提示
+                                // console.error("文件夹嵌套层级已达上限:", noteTree.maxFolderLevel)
                                 errorMessageDialog.message = "文件夹嵌套层级已达上限（" + noteTree.maxFolderLevel + "层）"
                                 errorMessageDialog.open()
                                 return
@@ -228,21 +219,17 @@ Item {
                     }
                 }
                 
-                // 继续创建笔记
                 var result = sidebarManager.createNote(parentPath, inputText.trim())
                 newNoteId = result
                 
                 if (newNoteId > 0) {
-                    console.log("笔记创建成功:", inputText.trim(), "ID:", newNoteId);
+                    // console.log("笔记创建成功:", inputText.trim(), "ID:", newNoteId);
                     
-                    // *** 移除全局刷新 ***
-                    
-                    // 定义选中函数 (添加重试次数限制)
                     var selectRetryCount = 0
                     var maxSelectRetries = 5
                     function selectNewNote() {
                          if (selectRetryCount >= maxSelectRetries) {
-                            console.warn("选中新笔记失败，已达最大重试次数")
+                            // console.warn("选中新笔记失败，已达最大重试次数")
                             return
                         }
                         selectRetryCount++
@@ -255,7 +242,7 @@ Item {
                             if (item.path === notePath) {
                                 found = true
                                 targetIndex = i
-                                console.log("选中新创建的笔记 (尝试 "+ selectRetryCount +"):", item.name, "路径:", notePath)
+                                // console.log("选中新创建的笔记 (尝试 "+ selectRetryCount +"):", item.name, "路径:", notePath)
                                 selectedNotePath = notePath
                                 selectedNoteType = "note"
                                 selectedNoteName = item.name
@@ -266,16 +253,15 @@ Item {
                         }
                         
                         if (!found) {
-                            console.log("未找到新创建的笔记，稍后重试 (尝试 " + selectRetryCount + ")")
+                            // console.log("未找到新创建的笔记，稍后重试 (尝试 " + selectRetryCount + ")")
                             Qt.callLater(selectNewNote)
                         }
                     }
                     
-                    // 局部插入逻辑 (与文件夹类似)
                     var parentIndex = -1
                     var parentLevel = -1
                     if (parentPath === "/root") {
-                        parentIndex = -1 // 表示根目录
+                        parentIndex = -1
                         parentLevel = -1
                     } else {
                         for (var i = 0; i < folderListModel.count; i++) {
@@ -288,22 +274,15 @@ Item {
                     }
                     
                     if (parentPath !== "/root" && parentIndex === -1) {
-                        console.error("未能找到父文件夹用于插入新项目")
+                        // console.error("未能找到父文件夹用于插入新项目")
                         return
                     }
                     
-                    // 确保父文件夹展开 (如果是子文件夹)
                      if (parentIndex !== -1 && !folderListModel.get(parentIndex).expanded) {
-                        console.log("展开父文件夹以插入新项")
-                        toggleFolderExpanded(parentIndex) // 展开会加载内容，但不包括我们刚创建的
+                        // console.log("展开父文件夹以插入新项")
+                        toggleFolderExpanded(parentIndex)
                     }
                     
-                    // *** 获取新创建项的数据 (需要新的C++方法) ***
-                    // 假设 sidebarManager.getNoteInfo(newNoteId) 返回 QVariantMap
-                    // 需要先实现 getNoteInfo
-                    // var newItemData = sidebarManager.getNoteInfo(newNoteId)
-                    
-                    // *** 临时代替：手动构造数据，level 需要正确计算 ***
                     var newItemLevel = parentLevel + 1;
                     var newItemData = {
                         "id": newNoteId,
@@ -313,29 +292,34 @@ Item {
                         "path": "/note_" + newNoteId,
                         "date": new Date().toISOString() // 模拟日期
                     }
-                    console.log("构造新笔记数据:", JSON.stringify(newItemData));
+                    // console.log("构造新笔记数据:", JSON.stringify(newItemData));
                     
-                    // 确定插入位置 (笔记应该放在对应文件夹的最后，但在其他文件夹之前)
                     var insertIndex = -1;
-                    if (parentIndex === -1) { // 插入到根目录末尾
-                        insertIndex = folderListModel.count
-                    } else { // 插入到子文件夹末尾（但在下一个非子项之前）
+                    if (parentIndex === -1) { 
+                        // 如果是根目录，将笔记放在所有文件夹后面
+                        insertIndex = 0;
+                        // 找到所有最上层文件夹的最后一个位置
+                        while (insertIndex < folderListModel.count && 
+                               (folderListModel.get(insertIndex).type === 'folder' && 
+                                folderListModel.get(insertIndex).level === 0)) {
+                            insertIndex++;
+                        }
+                    } else { 
                         insertIndex = parentIndex + 1;
-                        // 跳过所有子孙节点
                         while (insertIndex < folderListModel.count && folderListModel.get(insertIndex).level > parentLevel) {
                             insertIndex++;
                         }
                     }
                     
-                    // 执行插入
-                    console.log("在索引 " + insertIndex + " 处插入新笔记")
+                    // console.log("在索引 " + insertIndex + " 处插入新笔记")
                     folderListModel.insert(insertIndex, newItemData)
                     
-                    // 延迟执行选中
                     Qt.callLater(selectNewNote)
                     
                 } else {
-                    console.error("笔记创建失败:", inputText.trim());
+                    // console.error("笔记创建失败:", inputText.trim());
+                    errorMessageDialog.message = "创建笔记失败：" + inputText.trim()
+                    errorMessageDialog.open()
                 }
             }
         }
@@ -352,12 +336,14 @@ Item {
         
         onConfirmed: function(inputText) {
             if (inputText.trim() !== "") {
-                console.log("重命名项目:", itemPath, "为", inputText.trim());
-                // 直接调用C++的重命名方法
+                // console.log("重命名项目:", itemPath, "为", inputText.trim());
                 if (sidebarManager.renameItem(itemPath, inputText.trim())) {
-                    console.log("项目重命名成功:", inputText.trim());
+                    // console.log("项目重命名成功:", inputText.trim());
+                    // 刷新在Connections的onFolderStructureChanged中处理
                 } else {
-                    console.error("项目重命名失败:", inputText.trim());
+                    // console.error("项目重命名失败:", inputText.trim());
+                    errorMessageDialog.message = "重命名失败：" + inputText.trim()
+                    errorMessageDialog.open()
                 }
             }
         }
@@ -375,12 +361,14 @@ Item {
         property string itemPath: ""
         
         onConfirmed: function(inputText) {
-            console.log("删除项目:", itemPath)
-            // 直接调用C++的删除方法
+            // console.log("删除项目:", itemPath)
             if (sidebarManager.deleteItem(itemPath)) {
-                console.log("项目删除成功:", itemPath);
+                // console.log("项目删除成功:", itemPath);
+                // 刷新在Connections的onFolderStructureChanged中处理
             } else {
-                console.error("项目删除失败:", itemPath);
+                // console.error("项目删除失败:", itemPath);
+                errorMessageDialog.message = "删除失败：" + itemPath
+                errorMessageDialog.open()
             }
         }
     }
@@ -403,19 +391,39 @@ Item {
         anchors.fill: parent
         color: "transparent" // 容器背景透明
         
-        // 添加鼠标区域用于捕获右键点击空白区域
+        // 处理顶部空白区域点击的MouseArea
         MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.RightButton
-            z: -1 // 放在底层，只捕获未被其他MouseArea捕获的点击
+            id: topEmptyAreaMouseArea // 给一个明确的ID
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: listAreaContainer.top // 确保只覆盖顶部区域
+            acceptedButtons: Qt.RightButton | Qt.LeftButton
             
             onClicked: function(mouse) {
+                // console.log("[NoteTree_Debug] 红色区域点击 - Button:", mouse.button);
                 if (mouse.button === Qt.RightButton) {
-                    console.log("[NoteTree] 空白区域右键点击")
+                    // 右键点击空白区域
+                    // console.log("[NoteTree_Debug] 红色区域右键点击，打开根目录菜单");
                     contextMenu.isFolder = true
-                    contextMenu.itemPath = "/root" // 根目录ID为1
+                    contextMenu.itemPath = "/root"
                     contextMenu.itemName = "根目录"
                     contextMenu.popup()
+                } else if (mouse.button === Qt.LeftButton) {
+                    // 左键点击空白区域，取消选中
+                    // console.log("[NoteTree_Debug] 红色区域左键点击，当前选中:", selectedNotePath);
+                    if (selectedNotePath !== "") {
+                        // console.log("[NoteTree_Debug] 红色区域点击，取消选中:", selectedNotePath);
+                        // 先发出信号通知外部，然后再清空本地状态
+                        // console.log("[NoteTree_Debug] 发送取消选中信号");
+                        noteSelected("", "")
+                        // console.log("[NoteTree_Debug] 清除本地选中状态");
+                        selectedNotePath = ""
+                        selectedNoteType = ""
+                        selectedNoteName = ""
+                    } else {
+                        // console.log("[NoteTree_Debug] 当前无选中项目，无需取消");
+                    }
                 }
             }
         }
@@ -458,6 +466,12 @@ Item {
                     width: 14
                     height: 14
                     rotation: 0 // 初始状态 (向右)
+                    
+                    ColorOverlay {
+                        anchors.fill: parent
+                        source: parent
+                        color: "#333333" // 与文件夹图标颜色一致
+                    }
                 }
                 
                 MouseArea {
@@ -475,74 +489,127 @@ Item {
             }
         }
         
-        // 文件列表
-        ListView {
-            id: listView
+        // 文件列表区域
+        Item {
+            id: listAreaContainer
             anchors.top: headerRect.bottom
             anchors.topMargin: 10
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             
-            // 为每个项目添加间距
-            spacing: 8
-            clip: false // 不裁剪，让阴影能够溢出
+            // 底层背景 MouseArea，用于捕获空白区域点击
+            Rectangle {
+                id: listBackgroundRect
+                anchors.fill: parent
+                color: "transparent" // 恢复透明
+                // opacity: 0.3 // 移除透明度
+                z: 0  // 基准层
+                
+                MouseArea {
+                    id: emptyAreaMouseArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    // z: 100 // 移除高z值
+                    
+                    enabled: false // 禁用这个MouseArea，因为header/footer已处理空白点击
+                    // preventStealing: true // 移除
+                    
+                    // 移除 isPointInItemCard 函数
+                    
+                    // 移除 onPressed
+                    
+                    // 移除 onClicked
+                }
+            }
             
-            // 优化ListView性能
-            cacheBuffer: 300 // 增加缓存，提高滚动性能
-            reuseItems: true // 重用项目
-            highlightFollowsCurrentItem: false // 禁用默认高亮跟随，使用我们自己的高亮逻辑
-            
-            // 视图行为设置
-            interactive: true // 允许交互
-            flickableDirection: Flickable.VerticalFlick // 只允许垂直滚动
-            boundsBehavior: Flickable.StopAtBounds // 到达边界时停止
+            // 文件列表
+            ListView {
+                id: listView
+                anchors.fill: parent
+                z: 1 // 置于背景之上，但不应该阻挡emptyAreaMouseArea
             
             // 使用C++提供的数据代替静态数据
             model: folderListModel
             
-            // 当模型变化时，强制布局更新
-            onModelChanged: {
-                console.log("[NoteTree] ListView模型已变化，总项目数: " + (model ? model.count : 0));
-                forceLayout();
-            }
-            
-            delegate: Item {
-                id: itemContainer
-                width: ListView.view.width - 20 
-                height: 44
-                x: 10
-                visible: shouldBeVisible(model)
-                
-                // 辅助函数：确定项目是否应该可见（基于父文件夹是否展开）
-                function shouldBeVisible(item) {
-                    // 顶级项目总是可见
-                    if (item.level === 0) return true
+                // 添加空白分隔区域，用于点击取消选中
+                header: Rectangle {
+                    width: parent.width
+                    height: 10
+                    color: "transparent" // 恢复透明
+                    // opacity: 0.3
                     
-                    // 查找此项目的父级路径
-                    const pathParts = item.path.split("/")
-                    if (pathParts.length <= 3) return true  // 顶级项目，可见
-                    
-                    // 构建父级路径
-                    let parentPath = ""
-                    for (let i = 0; i < pathParts.length - 1; i++) {
-                        parentPath += pathParts[i]
-                        if (i < pathParts.length - 2) parentPath += "/"
-                    }
-                    
-                    // 递归检查所有父级是否都展开
-                    for (let i = 0; i < folderListModel.count; i++) {
-                        let parent = folderListModel.get(i)
-                        if (parent.path === parentPath) {
-                            // 找到父级，检查是否展开
-                            return parent.expanded && shouldBeVisible(parent)
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            // console.log("[NoteTree_Debug] 列表头部空白区域点击 - 取消选中");
+                            if (selectedNotePath !== "") {
+                                noteSelected("", "")
+                                selectedNotePath = ""
+                                selectedNoteType = ""
+                                selectedNoteName = ""
+                            }
                         }
                     }
-                    
-                    return false
                 }
                 
-                // 阴影 (整个卡片的阴影)
+                // 列表尾部空白区域
+                footer: Rectangle {
+                    width: parent.width
+                    // 动态计算footer高度，填充剩余可见空间，避免绑定循环
+                    property int itemTotalHeight: folderListModel.count * (44 + 8) // 44是项目高度, 8是间距
+                    height: Math.max(10, listAreaContainer.height - itemTotalHeight - 10) 
+                    color: "transparent" // 恢复透明
+                    // opacity: 0.3
+                    
+                    // 移除调试日志
+                    // Component.onCompleted: {
+                    //     console.log("[NoteTree_Debug] Footer Initial Height:", height)
+                    // }
+                    // onHeightChanged: {
+                    //     console.log("[NoteTree_Debug] Footer Height Changed:", height)
+                    // }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            // console.log("[NoteTree_Debug] 列表尾部空白区域点击 - 取消选中");
+                            if (selectedNotePath !== "") {
+                                noteSelected("", "")
+                                selectedNotePath = ""
+                                selectedNoteType = ""
+                                selectedNoteName = ""
+                            }
+                        }
+                    }
+                }
+                
+                // 使列表背景透明，使背景的MouseArea能接收点击
+                // 这是关键 - 使用透明delegate背景，但项目本身不透明
+                highlight: Item { } // 禁用默认高亮，我们使用自定义高亮
+                
+                // 为每个项目添加间距
+                spacing: 8
+                clip: false // 不裁剪，让阴影能够溢出
+                
+                // 优化ListView性能
+                cacheBuffer: 300 // 增加缓存，提高滚动性能
+                reuseItems: true // 重用项目
+                highlightFollowsCurrentItem: false // 禁用默认高亮跟随，使用我们自己的高亮逻辑
+                
+                // 视图行为设置
+                interactive: true // 允许交互
+                flickableDirection: Flickable.VerticalFlick // 只允许垂直滚动
+                boundsBehavior: Flickable.StopAtBounds // 到达边界时停止
+                
+                delegate: Item {
+                    id: itemContainer
+                    width: ListView.view.width - 20 
+                    height: 44
+                    x: 10
+                    // 确保delegate只在有内容的地方捕获点击，而不是整个区域
+                    clip: false
+                    
                 DropShadow {
                     anchors.fill: itemCard
                     horizontalOffset: 0
@@ -557,7 +624,6 @@ Item {
                     Behavior on radius { NumberAnimation { duration: 150 } }
                 }
                 
-                // 卡片主体
                 Rectangle {
                     id: itemCard
                     anchors.fill: parent
@@ -586,71 +652,67 @@ Item {
                     // 内容布局
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 16 + Math.min(model.level, 3) * 20 // 限制最大缩进
+                            anchors.leftMargin: 16 + Math.min(model.level, 3) * 20 // 限制最大缩进
                         anchors.rightMargin: 16
                         spacing: 12
-                        
-                        // 增加层级指示器（针对超过3级的文件夹）
-                        Rectangle {
-                            id: levelIndicator
-                            Layout.preferredWidth: model.level > 3 ? 4 : 0
-                            Layout.preferredHeight: 24
-                            color: "#888888"
-                            radius: 2
-                            visible: model.level > 3
                             
-                            // 显示深层级文本提示
-                            ToolTip {
-                                text: "深层级文件夹 (Level " + model.level + ")"
-                                visible: levelMouseArea.containsMouse
-                                delay: 500
+                            // 增加层级指示器（针对超过3级的文件夹）
+                            Rectangle {
+                                id: levelIndicator
+                                Layout.preferredWidth: model.level > 3 ? 4 : 0
+                                Layout.preferredHeight: 24
+                                color: "#888888"
+                                radius: 2
+                                visible: model.level > 3
+                                
+                                // 显示深层级文本提示
+                                ToolTip {
+                                    text: "深层级文件夹 (Level " + model.level + ")"
+                                    visible: levelMouseArea.containsMouse
+                                    delay: 500
+                                }
+                                
+                                MouseArea {
+                                    id: levelMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                }
                             }
-                            
-                            MouseArea {
-                                id: levelMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                            }
-                        }
                         
                         // 展开/折叠图标 (仅文件夹显示)
                         Image {
                             id: folderExpandIcon
-                            Layout.preferredWidth: 18
-                            Layout.preferredHeight: 18
+                                Layout.preferredWidth: 18
+                                Layout.preferredHeight: 18
                             source: "qrc:/icons/round_right_fill.svg"
                             visible: model.type === "folder"
                             opacity: model.type === "folder" ? 1.0 : 0.0
                             rotation: model.expanded ? 90 : 0
                             Layout.alignment: Qt.AlignVCenter
                             
-                            // 增加红色覆盖，使按钮更明显
-                            ColorOverlay {
-                                anchors.fill: parent
-                                source: parent
-                                color: "#333333" // 灰色
-                            }
-                            
-                            // 展开/折叠动画
+                                ColorOverlay {
+                                    anchors.fill: parent
+                                    source: parent
+                                    color: "#333333" // 恢复为灰色
+                                }
+                                
                             Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                             
                             MouseArea {
                                 anchors.fill: parent
-                                anchors.margins: -10 // 增大点击区域
-                                propagateComposedEvents: false // 阻止事件传播
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                
+                                    anchors.margins: -10 // 增大点击区域
+                                    propagateComposedEvents: false // 阻止事件传播
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    
                                 onClicked: {
-                                    console.log("[NoteTree] 点击了展开/折叠按钮")
-                                    // 切换展开状态
+                                        // console.log("[NoteTree] 点击了展开/折叠按钮")
                                     toggleFolderExpanded(index)
-                                    mouse.accepted = true // 确保事件被接受
-                                }
-                                
-                                // 高亮显示
-                                onContainsMouseChanged: {
-                                    parent.opacity = containsMouse ? 0.7 : 1.0
+                                        mouse.accepted = true 
+                                    }
+                                    
+                                    onContainsMouseChanged: {
+                                        parent.opacity = containsMouse ? 0.7 : 1.0
                                 }
                             }
                         }
@@ -670,9 +732,6 @@ Item {
                                 source: parent
                                 color: noteTree.selectedNotePath === model.path ? 
                                       "#4285F4" : "#666666" // 选中时图标变蓝
-                                
-                                // 平滑过渡
-                                Behavior on color { ColorAnimation { duration: 150 } }
                             }
                         }
                         
@@ -683,29 +742,25 @@ Item {
                             font.pixelSize: 14
                             font.weight: noteTree.selectedNotePath === model.path ? 
                                        Font.DemiBold : Font.Normal // 选中时加粗
-                            elide: Text.ElideMiddle // 从中间省略，而不是右侧
+                                elide: Text.ElideMiddle // 从中间省略，而不是右侧
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
                             color: noteTree.selectedNotePath === model.path ? 
                                   "#4285F4" : "#333333" // 选中时文字变蓝
                             
-                            // 平滑过渡
-                            Behavior on color { ColorAnimation { duration: 150 } }
-                            
-                            // 鼠标悬停时显示完整名称
-                            ToolTip {
-                                text: model.name
-                                visible: nameMouseArea.containsMouse && nameLabel.truncated
-                                delay: 500
-                            }
-                            
-                            MouseArea {
-                                id: nameMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                propagateComposedEvents: true // 允许事件传播
-                                onPressed: function(mouse) { mouse.accepted = false; } // 不处理点击，传递给父级
-                            }
+                                ToolTip {
+                                    text: model.name
+                                    visible: nameMouseArea.containsMouse && nameLabel.truncated
+                                    delay: 500
+                                }
+                                
+                                MouseArea {
+                                    id: nameMouseArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    propagateComposedEvents: true // 允许事件传播
+                                    onPressed: function(mouse) { mouse.accepted = false; } // 不处理点击，传递给父级
+                                }
                         }
                         
                         // 星标 (收藏)
@@ -726,156 +781,114 @@ Item {
                     }
                 }
                 
-                // 鼠标交互区域
                 MouseArea {
                     id: itemMouseArea
-                    anchors.fill: parent
+                        anchors.fill: itemCard // 只覆盖卡片区域而不是整个delegate
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     cursorShape: Qt.PointingHandCursor
                     
-                    // 卡片缩放动画
-                    onContainsMouseChanged: {
-                        if (containsMouse) {
-                            itemContainer.scale = 1.02
-                        } else {
-                            itemContainer.scale = 1.0
-                        }
-                    }
+                        // Component.onCompleted: {
+                        //     // 打印每个项目的位置信息，用于调试
+                        //     var pos = mapToItem(listView, 0, 0);
+                        //     console.log("[NoteTree_Debug] Item Position - Path:", model.path, 
+                        //                "Index:", index, 
+                        //                "ListView位置 X:", pos.x, 
+                        //                "Y:", pos.y);
+                        // }
                     
                     onClicked: function(mouse) {
+                            // console.log("[NoteTree_Debug] Item Clicked - Path:", model.path, "Type:", model.type, "Button:", mouse.button); // 添加日志
                         if (mouse.button === Qt.LeftButton) {
-                            // 左键点击：选中项目
-                            noteTree.selectedNotePath = model.path
-                            noteTree.selectedNoteType = model.type
-                            noteTree.selectedNoteName = model.name
+                                // console.log("[NoteTree_Debug] Selecting item - Path:", model.path, "Type:", model.type, "Name:", model.name); // 添加日志
+                                selectedNotePath = model.path
+                                selectedNoteType = model.type
+                                selectedNoteName = model.name
+                                // console.log("[NoteTree_Debug] Emitting noteSelected signal for item:", model.path); // 添加日志
                             noteSelected(model.path, model.type)
                             
-                            // 如果是文件夹，单击时自动展开/折叠
-                            if (model.type === "folder") {
-                                console.log("[NoteTree] 单击文件夹，自动展开/折叠:", model.name)
+                                if (model.type === "folder") {
+                                    // console.log("[NoteTree] 单击文件夹，自动展开/折叠:", model.name)
+                                    // console.log("[NoteTree_Debug] Toggling folder expansion for:", model.name); // 添加日志
                                 toggleFolderExpanded(index)
                             }
                         } else if (mouse.button === Qt.RightButton) {
-                            // 右键点击：显示上下文菜单
+                                // console.log("[NoteTree_Debug] Item Right-Clicked. Opening context menu for:", model.path); // 添加日志
                             contextMenu.isFolder = model.type === "folder"
                             contextMenu.itemPath = model.path
                             contextMenu.itemName = model.name
                             contextMenu.popup()
                         }
                     }
-                    
-                    // 添加双击处理
-                    onDoubleClicked: function(mouse) {
-                        if (mouse.button === Qt.LeftButton && model.type === "note") {
-                            // 对笔记的双击处理：可以打开笔记内容
-                            console.log("[NoteTree] 双击打开笔记:", model.name)
-                            noteSelected(model.path, model.type)
+                        
+                        onDoubleClicked: function(mouse) {
+                            if (mouse.button === Qt.LeftButton && model.type === "note") {
+                                // console.log("[NoteTree] 双击打开笔记:", model.name)
+                                noteSelected(model.path, model.type)
+                            }
                         }
                     }
-                }
-                
-                // 缩放动画
+                    
                 Behavior on scale { 
-                    NumberAnimation { 
-                        duration: 100
-                        easing.type: Easing.OutQuad
-                    }
+                        NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                 }
             }
             
-            // 滚动条
             ScrollBar.vertical: ScrollBar {
                 id: scrollBar
                 active: true
                 interactive: true
                 policy: ScrollBar.AsNeeded
+                }
             }
         }
     }
     
-    // 用于连接C++数据的模型
     ListModel {
         id: folderListModel
     }
     
-    // 组件初始化
     Component.onCompleted: {
-        console.log("[NoteTree] 组件初始化开始")
-        // 刷新笔记列表
+        // console.log("[NoteTree] 组件初始化开始")
         refreshNotesList()
-        
-        // 延迟一点再刷新一次，确保所有内容都加载完毕
-        timer.start()
     }
     
-    // 用于延迟刷新的定时器
-    Timer {
-        id: timer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            console.log("[NoteTree] 延迟刷新触发，强制更新UI");
-            // 强制再次刷新
-            refreshNotesList();
-            // 强制ListView重新布局
-            listView.forceLayout();
-            // 发送一个自定义事件给ListView，确保它能察觉到更新
-            listView.contentY = listView.contentY + 0.1;
-            listView.contentY = listView.contentY - 0.1;
-            console.log("[NoteTree] UI刷新完成，当前模型项目数: " + folderListModel.count);
-        }
-    }
-    
-    // 刷新文件列表 (主要在初始化时调用)
     function refreshNotesList() {
-        console.log("--- [NoteTree] refreshNotesList() CALLED --- "); 
-        
+        // console.log("--- [NoteTree] refreshNotesList() CALLED --- "); 
         var currentSelectedPath = selectedNotePath;
         folderListModel.clear();
-        
         var topLevelItems = sidebarManager.getFolderStructure();
-        console.log("[NoteTree] Fetched top level items count: " + topLevelItems.length);
-        
+        // console.log("[NoteTree] Fetched top level items count: " + topLevelItems.length);
         for (var i = 0; i < topLevelItems.length; i++) {
             folderListModel.append(topLevelItems[i]);
-            // 初始化时不递归加载子项，依赖用户点击展开
         }
-        
-        console.log("[NoteTree] refreshNotesList() finished. Total items: " + folderListModel.count);
-        
+        // console.log("[NoteTree] refreshNotesList() finished. Total items: " + folderListModel.count);
         if (currentSelectedPath) {
             selectedNotePath = currentSelectedPath;
         }
         listView.forceLayout();
     }
     
-    // 切换文件夹展开/折叠状态
     function toggleFolderExpanded(index) {
         if (index < 0 || index >= folderListModel.count) return
-        
         var folder = folderListModel.get(index)
         if (folder.type !== "folder") return
+        // console.log("--- [NoteTree] toggleFolderExpanded() CALLED for:", folder.name, "Current expanded:", folder.expanded, "Target state:", !folder.expanded);
         
-        console.log("--- [NoteTree] toggleFolderExpanded() CALLED for:", folder.name, "Current expanded:", folder.expanded, "Target state:", !folder.expanded);
-        
-        // 切换状态
         folder.expanded = !folder.expanded
         
         if (folder.expanded) {
-            // 展开逻辑 (检查是否已有子项)
             var hasChildren = false
             if (index + 1 < folderListModel.count) {
                 var nextItem = folderListModel.get(index + 1)
                 if (nextItem.level > folder.level) {
                     hasChildren = true
-                    console.log("[NoteTree] Folder already has children in model, skipping add.")
+                    // console.log("[NoteTree] Folder already has children in model, skipping add.")
                 }
             }
-            
             if (!hasChildren) {
                 var contents = sidebarManager.getFolderContents(folder.id, folder.level)
-                console.log("[NoteTree] Fetched children count for expand: " + contents.length)
+                // console.log("[NoteTree] Fetched children count for expand: " + contents.length)
                 var insertPosition = index + 1
                 for (var i = 0; i < contents.length; i++) {
                     folderListModel.insert(insertPosition, contents[i])
@@ -883,158 +896,114 @@ Item {
                 }
             }
         } else {
-            // 折叠逻辑
-            console.log("--- [NoteTree] Calling removeChildItems() for index:", index);
+            // console.log("--- [NoteTree] Calling removeChildItems() for index:", index);
             removeChildItems(index)
         }
-        
         listView.forceLayout()
     }
     
-    // 移除子项目
     function removeChildItems(parentIndex) {
         if (parentIndex < 0 || parentIndex >= folderListModel.count) return
         var parentItem = folderListModel.get(parentIndex)
         if (parentItem.type !== "folder") return
         var parentLevel = parentItem.level
-        console.log("--- [NoteTree] removeChildItems() CALLED for:", parentItem.name);
-        
+        // console.log("--- [NoteTree] removeChildItems() CALLED for:", parentItem.name);
         var startIndex = parentIndex + 1
         var endIndex = startIndex
         while (endIndex < folderListModel.count && folderListModel.get(endIndex).level > parentLevel) {
             endIndex++
         }
-        
         if (endIndex > startIndex) {
             var removeCount = endIndex - startIndex
-            console.log("[NoteTree] Removing " + removeCount + " child items from index " + startIndex)
+            // console.log("[NoteTree] Removing " + removeCount + " child items from index " + startIndex)
             for (var i = endIndex - 1; i >= startIndex; i--) {
                  folderListModel.remove(i)
             }
         } else {
-            console.log("[NoteTree] No child items found to remove.")
+            // console.log("[NoteTree] No child items found to remove.")
         }
         listView.forceLayout();
     }
     
-    // 连接C++信号 (现在只处理非创建/删除的全局刷新信号，比如重命名或外部更改)
     Connections {
         target: sidebarManager
-        
         function onFolderStructureChanged() {
-            console.log("--- [NoteTree] onFolderStructureChanged SIGNAL RECEIVED --- Calling refreshNotesList()");
-            // 这个信号现在不应该在创建/删除后立即触发了
-            // 它可能在重命名、或未来可能的外部同步时触发
+            // console.log("--- [NoteTree] onFolderStructureChanged SIGNAL RECEIVED --- Calling refreshNotesList()");
             refreshNotesList();
         }
     }
     
-    // 处理创建文件夹请求
     function handleCreateFolderRequest(parentPath) {
-        console.log("[NoteTree] Handling Create Folder Request for:", parentPath)
-        
-        // 自动展开目标文件夹
+        // console.log("[NoteTree] Handling Create Folder Request for:", parentPath)
         if (parentPath !== "/root") {
             ensureFolderExpanded(parentPath)
         }
-        
         newFolderDialog.parentPath = parentPath
         newFolderDialog.inputText = ""
-        console.log("[NoteTree] Opening New Folder Dialog...")
+        // console.log("[NoteTree] Opening New Folder Dialog...")
         newFolderDialog.open()
     }
     
-    // 处理创建笔记请求
     function handleCreateNoteRequest(parentPath) {
-        console.log("[NoteTree] Handling Create Note Request for:", parentPath)
+        // console.log("[NoteTree] Handling Create Note Request for:", parentPath)
         
-        // 自动展开目标文件夹
+        // 验证 parentPath 是否有效
+        var isValidPath = false
+        if (parentPath === "/root") {
+            isValidPath = true
+        } else {
+            for (var i = 0; i < folderListModel.count; i++) {
+                var item = folderListModel.get(i)
+                if (item.path === parentPath && item.type === "folder") {
+                    isValidPath = true
+                    break
+                }
+            }
+        }
+        
+        // 如果路径无效（可能是笔记路径），则使用根目录
+        if (!isValidPath) {
+            console.log("[NoteTree] 无效的父路径，将使用根目录:", parentPath)
+            parentPath = "/root"
+        }
+        
         if (parentPath !== "/root") {
             ensureFolderExpanded(parentPath)
         }
         
         newNoteDialog.parentPath = parentPath
         newNoteDialog.inputText = ""
-        console.log("[NoteTree] Opening New Note Dialog...")
+        // console.log("[NoteTree] Opening New Note Dialog...")
         newNoteDialog.open()
     }
     
-    // 确保文件夹处于展开状态
     function ensureFolderExpanded(folderPath) {
-        // 查找匹配的文件夹
         for (var i = 0; i < folderListModel.count; i++) {
             var item = folderListModel.get(i)
             if (item.path === folderPath && item.type === "folder") {
-                console.log("[NoteTree] 确保文件夹展开:", item.name)
-                
-                // 如果未展开，则展开它
+                // console.log("[NoteTree] 确保文件夹展开:", item.name)
                 if (!item.expanded) {
                     toggleFolderExpanded(i)
                 }
-                
                 return true
             }
         }
-        
-        console.log("[NoteTree] 未找到要展开的文件夹:", folderPath)
+        // console.log("[NoteTree] 未找到要展开的文件夹:", folderPath)
         return false
     }
     
-    // 处理重命名请求
     function handleRenameRequest(path, name) {
-        console.log("[NoteTree] Handling Rename Request for:", path, "Name:", name)
+        // console.log("[NoteTree] Handling Rename Request for:", path, "Name:", name)
         renameDialog.itemPath = path
         renameDialog.inputText = name
-        console.log("[NoteTree] Opening Rename Dialog...")
+        // console.log("[NoteTree] Opening Rename Dialog...")
         renameDialog.open()
     }
     
-    // 处理删除请求
     function handleDeleteRequest(path) {
-        console.log("[NoteTree] Handling Delete Request for:", path)
+        // console.log("[NoteTree] Handling Delete Request for:", path)
         deleteDialog.itemPath = path
-        console.log("[NoteTree] Opening Delete Dialog...")
+        // console.log("[NoteTree] Opening Delete Dialog...")
         deleteDialog.open()
-    }
-    
-    // 刷新文件夹内容并选中特定项目
-    function refreshAndSelectItem(folderId, targetType, targetId) {
-        console.log("[NoteTree] 刷新文件夹并选中项目: 文件夹ID=" + folderId + ", 目标类型=" + targetType + ", 目标ID=" + targetId);
-        
-        // 先获取文件夹内容
-        var contents = sidebarManager.getFolderContents(folderId);
-        
-        // 寻找目标项目的路径
-        var targetPath = "";
-        for (var i = 0; i < contents.length; i++) {
-            if (contents[i].type === targetType && contents[i].id === targetId) {
-                targetPath = contents[i].path;
-                console.log("[NoteTree] 找到目标项目: " + contents[i].name + ", 路径=" + targetPath);
-                break;
-            }
-        }
-        
-        // 如果找到目标项目，则选中它
-        if (targetPath) {
-            // 延迟选中，确保UI已更新
-            Qt.callLater(function() {
-                console.log("[NoteTree] 选中目标项目: " + targetPath);
-                selectedNotePath = targetPath;
-                selectedNoteType = targetType;
-                
-                // 找到项目名称
-                for (var i = 0; i < folderListModel.count; i++) {
-                    var item = folderListModel.get(i);
-                    if (item.path === targetPath) {
-                        selectedNoteName = item.name;
-                        // 发送选中信号
-                        noteSelected(targetPath, targetType);
-                        break;
-                    }
-                }
-            });
-        } else {
-            console.log("[NoteTree] 未找到目标项目");
-        }
     }
 } 

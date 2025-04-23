@@ -888,7 +888,7 @@ Item {
             }
         }
     }
-    
+    } 
     ListModel {
         id: folderListModel
     }
@@ -977,7 +977,7 @@ Item {
             refreshNotesList();
         }
     }
-    }
+    
     function handleCreateFolderRequest(parentPath) {
         // console.log("[NoteTree] Handling Create Folder Request for:", parentPath)
         if (parentPath !== "/root") {

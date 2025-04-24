@@ -71,4 +71,43 @@ QToolButton#closeButton:pressed {
     background-color: #d32f2f;
 }
 
-/* Add styles for other widgets like QTextEdit later */
+/* Text Editor Styles */
+QTextEdit {
+    background-color: #282828;
+    color: #f0f0f0;
+    border: none;
+    selection-background-color: #555555;
+    selection-color: #ffffff;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10pt;
+    padding: 8px;
+}
+
+/* Top Tool Bar Styles */
+QToolBar {
+    background-color: #303030;
+    border: none;
+    border-bottom: 1px solid #444444;
+    spacing: 2px;
+    padding: 2px;
+}
+
+QToolBar QToolButton {
+    color: white;
+    background-color: transparent;
+    border: none;
+    border-radius: 3px;
+    padding: 4px;
+}
+
+QToolBar QToolButton:hover {
+    background-color: #404040;
+}
+
+QToolBar QToolButton:pressed {
+    background-color: #505050;
+}
+
+QToolBar QToolButton:disabled {
+    color: #707070;
+}

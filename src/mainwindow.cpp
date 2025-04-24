@@ -12,6 +12,7 @@
 #include "./ui_mainwindow.h"
 #include "sidebarmanager.h" // 包含侧边栏管理器头文件
 #include "searchmanager.h"  // 包含搜索管理器头文件
+#include "texteditormanager.h" // 包含文本编辑器管理器头文件
 
 #include <QToolButton>
 #include <QIcon>
@@ -63,6 +64,9 @@ MainWindow::MainWindow(QWidget *parent)
     
     // 初始化搜索功能
     setupSearch();
+    
+    // 初始化文本编辑器
+    setupTextEditor();
     
     // --- 4. 创建并配置按钮 ---
     // --- 4a. 侧边栏切换按钮 ---
@@ -160,8 +164,13 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    // 保存当前打开的笔记
+    saveCurrentNote();
+    
     delete ui;
     delete m_sidebarManager; // 释放侧边栏管理器
+    delete m_searchManager;
+    // m_textEditorManager将通过其父对象自动删除
 }
 
 // 加载并应用样式表的辅助函数
@@ -269,19 +278,26 @@ void MainWindow::toggleMaximizeRestore()
 
 void MainWindow::toggleTheme()
 {
-    m_isDarkTheme = !m_isDarkTheme; 
+    m_isDarkTheme = !m_isDarkTheme;
     
-    if (m_isDarkTheme) {
-        loadAndApplyStyleSheet("://styles/dark_theme.qss");
-    } else {
-        loadAndApplyStyleSheet("://styles/light_theme.qss");
-    }
+    // 更新图标
+    updateButtonIcons();
     
-    updateButtonIcons(); // 为新主题更新图标
+    // 加载相应的样式表
+    QString styleSheet = m_isDarkTheme ? ":/styles/dark_theme.qss" : ":/styles/light_theme.qss";
+    loadAndApplyStyleSheet(styleSheet);
     
+    // 更新工具提示
+    themeToggleButton->setToolTip(m_isDarkTheme ? "切换到浅色主题" : "切换到深色主题");
+
     // 更新侧边栏管理器的主题状态
     if (m_sidebarManager) {
         m_sidebarManager->updateTheme(m_isDarkTheme);
+    }
+    
+    // 更新文本编辑器主题 - 这里需确保在样式表加载后调用
+    if (m_textEditorManager) {
+        m_textEditorManager->setTheme(m_isDarkTheme);
     }
 }
 
@@ -559,8 +575,71 @@ void MainWindow::openSearchDialog()
 // 处理笔记选择
 void MainWindow::handleNoteSelected(const QString &path, const QString &type)
 {
-    qDebug() << "主窗口处理笔记选择:" << path << type;
-    // TODO: 在主内容区域显示选中的笔记
+    qDebug() << "选中笔记:" << path << "类型:" << type;
+    
+    // 在加载新笔记前，保存当前笔记
+    if (!m_currentNotePath.isEmpty() && m_textEditorManager) {
+        saveCurrentNote();
+    }
+    
+    // 更新当前笔记路径
+    m_currentNotePath = path;
+    
+    // 从数据库加载笔记内容并显示
+    if (m_textEditorManager) {
+        // 这里只是示例，实际应该从数据库管理器获取内容
+        QString content = "<html><body><h1>笔记标题</h1><p>这是一个示例笔记内容</p></body></html>";
+        
+        // 如果接入了数据库，应该从数据库获取内容
+        // content = m_databaseManager->getNoteContent(path);
+        
+        m_textEditorManager->loadContent(content, path);
+    }
+}
+
+// 保存当前笔记
+void MainWindow::saveCurrentNote()
+{
+    if (m_textEditorManager && !m_currentNotePath.isEmpty()) {
+        QString content = m_textEditorManager->saveContent();
+        
+        // 这里只是示例，实际应该保存到数据库管理器
+        qDebug() << "保存笔记:" << m_currentNotePath;
+        // 如果接入了数据库，应该保存到数据库
+        // m_databaseManager->saveNoteContent(m_currentNotePath, content);
+    }
+}
+
+// 处理编辑器内容修改
+void MainWindow::handleContentModified()
+{
+    // 可以在这里实现自动保存功能，或者更新UI显示修改状态
+    qDebug() << "笔记内容已修改";
+}
+
+// 初始化文本编辑器
+void MainWindow::setupTextEditor()
+{
+    // 创建文本编辑器管理器
+    m_textEditorManager = new TextEditorManager(this);
+    
+    // 连接内容修改信号
+    connect(m_textEditorManager, &TextEditorManager::contentModified, this, &MainWindow::handleContentModified);
+    
+    // 创建主内容区布局
+    QVBoxLayout *mainLayout = new QVBoxLayout(ui->mainContentContainer);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+    
+    // 添加顶部工具栏和文本编辑器到布局
+    mainLayout->addWidget(m_textEditorManager->topToolBar());
+    mainLayout->addWidget(m_textEditorManager->textEdit());
+    
+    // 设置编辑器主题
+    m_textEditorManager->setTheme(m_isDarkTheme);
+    
+    // 加载默认内容
+    m_textEditorManager->loadContent("<html><body><p>欢迎使用IntelliMedia Notes！</p><p>请从侧边栏选择一个笔记或创建新笔记开始。</p></body></html>");
 }
 
 // 处理搜索对话框关闭

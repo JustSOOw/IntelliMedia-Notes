@@ -27,6 +27,8 @@ set(PROJECT_SOURCES
         src/databasemanager.h
         src/searchmanager.cpp
         src/searchmanager.h
+        src/texteditormanager.cpp
+        src/texteditormanager.h
         forms/mainwindow.ui   # UI file is now in forms/
 )
 
@@ -65,7 +67,8 @@ target_link_libraries(IntelliMedia_Notes PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql 
     Qt${QT_VERSION_MAJOR}::Svg
     Qt${QT_VERSION_MAJOR}::Core5Compat
-)
+)   
+
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

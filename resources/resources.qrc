@@ -27,5 +27,26 @@
         <file>qml/Animations.qml</file>
         <file>qml/CustomDialog.qml</file>
         <file>qml/SearchView.qml</file>
+        <file>icons/editor/align-center.svg</file>
+        <file>icons/editor/align-justify.svg</file>
+        <file>icons/editor/align-left.svg</file>
+        <file>icons/editor/align-right.svg</file>
+        <file>icons/editor/bold.svg</file>
+        <file>icons/editor/ellipse.svg</file>
+        <file>icons/editor/highlight.svg</file>
+        <file>icons/editor/italic.svg</file>
+        <file>icons/editor/pencil.svg</file>
+        <file>icons/editor/strikeout.svg</file>
+        <file>icons/editor/text.svg</file>
+        <file>icons/editor/text-color.svg</file>
+        <file>icons/editor/underline.svg</file>
+        <file>icons/editor/ai.svg</file>
+        <file>icons/editor/save.svg</file>
+        <file>icons/editor/undo.svg</file>
+        <file>icons/editor/redo.svg</file>
+        <file>icons/editor/cut.svg</file>
+        <file>icons/editor/copy.svg</file>
+        <file>icons/editor/paste.svg</file>
+        <file>icons/editor/image.svg</file>
     </qresource>
 </RCC>

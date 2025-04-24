@@ -42,6 +42,7 @@ class QMouseEvent; // 事件处理的前向声明
 // 前向声明侧边栏管理器和搜索管理器
 class SidebarManager;
 class SearchManager;
+class TextEditorManager; // 添加文本编辑器管理器前向声明
 
 class MainWindow : public QMainWindow
 {
@@ -82,6 +83,7 @@ private slots:
     void handleNoteSelected(const QString &path, const QString &type); // 处理笔记选择
     void openSearchDialog();      // 打开搜索对话框
     void onSearchClosed();        // 处理搜索对话框关闭事件
+    void handleContentModified(); // 处理编辑器内容修改
 
 private:
     Ui::MainWindow *ui;
@@ -131,11 +133,23 @@ private:
     SidebarManager *m_sidebarManager = nullptr; // 侧边栏管理器
     SearchManager *m_searchManager = nullptr;   // 搜索管理器
     
+    // 文本编辑器相关
+    TextEditorManager *m_textEditorManager = nullptr; // 文本编辑器管理器
+    
     // 初始化侧边栏
     void setupSidebar();
     
     // 初始化搜索功能
     void setupSearch();
+    
+    // 初始化文本编辑器
+    void setupTextEditor();
+    
+    // 保存当前笔记
+    void saveCurrentNote();
+    
+    // 当前打开的笔记路径
+    QString m_currentNotePath;
     
     // -----------------------------------------
 };

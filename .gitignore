@@ -84,5 +84,6 @@ CMakeLists.txt.user*
 
 /.cursor/
 *.mdc
-
+*.txt
+!CMakeLists.txt
 

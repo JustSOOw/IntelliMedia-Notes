@@ -103,14 +103,54 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
 
         // 检查是否点击在手柄上
         int handleIndex = getHandleAtPos(pressPos);
-        if (handleIndex != -1 && !m_selectedImageCursor.isNull()) {
-            // 点击在有效手柄上，并且当前确实有图片被选中
+        if (handleIndex != -1 && !m_selectedImageCursor.isNull() && !m_selectedImageRect.isNull()) { // 增加 m_selectedImageRect 检查
+            // 点击在有效手柄上，并且当前确实有图片被选中且矩形有效
             qDebug() << "MousePressEvent: Clicked on handle" << handleIndex << "for selected image.";
-            m_isResizing = true; // *** 只有这里设置 Resizing 为 true ***
+            
+            // --- 精确获取图片格式和尺寸 --- 
+            QTextCursor preciseCursor = cursorForPosition(m_selectedImageRect.center());
+            int imagePos = -1;
+            QTextImageFormat imageFormat;
+            // 尝试找到这个精确光标位置对应的图片起始点和格式
+            QTextBlock block = preciseCursor.block();
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                 QTextFragment frag = it.fragment();
+                 if (frag.isValid() && frag.charFormat().isImageFormat()) {
+                     // 检查这个 fragment 是否大致在选中矩形的范围内 (一个简单的校验)
+                     // 更精确的校验可以使用 frag.position() 和 frag.length()
+                     // 但如果选中矩形有效，cursorForPosition 应该已经定位到正确的图片附近
+                     imageFormat = frag.charFormat().toImageFormat();
+                     // 假设 cursorForPosition 返回的光标在图片内或紧邻，其 position() 应该接近图片位置
+                     // 或者直接认为 frag.position() 就是图片起始位置
+                     imagePos = frag.position(); 
+                     // 简单的尺寸匹配，增加置信度
+                     if (qAbs(imageFormat.width() - m_selectedImageRect.width()) < 5 && qAbs(imageFormat.height() - m_selectedImageRect.height()) < 5) {
+                          qDebug() << "MousePressEvent: Found matching image fragment at pos" << imagePos << "for handle click.";
+                          break; // 找到匹配的了
+                     } else {
+                          imagePos = -1; // 尺寸不匹配，继续找
+                          imageFormat = QTextImageFormat();
+                     }
+                 }
+            }
+
+            if (imagePos != -1 && imageFormat.isValid()) {
+                // 成功找到精确位置和格式
+                m_selectedImageCursor.setPosition(imagePos); // *** 更新选中光标到精确位置 ***
+                m_originalImageSize = QSize(imageFormat.width(), imageFormat.height());
+                qDebug() << "MousePressEvent: Precisely set cursor to" << imagePos << "Original size set to" << m_originalImageSize;
+            } else {
+                qWarning() << "MousePressEvent: Clicked handle, but failed to precisely locate image format/position near rect center. Using potentially stale format.";
+                // 如果精确查找失败，作为后备，尝试使用之前的光标格式（可能不准）
+                imageFormat = m_selectedImageCursor.charFormat().toImageFormat();
+                m_originalImageSize = QSize(imageFormat.width(), imageFormat.height()); 
+            }
+            // --- 结束精确获取 --- 
+            
+            m_isResizing = true; 
             m_currentHandle = handleIndex;
             m_resizeStartPos = pressPos;
-            QTextImageFormat format = m_selectedImageCursor.charFormat().toImageFormat();
-            m_originalImageSize = QSize(format.width(), format.height());
+            // m_originalImageSize = QSize(format.width(), format.height()); // 使用上面获取的尺寸
             event->accept();
             return; // 点击在手柄上，开始调整大小
         } else {
@@ -902,7 +942,18 @@ void NoteTextEdit::updateImageSize(const QPoint &mousePos)
     qDebug() << "updateImageSize: Entered. m_isResizing=" << m_isResizing << "m_selectedImageCursor.isNull()=" << m_selectedImageCursor.isNull();
     if (!m_isResizing || m_selectedImageCursor.isNull()) return;
 
-    QTextImageFormat format = m_selectedImageCursor.charFormat().toImageFormat();
+    // --- 修正获取图片格式的方式 --- 
+    QTextImageFormat format;
+    QTextCursor formatCursor = m_selectedImageCursor;
+    if (formatCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor)) {
+        format = formatCursor.charFormat().toImageFormat();
+        qDebug() << "updateImageSize: Successfully obtained format by moving cursor forward.";
+    } else {
+        qWarning() << "updateImageSize: Failed to move cursor forward to get image format!";
+        return; // 无法获取格式，直接返回
+    }
+    // --- 结束修正 ---
+    
     // *** 增加格式有效性检查日志 ***
     if (!format.isValid()) { 
         qDebug() << "updateImageSize: Exiting because selected image format is invalid.";
@@ -982,6 +1033,10 @@ void NoteTextEdit::updateImageSize(const QPoint &mousePos)
     // 选中图片字符以便应用格式
     tempCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
     qDebug() << "updateImageSize: Moved cursor to select image char, selection start:" << tempCursor.selectionStart() << "end:" << tempCursor.selectionEnd();
+    // *** 增加选择长度验证日志 ***
+    if (tempCursor.selectionEnd() - tempCursor.selectionStart() != 1) {
+         qWarning() << "updateImageSize: Cursor selection length is not 1! Cannot reliably set format.";
+    }
     tempCursor.setCharFormat(format);
     qDebug() << "updateImageSize: Applied new format. Width=" << tempCursor.charFormat().toImageFormat().width();
     tempCursor.endEditBlock(); // 结束编辑块

@@ -1,8 +1,8 @@
 /*
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
- * @LastEditors: cursor AI
- * @LastEditTime: 2023-05-05 10:00:00
+ * @LastEditors: Furdow wang22338014@gmail.com
+ * @LastEditTime: 2025-05-01 18:46:06
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.h
  * @Description: QTextEdit编辑器管理类，实现富文本编辑功能
  * 
@@ -34,6 +34,29 @@
 #include <QTextList>
 #include <QTextBlockFormat>
 #include <QTextFrame>
+#include <QMenu>
+#include <QContextMenuEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QFileDialog>
+#include <QUrl>
+#include <QImage>
+#include <QUuid>
+#include <QDir>
+#include <QVBoxLayout>
+#include <QPushButton>
+#include <QDialog>
+#include <QStringList>
+#include <QList>
+#include <QResizeEvent>
+#include <QCheckBox>
+#include <QGroupBox>
+#include <QPainter>
+#include <QPaintEvent>
+
+class NoteTextEdit;
+class FloatingToolBar;
 
 // 自定义文本编辑器，用于扩展QTextEdit功能
 class NoteTextEdit : public QTextEdit 
@@ -46,18 +69,61 @@ public:
     // 重写鼠标事件，用于处理自定义上下文菜单和工具栏定位
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override; // 处理图片双击标注
+    void mouseMoveEvent(QMouseEvent *event) override; // 添加 mouseMoveEvent
+    
+    // 处理拖放事件
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
     
     // 重写事件过滤器
     bool eventFilter(QObject *watched, QEvent *event) override;
-
+    
+    // 图片插入和处理
+    bool insertImageFromFile(const QString &filePath, int maxWidth = 600);
+    QString saveImageToMediaFolder(const QString &sourceFilePath);
+    QString getImageAtCursor(); // 获取光标处的图片路径
+    
+    // 调整图片大小和位置
+    bool resizeImage(const QString &imagePath, int width, int height, Qt::Alignment alignment = Qt::AlignCenter);
+    
+protected:
+    // 重写上下文菜单事件
+    void contextMenuEvent(QContextMenuEvent *event) override;
+    // 重写绘制事件，用于绘制选中框和手柄
+    void paintEvent(QPaintEvent *event) override;
+    // 重写滚动事件，用于同步选中框位置
+    void scrollContentsBy(int dx, int dy) override;
+    
 signals:
     // 文本选择改变时发出信号，用于显示浮动工具栏
     void selectionChanged(const QPoint &pos, bool hasSelection);
     // 鼠标点击时发出信号
     void editorClicked(const QPoint &pos);
+    // 图片调整大小完成时发出信号
+    void imageResized();
 
 private:
     bool m_trackingMouse;
+    // 图片选中和调整大小相关成员
+    QTextCursor m_selectedImageCursor; // 当前选中的图片光标
+    QRect m_selectedImageRect;       // 选中图片在 viewport 中的矩形 (可能不再需要实时更新，主要用于判断是否有选中)
+    bool m_isResizing;               // 是否正在调整大小
+    int m_currentHandle;             // 当前拖拽的手柄索引 (0-3: TL, TR, BL, BR)
+    QPoint m_resizeStartPos;         // 开始调整大小时的鼠标位置
+    QSize m_originalImageSize;       // 开始调整大小时图片的原始尺寸
+    bool m_isMoving;                 // 是否正在移动图片
+    QPoint m_moveStartPos;           // 开始移动时的鼠标位置
+    QTextImageFormat m_draggedImageFormat; // 用于内部拖动时临时存储图片格式
+    int m_dragStartPosition = -1;      // 用于内部拖动时临时存储起始位置
+
+
+    // 辅助函数
+    void updateSelectionIndicator(); // 更新选中图片状态和矩形
+    void drawSelectionIndicator(QPainter *painter); // 绘制选中框和手柄
+    int getHandleAtPos(const QPoint &pos) const; // 获取鼠标位置处的手柄索引，-1表示没有
+    void updateImageSize(const QPoint &mousePos); // 根据鼠标位置更新图片大小
+    void setCursorForHandle(int handleIndex); // 根据手柄设置鼠标光标
 };
 
 // 工具栏管理类
@@ -110,29 +176,36 @@ private:
     bool m_isDarkTheme;
 };
 
-// 主编辑器管理类
+// 文本编辑器管理器，负责管理编辑器和工具栏
 class TextEditorManager : public QObject
 {
     Q_OBJECT
     
 public:
-    explicit TextEditorManager(QWidget *parent = nullptr);
+    explicit TextEditorManager(QWidget *parentWidget = nullptr);
     ~TextEditorManager();
     
-    // 获取编辑器控件，用于在主窗口中嵌入
-    NoteTextEdit* textEdit() const { return m_textEdit; }
+    QWidget* getEditorWidget() const { return m_editorContainer; }
+    NoteTextEdit* editor() const { return m_textEdit; }
+    QTextEdit* textEdit() const { return m_textEdit; }
     
-    // 获取顶部工具栏，用于在主窗口中嵌入
-    QToolBar* topToolBar() const { return m_topToolBar; }
-    
-    // 主题切换
-    void setTheme(bool isDarkTheme);
-    
-    // 内容管理
-    void loadContent(const QString &content, const QString &path = QString());
+    // 笔记加载与保存
+    void loadNote(const QString &notePath);
+    void loadContent(const QString &content, const QString &path = "");
+    void saveNote();
     QString saveContent() const;
+    QString currentNotePath() const { return m_currentNotePath; }
+    bool hasUnsavedChanges() const { return m_hasUnsavedChanges; }
+    
+    // 图片处理
+    void showImageAnnotationDialog(const QString &imagePath);
+    
+    // 主题设置
+    void setDarkTheme(bool dark);
+    void setTheme(bool isDarkTheme); // 兼容性方法，内部调用setDarkTheme
     
     // 格式化操作
+    void setAlignment(Qt::Alignment alignment);
     void bold();
     void italic();
     void underline();
@@ -143,21 +216,26 @@ public:
     void alignCenter();
     void alignRight();
     void alignJustify();
-    
-    // 设置是否可编辑
     void setReadOnly(bool readOnly);
     
+    // 工具栏访问
+    QToolBar* topToolBar() const { return m_topToolBar; }
+    
 signals:
-    // 内容修改信号
+    // 通知笔记内容已修改
     void contentModified();
     
-private slots:
-    // 编辑器相关槽函数
-    void handleSelectionChanged(const QPoint &pos, bool hasSelection);
-    void updateToolBarForCurrentFormat();
-    void handleTextEditClicked(const QPoint &pos);
+public slots:
+    void insertImageFromButton(); // 添加从按钮插入图片的槽函数
     
-    // 格式化操作槽函数
+private slots:
+    void handleSelectionChanged(const QPoint &pos, bool hasSelection);
+    void handleEditorClicked(const QPoint &pos);
+    void handleTextEditClicked(const QPoint &pos);
+    void documentModified();
+    void updateToolBarForCurrentFormat();
+    
+    // 工具栏按钮槽函数
     void onBoldTriggered();
     void onItalicTriggered();
     void onUnderlineTriggered();
@@ -168,8 +246,6 @@ private slots:
     void onAlignCenterTriggered();
     void onAlignRightTriggered();
     void onAlignJustifyTriggered();
-    
-    // 顶部工具栏槽函数
     void onSaveTriggered();
     void onUndoTriggered();
     void onRedoTriggered();
@@ -179,29 +255,14 @@ private slots:
     void onInsertImageTriggered();
     
 private:
-    // 获取当前光标的字符格式
-    QTextCharFormat currentCharFormat() const;
-    
-    // 应用块格式（用于对齐等）
-    void mergeFormatOnWordOrSelection(const QTextCharFormat &format);
-    void setAlignment(Qt::Alignment alignment);
-    
-    // 创建顶部工具栏
-    void setupTopToolBar();
-    
-    // 更新操作图标
-    void updateActionIcons();
-    
-    // 创建颜色图标的辅助函数
-    QIcon createColorIcon(const QString &path, const QColor &color, const QColor &disabledColor);
-    
     // UI组件
-    NoteTextEdit *m_textEdit;
+    QWidget *m_editorContainer;
+    NoteTextEdit *m_textEdit;  // 直接使用m_textEdit
     FloatingToolBar *m_floatingToolBar;
     QToolBar *m_topToolBar;
     QTimer *m_updateToolBarTimer;
     
-    // 顶部工具栏操作
+    // 工具栏操作
     QAction *m_saveAction;
     QAction *m_undoAction;
     QAction *m_redoAction;
@@ -211,12 +272,22 @@ private:
     QAction *m_insertImageAction;
     
     // 状态变量
-    bool m_isDarkTheme;
+    QString m_currentNotePath;
     QString m_currentFilePath;
-    
-    // 颜色配置
+    bool m_hasUnsavedChanges;
+    bool m_isDarkTheme;
     QColor m_textColor;
     QColor m_highlightColor;
+    
+    // 帮助函数
+    void setupUI();
+    void setupTopToolBar();
+    void connectSignals();
+    void updateToolBarPosition(const QPoint &pos);
+    void updateActionIcons();
+    QIcon createColorIcon(const QString &path, const QColor &color, const QColor &disabledColor);
+    QTextCharFormat currentCharFormat() const;
+    void mergeFormatOnWordOrSelection(const QTextCharFormat &format);
 };
 
 #endif // TEXTEDITORMANAGER_H 

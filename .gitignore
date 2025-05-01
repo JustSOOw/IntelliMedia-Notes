@@ -84,6 +84,8 @@ CMakeLists.txt.user*
 
 /.cursor/
 *.mdc
+# 忽略所有txt文件
 *.txt
+# 但不忽略CMakeLists.txt
 !CMakeLists.txt
 

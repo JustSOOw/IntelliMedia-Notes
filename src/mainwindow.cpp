@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-21 21:52:41
+ * @LastEditTime: 2025-04-29 22:52:25
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -58,6 +58,11 @@ MainWindow::MainWindow(QWidget *parent)
     m_dragging = false;
     m_resizing = false;
     m_resizeRegion = None;
+    
+    // --- 7. 初始化主题 --- 
+    m_isDarkTheme = false; // 以浅色主题开始
+    // 在设置任何依赖主题的组件之前，先加载初始样式表
+    loadAndApplyStyleSheet(":/styles/light_theme.qss");
     
     // 初始化侧边栏
     setupSidebar();
@@ -154,9 +159,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->sidebarContainer->setMouseTracking(true);
     ui->mainContentContainer->setMouseTracking(true);
 
-    // --- 7. 初始化主题
-    m_isDarkTheme = false; // 以浅色主题开始
-    updateButtonIcons(); // 根据默认浅色主题设置初始图标
+    // 根据默认浅色主题设置初始按钮图标颜色
+    updateButtonIcons(); 
     
     // --- 8. 安装事件过滤器处理窗口边缘和角落拖动事件 ---
     installEventFilter(this);
@@ -179,9 +183,10 @@ void MainWindow::loadAndApplyStyleSheet(const QString &sheetName)
     QFile file(sheetName);
     if (file.open(QFile::ReadOnly | QFile::Text)) {
         QString styleSheet = QLatin1String(file.readAll());
-        qApp->setStyleSheet(styleSheet); // 应用于整个应用程序
+        // **重要：设置qApp的样式表以确保全局应用**
+        qApp->setStyleSheet(styleSheet); 
         file.close();
-        qDebug() << "应用了样式表:" << sheetName;
+        qDebug() << "应用了全局样式表:" << sheetName;
     } else {
         qWarning() << "无法打开样式表文件:" << sheetName;
     }
@@ -297,7 +302,7 @@ void MainWindow::toggleTheme()
     
     // 更新文本编辑器主题 - 这里需确保在样式表加载后调用
     if (m_textEditorManager) {
-        m_textEditorManager->setTheme(m_isDarkTheme);
+        m_textEditorManager->setDarkTheme(m_isDarkTheme);
     }
 }
 
@@ -588,12 +593,13 @@ void MainWindow::handleNoteSelected(const QString &path, const QString &type)
     // 从数据库加载笔记内容并显示
     if (m_textEditorManager) {
         // 这里只是示例，实际应该从数据库管理器获取内容
-        QString content = "<html><body><h1>笔记标题</h1><p>这是一个示例笔记内容</p></body></html>";
+        // QString content = "<html><body><h1>笔记标题</h1><p>这是一个示例笔记内容</p></body></html>";
         
         // 如果接入了数据库，应该从数据库获取内容
         // content = m_databaseManager->getNoteContent(path);
         
-        m_textEditorManager->loadContent(content, path);
+        // 传递笔记路径，由TextEditorManager内部处理加载具体内容
+        m_textEditorManager->loadNote(path);
     }
 }
 
@@ -601,7 +607,7 @@ void MainWindow::handleNoteSelected(const QString &path, const QString &type)
 void MainWindow::saveCurrentNote()
 {
     if (m_textEditorManager && !m_currentNotePath.isEmpty()) {
-        QString content = m_textEditorManager->saveContent();
+        m_textEditorManager->saveNote();
         
         // 这里只是示例，实际应该保存到数据库管理器
         qDebug() << "保存笔记:" << m_currentNotePath;
@@ -624,22 +630,22 @@ void MainWindow::setupTextEditor()
     m_textEditorManager = new TextEditorManager(this);
     
     // 连接内容修改信号
-    connect(m_textEditorManager, &TextEditorManager::contentModified, this, &MainWindow::handleContentModified);
+    connect(m_textEditorManager, SIGNAL(contentModified()), this, SLOT(handleContentModified()));
     
     // 创建主内容区布局
     QVBoxLayout *mainLayout = new QVBoxLayout(ui->mainContentContainer);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
     
-    // 添加顶部工具栏和文本编辑器到布局
-    mainLayout->addWidget(m_textEditorManager->topToolBar());
-    mainLayout->addWidget(m_textEditorManager->textEdit());
+    // 添加文本编辑器部件到布局
+    mainLayout->addWidget(m_textEditorManager->getEditorWidget());
     
     // 设置编辑器主题
-    m_textEditorManager->setTheme(m_isDarkTheme);
+    m_textEditorManager->setDarkTheme(m_isDarkTheme);
     
-    // 加载默认内容
-    m_textEditorManager->loadContent("<html><body><p>欢迎使用IntelliMedia Notes！</p><p>请从侧边栏选择一个笔记或创建新笔记开始。</p></body></html>");
+    // 加载默认内容，由于没有实际笔记，使用一个占位路径
+    // QString defaultContent = "<html><body><p>欢迎使用IntelliMedia Notes！</p><p>请从侧边栏选择一个笔记或创建新笔记开始。</p></body></html>";
+    m_textEditorManager->loadNote(""); // 空路径表示加载默认内容
 }
 
 // 处理搜索对话框关闭

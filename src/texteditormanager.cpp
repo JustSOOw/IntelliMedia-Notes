@@ -1,15 +1,17 @@
 /*
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
- * @LastEditors: cursor AI
- * @LastEditTime: 2023-05-05 10:00:00
+ * @LastEditors: Furdow wang22338014@gmail.com
+ * @LastEditTime: 2025-05-01 17:41:29
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
  * Copyright (c) 2023, All Rights Reserved. 
  */
 #include "texteditormanager.h"
-
+#include <QScrollBar>
+#include <QTextLayout>
+#include <QAbstractTextDocumentLayout>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QMouseEvent>
@@ -29,6 +31,33 @@
 #include <QTextStream>
 #include <QDir>
 #include <QDateTime>
+#include <QMenu>
+#include <QContextMenuEvent>
+#include <QImageReader>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QRegularExpression>
+#include <QTextDocument>
+#include <QTextCursor>
+#include <QTextList>
+#include <QBuffer>
+#include <QUuid>
+#include <QStandardPaths>
+#include <QUrl>
+#include <QCheckBox>
+#include <QGridLayout>
+#include <QSlider>
+#include <QRadioButton>
+#include <QButtonGroup>
+#include <QPushButton>
+#include <QLabel>
+#include <QComboBox>
+#include <QGroupBox>
+#include <QDrag>
+
+// 新增常量定义
+const int HANDLE_SIZE = 8; // 手柄大小
+const int HANDLE_HALF_SIZE = HANDLE_SIZE / 2;
 
 //=======================================================================================
 // NoteTextEdit 实现
@@ -36,6 +65,9 @@
 NoteTextEdit::NoteTextEdit(QWidget *parent)
     : QTextEdit(parent)
     , m_trackingMouse(false)
+    , m_isResizing(false)
+    , m_currentHandle(-1)
+    , m_isMoving(false)
 {
     setMouseTracking(true);
     installEventFilter(this);
@@ -50,42 +82,946 @@ NoteTextEdit::NoteTextEdit(QWidget *parent)
     // 设置文本编辑器的外观
     setFrameStyle(QFrame::NoFrame);
     viewport()->setCursor(Qt::IBeamCursor);
+    
+    // 启用拖放功能
+    setAcceptDrops(true);
+    setContextMenuPolicy(Qt::DefaultContextMenu);
 }
 
 void NoteTextEdit::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
+        m_isMoving = false; // 重置移动状态
+        m_isResizing = false; // *** 确保每次按下都重置调整大小状态 ***
+        m_currentHandle = -1;
         m_trackingMouse = true;
         emit editorClicked(event->pos());
+        QPoint pressPos = event->pos();
+        QTextCursor clickCursor = cursorForPosition(pressPos);
+        QTextCharFormat formatAtCursor = clickCursor.charFormat();
+        qDebug() << "MousePressEvent: Pos =" << pressPos << "CursorPos =" << clickCursor.position() << "IsImageFormat =" << formatAtCursor.isImageFormat();
+
+        // 检查是否点击在手柄上
+        int handleIndex = getHandleAtPos(pressPos);
+        if (handleIndex != -1 && !m_selectedImageCursor.isNull()) {
+            // 点击在有效手柄上，并且当前确实有图片被选中
+            qDebug() << "MousePressEvent: Clicked on handle" << handleIndex << "for selected image.";
+            m_isResizing = true; // *** 只有这里设置 Resizing 为 true ***
+            m_currentHandle = handleIndex;
+            m_resizeStartPos = pressPos;
+            QTextImageFormat format = m_selectedImageCursor.charFormat().toImageFormat();
+            m_originalImageSize = QSize(format.width(), format.height());
+            event->accept();
+            return; // 点击在手柄上，开始调整大小
+        } else {
+            m_isResizing = false; // 确保不在调整大小状态
+            m_currentHandle = -1;
+        }
+
+        // 检查是否点击在图片上
+        // QTextCursor clickCursor = cursorForPosition(event->pos()); // 已在前面获取
+        if (formatAtCursor.isImageFormat()) { // 直接使用前面获取的格式
+            QTextImageFormat clickedFormat = formatAtCursor.toImageFormat();
+            QString clickedImageName = clickedFormat.name();
+            qDebug() << "MousePressEvent: Clicked on image detected by format:" << clickedImageName << "at cursor pos" << clickCursor.position();
+
+            // --- 简化图片位置查找 --- 
+            // 如果光标处的格式是图片，我们假设光标位置就是图片起始位置（或在其内部）
+            // QTextObjectInterface *iface = document()->objectForFormat(clickedFormat);
+            // QRectF r = iface->intrinsicSize(document(), clickCursor.position(), clickedFormat);
+            // 上述方法获取对象更可靠，但 QPlainTextEdit 可能不支持
+            // 暂时直接使用光标位置，图片通常只占一个字符位置
+            int imageStartPosition = clickCursor.position();
+            // 验证一下位置是否有效，有时 cursorForPosition 可能返回块内偏移，需要加上 block.position()
+            if (imageStartPosition < clickCursor.block().position()) { // 如果小于块起始位置，说明是块内偏移
+                 imageStartPosition += clickCursor.block().position();
+            }
+            qDebug() << "MousePressEvent: Image detected directly, assuming start position:" << imageStartPosition;
+            // 检查找到的位置是否真的有效（比如非负）
+            if (imageStartPosition >= 0) {
+                 // 检查点击的图片是否就是当前已选中的图片
+                 bool isSameImageSelected = !m_selectedImageCursor.isNull() &&
+                                            m_selectedImageCursor.position() == imageStartPosition &&
+                                            m_selectedImageCursor.charFormat().toImageFormat().name() == clickedImageName;
+
+                 if (!isSameImageSelected) {
+                      // 如果点击了不同的图片，或者之前没有图片选中，则选中新图片
+                      qDebug() << "MousePressEvent: Selecting image directly at pos" << imageStartPosition;
+                      m_selectedImageCursor = QTextCursor(document());
+                      m_selectedImageCursor.setPosition(imageStartPosition);
+                      updateSelectionIndicator(); // 更新选中框
+                  } else {
+                       qDebug() << "MousePressEvent: Clicked directly on already selected image.";
+                  }
+                 // 无论是否是同一张图片，只要点击了图片，就开始准备移动
+                 m_isMoving = true;
+                 m_moveStartPos = pressPos;
+                 event->accept(); // 接受事件，阻止默认文本选择
+                 viewport()->update(); // *** 确保在选中图片后强制更新 ***
+                 return;
+            } else {
+                 qDebug() << "MousePressEvent: Clicked on image format, but calculated position invalid:" << imageStartPosition;
+                 // 即使格式是图片，但位置无效，也视为外部点击处理
+                 if (!m_selectedImageCursor.isNull()) {
+                      qDebug() << "MousePressEvent: Deselecting image due to invalid position from direct click.";
+                      m_selectedImageCursor = QTextCursor();
+                      m_selectedImageRect = QRect();
+                      viewport()->update(); 
+                 }
+            }
+        } else {
+            // 点击位置不是图片格式
+            qDebug() << "MousePressEvent: Clicked position format is not image.";
+
+            // 检查下一个字符是否是图片
+            QTextCursor nextCursor = clickCursor;
+            nextCursor.movePosition(QTextCursor::NextCharacter);
+
+            if (nextCursor.position() != clickCursor.position() && nextCursor.charFormat().isImageFormat()) {
+                // 下一个字符是图片，用户很可能意图点击它
+                QTextImageFormat nextImageFormat = nextCursor.charFormat().toImageFormat();
+                qDebug() << "MousePressEvent: Next char is image:" << nextImageFormat.name() << "at pos" << nextCursor.position() - 1;
+                int imageStartPosition = nextCursor.position() - 1;
+
+                bool isSameImageSelected = !m_selectedImageCursor.isNull() &&
+                                           m_selectedImageCursor.position() == imageStartPosition &&
+                                           m_selectedImageCursor.charFormat().toImageFormat().name() == nextImageFormat.name();
+
+                if (!isSameImageSelected) {
+                    qDebug() << "MousePressEvent: Selecting adjacent image at pos" << imageStartPosition;
+                    m_selectedImageCursor = QTextCursor(document());
+                    m_selectedImageCursor.setPosition(imageStartPosition);
+                    updateSelectionIndicator();
+                    viewport()->update();
+                } else {
+                    qDebug() << "MousePressEvent: Clicked adjacent to already selected image.";
+                }
+
+                m_isMoving = true;
+                m_moveStartPos = pressPos;
+                event->accept();
+                viewport()->update(); // *** 确保在选中图片后强制更新 ***
+                return; // 处理完毕
+            } else {
+                // 下一个字符不是图片，或者已在文档末尾
+                // 执行原来的"点击外部"逻辑：如果当前有图片选中，则取消选中
+                if (!m_selectedImageCursor.isNull()) {
+                    qDebug() << "MousePressEvent: Deselecting image by clicking outside (and next char not image).";
+                    m_selectedImageCursor = QTextCursor();
+                    m_selectedImageRect = QRect();
+                    viewport()->update(); // 请求重绘以清除选中框
+                    // 这里可以考虑是否 event->accept() 来阻止可能的文本光标移动
+                    // event->accept();
+                }
+            }
+        }
     }
+    // 如果以上逻辑都没有return，则执行默认的鼠标按下事件处理
+    // qDebug() << "MousePressEvent: Falling back to QTextEdit::mousePressEvent."; // 减少日志
     QTextEdit::mousePressEvent(event);
 }
 
 void NoteTextEdit::mouseReleaseEvent(QMouseEvent *event)
 {
-    m_trackingMouse = false;
-    
-    // 如果有文本选中，发送选中信号并传递位置
-    bool hasSelection = textCursor().hasSelection();
-    emit selectionChanged(event->pos(), hasSelection);
-    
+    if (event->button() == Qt::LeftButton) {
+        m_trackingMouse = false; // 移动到这里，确保即使在调整大小后也能重置
+
+        if (m_isResizing) {
+            m_isResizing = false;
+            m_currentHandle = -1;
+            updateImageSize(event->pos()); // 确保最终尺寸被设置
+            setCursor(Qt::ArrowCursor); // 恢复默认光标
+            updateSelectionIndicator(); // 更新指示器位置
+            qDebug() << "Resize finished.";
+            viewport()->update();
+            emit imageResized(); // 发出图片调整完成信号
+            event->accept();
+            // 注意：这里可能需要调用 QTextEdit::mouseReleaseEvent 来处理文本选择等
+            // 但为了防止干扰调整大小，我们先不调用它，看是否有副作用
+            // 如果需要文本选择等功能正常，可能需要更复杂的事件处理
+            // QTextEdit::mouseReleaseEvent(event); 
+            return; // 结束调整大小
+        }
+
+        // 检查是否有选中内容，并发送信号 (非调整大小时)
+        bool hasSelection = textCursor().hasSelection();
+        emit selectionChanged(event->pos(), hasSelection);
+
+    } else {
+        m_trackingMouse = false; // 重置 m_trackingMouse
+    }
     QTextEdit::mouseReleaseEvent(event);
+}
+
+void NoteTextEdit::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    // 检查双击位置是否在图片上
+    QTextCursor cursor = cursorForPosition(event->pos());
+    if (cursor.charFormat().isImageFormat()) {
+        // 如果是图片，阻止默认的双击事件（如选择）
+        qDebug() << "Image double-clicked, accepting event and doing nothing else.";
+        event->accept();
+        return; // 阻止进一步处理
+    } else {
+        // 如果不是图片，执行默认的双击行为（如选词）
+        QTextEdit::mouseDoubleClickEvent(event);
+        updateImageSize(event->pos());
+        updateSelectionIndicator(); // 实时更新选中框
+        update(); 
+        setCursorForHandle(m_currentHandle); // 保持调整时光标
+        event->accept();
+        return; // 正在调整大小，不传递事件
+    }
+}
+
+void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
+{
+    // --- 调整 mouseMoveEvent 处理顺序 ---
+
+    // 1. 如果有图片选中，提前更新指示器矩形
+    if (!m_selectedImageCursor.isNull()) {
+        // 检查光标后的字符是否真的是图片 (同 paintEvent 逻辑)
+        QTextCursor checkCursor = m_selectedImageCursor;
+        if (checkCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor) && 
+            checkCursor.charFormat().isImageFormat()) 
+        {
+            updateSelectionIndicator(); // 确保 m_selectedImageRect 是最新的
+        }
+    }
+
+    // 2. 调用基类处理标准事件（文本选择、滚动等），这可能会改变布局
+    QTextEdit::mouseMoveEvent(event);
+
+    // 3. 处理图片调整大小 (基于更新后的状态)
+    if (m_isResizing) {
+        qDebug() << "mouseMoveEvent: Resizing active.";
+        updateImageSize(event->pos());
+        // updateSelectionIndicator(); // updateImageSize 内部应该会间接更新, 或者在 paintEvent 更新
+        viewport()->update(); // 强制重绘以显示大小变化
+        setCursorForHandle(m_currentHandle); // 保持调整时光标
+        event->accept();
+        return; // 正在调整大小，不进行后续处理
+    }
+
+    // 4. 处理图片移动 (基于更新后的状态)
+    if (m_isMoving) {
+        qDebug() << "mouseMoveEvent: Moving active. Delta:" << (event->pos() - m_moveStartPos).manhattanLength();
+        // 检查是否达到拖拽阈值
+        if ((event->pos() - m_moveStartPos).manhattanLength() >= QApplication::startDragDistance()) {
+            qDebug() << "mouseMoveEvent: StartDragDistance met, initiating QDrag.";
+            QDrag *drag = new QDrag(this);
+            QMimeData *mime = new QMimeData;
+            // 获取当前选中图片的最新信息 (以防万一在 move 期间光标变了)
+            QTextImageFormat currentFormat;
+            QTextCursor currentImgCursor = m_selectedImageCursor; // 使用当前选中的光标
+            if (currentImgCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor) && 
+                currentImgCursor.charFormat().isImageFormat()) {
+                 currentFormat = currentImgCursor.charFormat().toImageFormat();
+            } else {
+                 qDebug() << "mouseMoveEvent: Drag failed - Could not re-verify selected image.";
+                 m_isMoving = false; // 重置状态
+                 event->ignore(); // 忽略事件
+                 return;
+            }
+
+            QString imgPath = currentFormat.name();
+            if (imgPath.isEmpty()) {
+                qDebug() << "mouseMoveEvent: Drag failed - Image path is empty.";
+                m_isMoving = false;
+                event->ignore();
+                return;
+            }
+            mime->setUrls({QUrl::fromLocalFile(imgPath)});
+            drag->setMimeData(mime);
+
+            QPixmap pix(imgPath);
+            if (!pix.isNull() && !m_selectedImageRect.size().isEmpty()) { 
+                 pix = pix.scaled(m_selectedImageRect.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            } else {
+                 pix = QPixmap(32, 32); 
+                 pix.fill(Qt::gray);
+            }
+            drag->setPixmap(pix);
+            updateSelectionIndicator(); 
+            drag->setHotSpot(event->pos() - m_selectedImageRect.topLeft()); 
+            
+            // *** 开始拖动前，存储位置和格式，但不删除原图 ***
+            m_dragStartPosition = m_selectedImageCursor.position(); // 存储起始位置
+            m_draggedImageFormat = currentFormat;                 // 存储格式
+            qDebug() << "mouseMoveEvent: Stored startPos:" << m_dragStartPosition << "and format before drag.";
+            
+            // 不在此处删除图片或清除选中光标
+            // QTextCursor deleteCursor = m_selectedImageCursor;
+            // ... (删除代码移除) ...
+            // m_selectedImageCursor = QTextCursor(); 
+            // m_selectedImageRect = QRect();      
+            
+            qDebug() << "mouseMoveEvent: Calling drag->exec()...";
+            drag->exec(Qt::MoveAction);
+            qDebug() << "mouseMoveEvent: drag->exec() returned."; 
+            
+            m_isMoving = false; // 拖拽结束后重置移动状态
+            // event->accept(); // Accept 在这里可能过早，dropEvent 会处理 accept
+            return; // 返回，让 dropEvent 处理后续
+        } else {
+            // 未达到拖拽阈值，仅接受事件阻止文本选择
+            qDebug() << "mouseMoveEvent: Moving but below drag distance.";
+            event->accept();
+            return;
+        }
+    }
+
+    // 5. 处理手柄悬停检测 (基于更新后的状态)
+    int handleIndex = getHandleAtPos(event->pos()); // *** 恢复手柄悬停检测 ***
+    setCursorForHandle(handleIndex);                // *** 恢复光标形状设置 ***
+    
+    // 如果事件没有被上面的逻辑处理掉，就让它继续传递 (虽然大部分情况已被处理)
+    // event->ignore(); // 通常不需要，因为基类调用已发生
+}
+
+void NoteTextEdit::paintEvent(QPaintEvent *event)
+{
+    QTextEdit::paintEvent(event); // 先调用基类绘制文本和图片
+    // 滚动或内容移动时更新选中框位置，确保手柄与图片同步 (调用时机可能需要斟酌)
+    // updateSelectionIndicator(); // 暂时注释掉，避免在paintEvent中意外修改状态
+
+    // --- 修正 paintEvent 中调用 drawSelectionIndicator 的条件判断 --- 
+    bool shouldDrawHandles = false;
+    if (!m_selectedImageCursor.isNull()) {
+        QTextCursor checkCursor = m_selectedImageCursor;
+        // 尝试选中光标后的一个字符
+        if (checkCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor)) {
+            // 检查选中的字符是否是图片
+            if (checkCursor.charFormat().isImageFormat()) {
+                shouldDrawHandles = true;
+            }
+        }
+    }
+
+    // 如果光标后的字符是图片，并且我们有有效的选中矩形，则绘制
+    if (shouldDrawHandles && !m_selectedImageRect.isNull() && m_selectedImageRect.isValid()) { 
+        QPainter painter(viewport());
+        drawSelectionIndicator(&painter);
+    }
 }
 
 bool NoteTextEdit::eventFilter(QObject *watched, QEvent *event)
 {
-    if (watched == this && event->type() == QEvent::MouseMove) {
-        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        
-        if (m_trackingMouse && mouseEvent && mouseEvent->buttons() & Qt::LeftButton) {
+    if (watched == viewport()) {
+        if (event->type() == QEvent::MouseMove && m_trackingMouse) {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
             bool hasSelection = textCursor().hasSelection();
-            if (hasSelection) {
-                emit selectionChanged(mouseEvent->pos(), true);
+            emit selectionChanged(mouseEvent->pos(), hasSelection);
+        }
+    }
+    return QTextEdit::eventFilter(watched, event);
+}
+
+void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu *menu = new QMenu(this);
+    
+    // 添加撤销/重做操作
+    QAction *undoAction = menu->addAction("撤销", this, &QTextEdit::undo);
+    undoAction->setEnabled(document()->isUndoAvailable());
+    
+    QAction *redoAction = menu->addAction("重做", this, &QTextEdit::redo);
+    redoAction->setEnabled(document()->isRedoAvailable());
+    
+    menu->addSeparator();
+    
+    // 添加剪切/复制/粘贴操作
+    QAction *cutAction = menu->addAction("剪切", this, &QTextEdit::cut);
+    cutAction->setEnabled(textCursor().hasSelection());
+    
+    QAction *copyAction = menu->addAction("复制", this, &QTextEdit::copy);
+    copyAction->setEnabled(textCursor().hasSelection());
+    
+    QAction *pasteAction = menu->addAction("粘贴", this, &QTextEdit::paste);
+    pasteAction->setEnabled(canPaste());
+    
+    menu->addSeparator();
+    
+    // 添加插入图片操作
+    QAction *insertImageAction = menu->addAction("插入图片");
+    connect(insertImageAction, &QAction::triggered, [this]() {
+        QString filePath = QFileDialog::getOpenFileName(this, 
+            "选择图片", 
+            QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
+            "图片文件 (*.png *.jpg *.jpeg *.bmp *.gif)");
+            
+        if (!filePath.isEmpty()) {
+            insertImageFromFile(filePath);
+        }
+    });
+    
+    // 如果光标处有图片，添加图片相关操作
+    QString imagePath = getImageAtCursor();
+    if (!imagePath.isEmpty()) {
+        menu->addSeparator();
+        
+        QAction *copyImageAction = menu->addAction("复制图片");
+        connect(copyImageAction, &QAction::triggered, [this, imagePath]() {
+            QClipboard *clipboard = QApplication::clipboard();
+            QImage image(imagePath);
+            if (!image.isNull()) {
+                clipboard->setImage(image);
+            }
+        });
+        
+        QAction *saveImageAsAction = menu->addAction("图片另存为...");
+        connect(saveImageAsAction, &QAction::triggered, [this, imagePath]() {
+            QString saveFilePath = QFileDialog::getSaveFileName(this,
+                "保存图片",
+                QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
+                "图片文件 (*.png *.jpg *.jpeg *.bmp)");
+                
+            if (!saveFilePath.isEmpty()) {
+                QImage image(imagePath);
+                image.save(saveFilePath);
+            }
+        });
+    }
+    
+    menu->exec(event->globalPos());
+    delete menu;
+}
+
+void NoteTextEdit::dragEnterEvent(QDragEnterEvent *event)
+{
+    // 检查是否是图片文件
+    if (event->mimeData()->hasUrls()) {
+        QList<QUrl> urls = event->mimeData()->urls();
+        for (const QUrl &url : urls) {
+            QString filePath = url.toLocalFile();
+            QImageReader reader(filePath);
+            if (reader.canRead()) {
+                event->acceptProposedAction();
+                return;
             }
         }
     }
     
-    return QTextEdit::eventFilter(watched, event);
+    // 如果不是图片，使用默认处理
+    QTextEdit::dragEnterEvent(event);
+}
+
+void NoteTextEdit::dropEvent(QDropEvent *event)
+{
+    // qDebug() << "DropEvent: Started. Source is self:" << (event->source() == this) << "Action:" << event->dropAction(); // 减少日志
+    // 处理图片文件的放置
+    if (event->mimeData()->hasUrls()) {
+        QList<QUrl> urls = event->mimeData()->urls();
+        for (const QUrl &url : urls) {
+            QString filePath = url.toLocalFile();
+            QImageReader reader(filePath);
+            if (reader.canRead()) {
+                // qDebug() << "DropEvent: Dropped image file:" << filePath; // 减少日志
+                if (event->source() == this && event->dropAction() == Qt::MoveAction) {
+                    qDebug() << "DropEvent: Internal move started."; // *** 添加内部移动开始日志 ***
+                    // 内部移动：使用存储的位置和格式完成移动
+                    if (m_dragStartPosition == -1 || !m_draggedImageFormat.isValid()) { 
+                         qWarning() << "DropEvent: Internal move started but no valid start position or format was stored! StartPos=" << m_dragStartPosition;
+                         event->ignore(); 
+                         m_draggedImageFormat = QTextImageFormat(); // 清理
+                         m_dragStartPosition = -1;
+                         return;
+                    }
+                    
+                    // 1. 删除原始位置的图片
+                    QTextCursor deleteCursor(document());
+                    deleteCursor.setPosition(m_dragStartPosition);
+                    deleteCursor.beginEditBlock();
+                    if (deleteCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor) && 
+                        deleteCursor.charFormat().isImageFormat() && 
+                        deleteCursor.charFormat().toImageFormat().name() == m_draggedImageFormat.name()) // 确认是同一张图
+                    {
+                        deleteCursor.removeSelectedText();
+                        qDebug() << "DropEvent: Deleted original image at pos:" << m_dragStartPosition;
+                    } else {
+                        qWarning() << "DropEvent: Failed to find/verify original image at stored pos:" << m_dragStartPosition;
+                        // 即使删除失败，也继续尝试插入
+                    }
+                    deleteCursor.endEditBlock();
+
+                    // 2. 在新位置插入存储的图片格式
+                    QTextCursor dropCursor = cursorForPosition(event->position().toPoint());
+                    dropCursor.beginEditBlock();
+                    dropCursor.insertImage(m_draggedImageFormat);
+                    dropCursor.endEditBlock();
+
+                    // ***关键：更新选中光标到新插入图片的位置***
+                    // 需要重新定位光标到刚插入的图片前
+                    m_selectedImageCursor = QTextCursor(document());
+                    m_selectedImageCursor.setPosition(dropCursor.position() - 1); // 定位到图片字符前
+                    qDebug() << "DropEvent (Move): New selected image cursor position:" << m_selectedImageCursor.position(); // 保留关键移动日志
+
+                    updateSelectionIndicator(); // 更新选中框位置
+                    viewport()->update(); // 强制重绘
+                    event->acceptProposedAction();
+                    m_draggedImageFormat = QTextImageFormat(); // 清理存储的格式
+                    m_dragStartPosition = -1;                // 清理存储的位置
+                    qDebug() << "DropEvent: Internal move finished using stored format and pos.";
+                    return;
+                } else {
+                     qDebug() << "DropEvent: External drop detected.";
+                     // 外部拖放：插入图片文件
+                     QTextCursor dropCursor = cursorForPosition(event->position().toPoint());
+                     dropCursor.clearSelection();
+                     setTextCursor(dropCursor);
+                     // 插入图片后，新的图片应该被选中
+                     if (insertImageFromFile(filePath)) { // insertImageFromFile 现在返回bool
+                        // 插入成功后，将光标定位到图片前并选中
+                        m_selectedImageCursor = textCursor(); // 获取插入后的光标
+                        m_selectedImageCursor.movePosition(QTextCursor::PreviousCharacter); // 移动到图片前
+                        qDebug() << "DropEvent (External): Selected image cursor at:" << m_selectedImageCursor.position(); // 保留关键放置日志
+                        updateSelectionIndicator(); // 更新选中框
+                        viewport()->update(); // 强制重绘
+                        event->acceptProposedAction();
+                        // qDebug() << "DropEvent: External drop finished."; // 减少日志
+                     } else {
+                        qDebug() << "DropEvent: External drop failed to insert image.";
+                        event->ignore();
+                     }
+                     return; // 处理完图片拖放
+                }
+            }
+        }
+    }
+
+    // 如果不是图片，使用默认处理
+    // qDebug() << "DropEvent: Not an image URL, falling back to QTextEdit::dropEvent."; // 减少日志
+    QTextEdit::dropEvent(event);
+}
+
+bool NoteTextEdit::insertImageFromFile(const QString &filePath, int maxWidth)
+{
+    QImageReader reader(filePath);
+    QImage image = reader.read();
+    
+    if (image.isNull()) {
+        qDebug() << "无法加载图片:" << filePath << reader.errorString();
+        return false;
+    }
+    
+    // 调整图片大小，如果超过最大宽度
+    QSize originalSize = image.size();
+    if (maxWidth > 0 && image.width() > maxWidth) {
+        qDebug() << "Resizing image from" << originalSize << "to max width" << maxWidth;
+        image = image.scaledToWidth(maxWidth, Qt::SmoothTransformation);
+        qDebug() << " -> New size:" << image.size();
+    }
+    
+    // 保存图片到媒体文件夹
+    QString savedImagePath = saveImageToMediaFolder(filePath);
+    if (savedImagePath.isEmpty()) {
+        qDebug() << "无法保存图片到媒体文件夹";
+        return false;
+    }
+    
+    // 插入图片到文档
+    QTextCursor cursor = textCursor();
+    QTextDocument *doc = document();
+    
+    QTextImageFormat imageFormat;
+    imageFormat.setName(savedImagePath);
+    imageFormat.setWidth(image.width());
+    imageFormat.setHeight(image.height());
+    // imageFormat.setProperty(QTextFormat::FullWidthSelection, true); // 暂时移除，观察效果
+    
+    cursor.insertImage(imageFormat);
+    // cursor.insertBlock(); // 暂时移除，让图片更像行内元素
+    setTextCursor(cursor); // 更新编辑器光标
+    qDebug() << "insertImageFromFile: Inserted image" << savedImagePath << "New cursor pos:" << textCursor().position(); // 添加日志
+    
+    return true;
+}
+
+QString NoteTextEdit::saveImageToMediaFolder(const QString &sourceFilePath)
+{
+    // 确保媒体文件夹存在
+    QString mediaFolderPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/IntelliMedia_Notes/media";
+    QDir mediaDir(mediaFolderPath);
+    
+    if (!mediaDir.exists()) {
+        if (!mediaDir.mkpath(".")) {
+            qDebug() << "无法创建媒体文件夹:" << mediaFolderPath;
+            return QString();
+        }
+    }
+    
+    // 为图片创建唯一的文件名
+    QFileInfo fileInfo(sourceFilePath);
+    QString extension = fileInfo.suffix().toLower();
+    QString uniqueFileName = QUuid::createUuid().toString(QUuid::WithoutBraces) + "." + extension;
+    QString targetFilePath = mediaFolderPath + "/" + uniqueFileName;
+    
+    // 复制原始图片到媒体文件夹
+    if (!QFile::copy(sourceFilePath, targetFilePath)) {
+        qDebug() << "无法复制图片到:" << targetFilePath;
+        return QString();
+    }
+    
+    return targetFilePath;
+}
+
+QString NoteTextEdit::getImageAtCursor()
+{
+    QTextCursor cursor = textCursor();
+    QTextCharFormat format = cursor.charFormat();
+    
+    // 检查光标处是否有图片
+    if (format.isImageFormat()) {
+        QTextImageFormat imageFormat = format.toImageFormat();
+        return imageFormat.name();
+    }
+    
+    return QString();
+}
+
+// 更新选中图片的状态和矩形
+void NoteTextEdit::updateSelectionIndicator()
+{
+    // qDebug() << "updateSelectionIndicator: Called. Current Selection Null?" << m_selectedImageCursor.isNull(); // 减少日志
+
+    // --- 修正格式检查逻辑 --- 
+    bool isCursorAtImage = false;
+    if (!m_selectedImageCursor.isNull()) {
+        QTextCursor checkCursor = m_selectedImageCursor;
+        // 尝试选中光标后的一个字符
+        if (checkCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor)) {
+            // 检查选中的字符是否是图片
+            if (checkCursor.charFormat().isImageFormat()) {
+                isCursorAtImage = true;
+                // qDebug() << "updateSelectionIndicator: Check confirmed: Character after cursor pos" << m_selectedImageCursor.position() << "is an image."; // *** 移除日志 ***
+            } // else {
+                 // qDebug() << "updateSelectionIndicator: Check confirmed: Character after cursor pos" << m_selectedImageCursor.position() << "is NOT an image. Format:" << checkCursor.charFormat(); // *** 移除日志 ***
+            // }
+        } // else {
+             // qDebug() << "updateSelectionIndicator: Check failed: Could not move cursor forward from pos" << m_selectedImageCursor.position(); // *** 移除日志 ***
+        // }
+    }
+
+    // 确保光标有效且其后的字符是图片
+    if (m_selectedImageCursor.isNull() || !isCursorAtImage) { 
+        if (!m_selectedImageRect.isNull()) { // 仅当之前有选中框时才重置并更新
+            qDebug() << "updateSelectionIndicator: Clearing rect because cursor is null or not pointing before an image.";
+            m_selectedImageRect = QRect();
+            viewport()->update(); // 清除旧的选中框
+        } else {
+             // qDebug() << "updateSelectionIndicator: Selection is null or not image, rect already null."; // 减少日志
+        }
+        return;
+    }
+
+    // 获取图片格式 (此时我们确定光标后是图片，可以安全获取)
+    QTextCursor formatCursor = m_selectedImageCursor;
+    formatCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+    QTextImageFormat format = formatCursor.charFormat().toImageFormat(); 
+
+    // 理论上讲，因为 isCursorAtImage 为 true，这里的 format 应该是有效的
+    // 但为保险起见，保留 isValid 检查
+    if (!format.isValid()) {
+        qDebug() << "updateSelectionIndicator: WARNING - Image format obtained after check is invalid!";
+        if (!m_selectedImageRect.isNull()) { // 如果格式无效但之前有矩形，也清除
+             m_selectedImageRect = QRect();
+             viewport()->update();
+        }
+        return;
+    }
+
+    // --- 重新启用并优化基于 Block/Line 的位置计算 --- 
+    QRectF docRect; 
+    QTextBlock block = m_selectedImageCursor.block();
+    const QTextLayout *layout = block.layout();
+    int posInBlock = m_selectedImageCursor.position() - block.position();
+    // qDebug() << "updateSelectionIndicator: Calculating position for image at posInBlock:" << posInBlock << "in block:" << block.blockNumber(); // 减少日志
+
+    bool foundLine = false;
+    for (int i = 0; i < layout->lineCount(); ++i) {
+        QTextLine line = layout->lineAt(i);
+        // 检查光标位置是否确实落在这条文本行内
+        if (posInBlock >= line.textStart() && posInBlock < line.textStart() + line.textLength()) {
+            QRectF blockBound = document()->documentLayout()->blockBoundingRect(block);
+            qreal x = line.cursorToX(posInBlock); // 获取光标位置对应的X坐标
+            qreal y = line.y();                   // 获取行在块内的Y坐标
+            // qDebug() << "updateSelectionIndicator: Found line" << i << "BlockBound=" << blockBound << "LineY=" << y << "CursorX=" << x; // 减少日志
+            // 计算文档坐标：块的左上角 + 行在块内的偏移 + 光标在行内的X偏移
+            docRect = QRectF(blockBound.left() + x, blockBound.top() + y, format.width(), format.height());
+            foundLine = true;
+            // qDebug() << "updateSelectionIndicator: Calculated docRect based on line info:" << docRect; // 减少日志
+            break;
+        }
+    }
+
+    // 如果上面的循环没有找到精确位置（理论上不应发生，除非图片单独占一行且处理有问题）
+    // 可以尝试备用逻辑，但 frameBoundingRect 已证明不可靠
+    if (!foundLine) {
+        // qDebug() << "updateSelectionIndicator: WARNING - Could not find image position within block lines. Using block bounding rect as fallback (likely incorrect)."; // 减少日志
+        // 使用块的边界作为后备可能不准确，但比 frameBoundingRect 好
+        QRectF blockBound = document()->documentLayout()->blockBoundingRect(block);
+        docRect = QRectF(blockBound.topLeft(), QSizeF(format.width(), format.height())); 
+    }
+    
+    /*
+    // 之前的 frameBoundingRect 逻辑 (不可靠)
+    QRectF docRect = document()->documentLayout()->frameBoundingRect(m_selectedImageCursor.currentFrame());
+    if (!docRect.isValid()) { // 尝试另一种方法获取块内位置
+        QTextBlock block = m_selectedImageCursor.block();
+        // ... (之前的 line/fragment 逻辑) ...
+    } else {
+         qDebug() << "updateSelectionIndicator: Found rect using frameBoundingRect:" << docRect;
+    }
+    */
+
+    // 将文档坐标映射到视口坐标，考虑滚动偏移
+    QPointF offset(horizontalScrollBar()->value(), verticalScrollBar()->value());
+    QRectF viewRect = docRect.translated(-offset);
+    QRect newRect = viewRect.toRect();
+
+    // 仅当矩形发生变化时才更新并请求重绘
+    if (m_selectedImageRect != newRect) {
+        m_selectedImageRect = newRect;
+        qDebug() << "updateSelectionIndicator: Calculated new view Rect:" << m_selectedImageRect << "Updating viewport."; // 保留矩形变化日志
+        viewport()->update(); // 请求重绘以显示新的选中框
+    } // else {
+         // qDebug() << "updateSelectionIndicator: Calculated view Rect is same as before:" << m_selectedImageRect; // 移除无变化日志
+    // }
+}
+
+// 绘制选中框和手柄
+void NoteTextEdit::drawSelectionIndicator(QPainter *painter)
+{
+    // qDebug() << "--- drawSelectionIndicator called ---"; // *** 移除日志 ***
+    // 直接使用 updateSelectionIndicator 计算好的矩形
+    if (m_selectedImageRect.isNull() || !m_selectedImageRect.isValid()) {
+        // qDebug() << "DrawSelectionIndicator: Skipping draw, rect is null or invalid:" << m_selectedImageRect; // 减少日志
+        return;
+    }
+
+    QRect currentImageRect = m_selectedImageRect;
+    // *** 移除日志 ***
+    // qDebug() << "DrawSelectionIndicator: Drawing with Rect:" << currentImageRect; 
+
+    painter->save();
+
+    // 绘制淡蓝色边框
+    painter->setPen(QPen(QColor(173, 216, 230, 180), 1, Qt::SolidLine)); // 淡蓝色，半透明
+    painter->setBrush(Qt::NoBrush);
+    // 调整边框使其稍微向内收缩1像素，更贴合图片
+    painter->drawRect(currentImageRect.adjusted(0, 0, -1, -1)); // 调整了 adjusted 参数确保边框在图片内
+
+    // 绘制手柄
+    painter->setPen(Qt::black);
+    painter->setBrush(QColor(173, 216, 230)); // 淡蓝色实心
+
+    // --- 修正手柄计算逻辑 --- 
+    // 手柄应该定位在图片的四个角，中心点在角上
+    QPoint tl = currentImageRect.topLeft();
+    QPoint tr = currentImageRect.topRight();
+    QPoint bl = currentImageRect.bottomLeft();
+    QPoint br = currentImageRect.bottomRight();
+
+    // 计算手柄矩形，使其中心对齐角点
+    QRect handle_tl(tl.x() - HANDLE_HALF_SIZE, tl.y() - HANDLE_HALF_SIZE, HANDLE_SIZE, HANDLE_SIZE);
+    QRect handle_tr(tr.x() - HANDLE_HALF_SIZE + 1, tr.y() - HANDLE_HALF_SIZE, HANDLE_SIZE, HANDLE_SIZE); // +1 修正右边框绘制
+    QRect handle_bl(bl.x() - HANDLE_HALF_SIZE, bl.y() - HANDLE_HALF_SIZE + 1, HANDLE_SIZE, HANDLE_SIZE); // +1 修正下边框绘制
+    QRect handle_br(br.x() - HANDLE_HALF_SIZE + 1, br.y() - HANDLE_HALF_SIZE + 1, HANDLE_SIZE, HANDLE_SIZE); // +1 修正右下边框绘制
+
+    // *** 移除日志 ***
+    /*
+    qDebug() << "Drawing handles: Rect=" << currentImageRect 
+             << " TL=" << handle_tl 
+             << " TR=" << handle_tr 
+             << " BL=" << handle_bl 
+             << " BR=" << handle_br;
+    */
+
+    painter->drawRect(handle_tl);
+    painter->drawRect(handle_tr);
+    painter->drawRect(handle_bl);
+    painter->drawRect(handle_br);
+
+    painter->restore();
+}
+
+// 获取鼠标位置处的手柄索引
+int NoteTextEdit::getHandleAtPos(const QPoint &pos) const
+{
+    // 直接使用 updateSelectionIndicator 计算好的矩形
+    if (m_selectedImageRect.isNull()) return -1;
+
+    QRect currentImageRect = m_selectedImageRect;
+    // qDebug() << "getHandleAtPos: Using stored Rect:" << currentImageRect; // 可以取消注释以调试
+
+    // 计算手柄矩形，中心对齐角点
+    QPoint tl = currentImageRect.topLeft();
+    QPoint tr = currentImageRect.topRight();
+    QPoint bl = currentImageRect.bottomLeft();
+    QPoint br = currentImageRect.bottomRight();
+    QRect handle_tl(tl.x() - HANDLE_HALF_SIZE, tl.y() - HANDLE_HALF_SIZE, HANDLE_SIZE, HANDLE_SIZE);
+    QRect handle_tr(tr.x() - HANDLE_HALF_SIZE + 1, tr.y() - HANDLE_HALF_SIZE, HANDLE_SIZE, HANDLE_SIZE); 
+    QRect handle_bl(bl.x() - HANDLE_HALF_SIZE, bl.y() - HANDLE_HALF_SIZE + 1, HANDLE_SIZE, HANDLE_SIZE); 
+    QRect handle_br(br.x() - HANDLE_HALF_SIZE + 1, br.y() - HANDLE_HALF_SIZE + 1, HANDLE_SIZE, HANDLE_SIZE); 
+
+    // *** 移除日志 ***
+    /*
+    qDebug() << "getHandleAtPos: Checking pos:" << pos 
+             << "against Handles: TL=" << handle_tl 
+             << " TR=" << handle_tr 
+             << " BL=" << handle_bl 
+             << " BR=" << handle_br;
+    */
+
+    // 增加容差进行点击判断
+    if (handle_tl.adjusted(-2, -2, 2, 2).contains(pos)) {
+        // qDebug() << "getHandleAtPos: Hit TL handle (0)"; // 移除日志
+        return 0; // Top-Left
+    }
+    if (handle_tr.adjusted(-2, -2, 2, 2).contains(pos)) {
+        // qDebug() << "getHandleAtPos: Hit TR handle (1)"; // 移除日志
+        return 1; // Top-Right
+    }
+    if (handle_bl.adjusted(-2, -2, 2, 2).contains(pos)) {
+        // qDebug() << "getHandleAtPos: Hit BL handle (2)"; // 移除日志
+        return 2; // Bottom-Left
+    }
+    if (handle_br.adjusted(-2, -2, 2, 2).contains(pos)) {
+        // qDebug() << "getHandleAtPos: Hit BR handle (3)"; // 移除日志
+        return 3; // Bottom-Right
+    }
+
+    // qDebug() << "getHandleAtPos: No handle hit."; // 移除日志
+    return -1;
+}
+
+// 根据鼠标位置更新图片大小 (核心逻辑，需要完善)
+void NoteTextEdit::updateImageSize(const QPoint &mousePos)
+{
+    // *** 恢复入口条件日志 ***
+    qDebug() << "updateImageSize: Entered. m_isResizing=" << m_isResizing << "m_selectedImageCursor.isNull()=" << m_selectedImageCursor.isNull();
+    if (!m_isResizing || m_selectedImageCursor.isNull()) return;
+
+    QTextImageFormat format = m_selectedImageCursor.charFormat().toImageFormat();
+    // *** 增加格式有效性检查日志 ***
+    if (!format.isValid()) { 
+        qDebug() << "updateImageSize: Exiting because selected image format is invalid.";
+        return; 
+    }
+    if (format.name().isEmpty()) { 
+        qDebug() << "updateImageSize: Exiting because format name is empty.";
+        return;
+    }
+
+    // 计算鼠标相对于起始点的偏移
+    qDebug() << "updateImageSize: MousePos=" << mousePos << "StartPos=" << m_resizeStartPos;
+    int dx = mousePos.x() - m_resizeStartPos.x();
+    int dy = mousePos.y() - m_resizeStartPos.y();
+
+    qDebug() << "updateImageSize: dx=" << dx << " dy=" << dy << " Handle=" << m_currentHandle;
+
+    // 计算新尺寸 (保持宽高比)
+    QSize newSize = m_originalImageSize;
+    double aspectRatio = static_cast<double>(m_originalImageSize.width()) / m_originalImageSize.height();
+    if (aspectRatio <= 0) aspectRatio = 1.0;
+    qDebug() << "updateImageSize: Start. Handle=" << m_currentHandle << "OriginalSize=" << m_originalImageSize << "AspectRatio=" << aspectRatio;
+
+    switch (m_currentHandle) {
+        case 0: // Top-Left
+            // 主要根据对角线变化计算
+            newSize.setWidth(qMax(10, m_originalImageSize.width() - dx));
+            newSize.setHeight(qMax(10, static_cast<int>(newSize.width() / aspectRatio)));
+            // 再次检查高度变化是否一致
+            if (qAbs((m_originalImageSize.height() - dy) - newSize.height()) > qAbs((m_originalImageSize.width() - dx) - newSize.width())) {
+                 newSize.setHeight(qMax(10, m_originalImageSize.height() - dy));
+                 newSize.setWidth(qMax(10, static_cast<int>(newSize.height() * aspectRatio)));
+            }
+            break;
+        case 1: // Top-Right
+            newSize.setWidth(qMax(10, m_originalImageSize.width() + dx));
+            newSize.setHeight(qMax(10, static_cast<int>(newSize.width() / aspectRatio)));
+            if (qAbs((m_originalImageSize.height() - dy) - newSize.height()) > qAbs((m_originalImageSize.width() + dx) - newSize.width())) {
+                 newSize.setHeight(qMax(10, m_originalImageSize.height() - dy));
+                 newSize.setWidth(qMax(10, static_cast<int>(newSize.height() * aspectRatio)));
+            }
+            break;
+        case 2: // Bottom-Left
+            newSize.setWidth(qMax(10, m_originalImageSize.width() - dx));
+            newSize.setHeight(qMax(10, static_cast<int>(newSize.width() / aspectRatio)));
+             if (qAbs((m_originalImageSize.height() + dy) - newSize.height()) > qAbs((m_originalImageSize.width() - dx) - newSize.width())) {
+                 newSize.setHeight(qMax(10, m_originalImageSize.height() + dy));
+                 newSize.setWidth(qMax(10, static_cast<int>(newSize.height() * aspectRatio)));
+            }
+            break;
+        case 3: // Bottom-Right
+            newSize.setWidth(qMax(10, m_originalImageSize.width() + dx));
+            newSize.setHeight(qMax(10, static_cast<int>(newSize.width() / aspectRatio)));
+            if (qAbs((m_originalImageSize.height() + dy) - newSize.height()) > qAbs((m_originalImageSize.width() + dx) - newSize.width())) {
+                 newSize.setHeight(qMax(10, m_originalImageSize.height() + dy));
+                 newSize.setWidth(qMax(10, static_cast<int>(newSize.height() * aspectRatio)));
+            }
+            break;
+        default: // 其他情况或无效句柄，不处理
+            qDebug() << "updateImageSize: Invalid handle index:" << m_currentHandle;
+            return;
+    }
+
+    // 更新文档中的图片格式
+    qDebug() << "updateImageSize: Calculated NewSize=" << newSize;
+    // 检查新尺寸是否有效
+    if (newSize.width() < 10 || newSize.height() < 10) {
+        qDebug() << "updateImageSize: Calculated size too small, skipping update.";
+        return;
+    }
+    format.setWidth(newSize.width());
+    format.setHeight(newSize.height());
+
+    QTextCursor tempCursor = m_selectedImageCursor; // 使用临时光标修改
+    qDebug() << "updateImageSize: Before applying format, cursor pos:" << tempCursor.position();
+    tempCursor.beginEditBlock(); // 开始编辑块
+    // 选中图片字符以便应用格式
+    tempCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+    qDebug() << "updateImageSize: Moved cursor to select image char, selection start:" << tempCursor.selectionStart() << "end:" << tempCursor.selectionEnd();
+    tempCursor.setCharFormat(format);
+    qDebug() << "updateImageSize: Applied new format. Width=" << tempCursor.charFormat().toImageFormat().width();
+    tempCursor.endEditBlock(); // 结束编辑块
+    qDebug() << "updateImageSize: After applying format, cursor pos:" << tempCursor.position(); // 确认光标位置没问题
+
+    // 强制文档布局更新
+    qDebug() << "updateImageSize: Requesting layout update for block:" << tempCursor.block().blockNumber();
+    document()->documentLayout()->updateBlock(tempCursor.block());
+    // 尝试更强的更新
+    document()->adjustSize(); 
+    // document()->markContentsDirty(); // 如果 adjustSize 不够，可以试试这个
+    viewport()->update(); // 确保视口重绘
+    qDebug() << "updateImageSize: Finished requesting updates.";
+}
+
+// 根据手柄设置鼠标光标
+void NoteTextEdit::setCursorForHandle(int handleIndex)
+{
+    switch (handleIndex) {
+        case 0: // Top-Left
+        case 3: // Bottom-Right
+            viewport()->setCursor(Qt::SizeFDiagCursor);
+            break;
+        case 1: // Top-Right
+        case 2: // Bottom-Left
+            viewport()->setCursor(Qt::SizeBDiagCursor);
+            break;
+        default: // 不在手柄上
+            // 恢复文本编辑光标
+            viewport()->setCursor(Qt::IBeamCursor);
+            break;
+    }
+}
+
+// 重写滚动以同步图片选中框位置，确保手柄与图片同步
+void NoteTextEdit::scrollContentsBy(int dx, int dy)
+{
+    QTextEdit::scrollContentsBy(dx, dy);
+    updateSelectionIndicator();
+    viewport()->update();
 }
 
 //=======================================================================================
@@ -366,7 +1302,7 @@ bool FloatingToolBar::eventFilter(QObject *watched, QEvent *event)
     // 监听鼠标点击事件，当点击工具栏外部区域时隐藏工具栏
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (!geometry().contains(mouseEvent->globalPos()) && isVisible()) {
+        if (!geometry().contains(mouseEvent->globalPosition().toPoint()) && isVisible()) {
             // 如果点击事件不在工具栏内且工具栏可见，隐藏工具栏
             hide();
         }
@@ -383,17 +1319,30 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     , m_isDarkTheme(false)  // 默认使用亮色主题
     , m_textColor(Qt::black)
     , m_highlightColor(Qt::yellow)
+    , m_hasUnsavedChanges(false)  // 初始化m_hasUnsavedChanges
+    , m_currentNotePath("")       // 初始化路径为空字符串
+    , m_currentFilePath("")       // 初始化路径为空字符串
 {
+    // 创建编辑器容器
+    m_editorContainer = new QWidget(qobject_cast<QWidget*>(parent));
+    QVBoxLayout *containerLayout = new QVBoxLayout(m_editorContainer);
+    containerLayout->setContentsMargins(0, 0, 0, 0);
+    containerLayout->setSpacing(0);
+
     // 创建文本编辑器
-    m_textEdit = new NoteTextEdit(qobject_cast<QWidget*>(parent));
+    m_textEdit = new NoteTextEdit(m_editorContainer);
     
     // 创建浮动工具栏
     m_floatingToolBar = new FloatingToolBar(m_textEdit->viewport());
     m_floatingToolBar->hide();
     
     // 创建顶部工具栏
-    m_topToolBar = new QToolBar(qobject_cast<QWidget*>(parent));
+    m_topToolBar = new QToolBar(m_editorContainer);
     setupTopToolBar();
+    
+    // 添加组件到容器
+    containerLayout->addWidget(m_topToolBar);
+    containerLayout->addWidget(m_textEdit);
     
     // 初始化更新工具栏计时器
     m_updateToolBarTimer = new QTimer(this);
@@ -404,6 +1353,7 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     connect(m_textEdit, &NoteTextEdit::selectionChanged, this, &TextEditorManager::handleSelectionChanged);
     connect(m_textEdit, &NoteTextEdit::editorClicked, this, &TextEditorManager::handleTextEditClicked);
     connect(m_textEdit, &QTextEdit::textChanged, this, &TextEditorManager::contentModified);
+    connect(m_textEdit, &NoteTextEdit::imageResized, this, &TextEditorManager::documentModified);
     connect(m_updateToolBarTimer, &QTimer::timeout, this, &TextEditorManager::updateToolBarForCurrentFormat);
     
     // 连接工具栏按钮的信号
@@ -864,11 +1814,7 @@ void TextEditorManager::onInsertImageTriggered()
         QString(), "图像文件 (*.png *.jpg *.jpeg *.bmp *.gif)");
     
     if (!filePath.isEmpty()) {
-        QImage image(filePath);
-        if (!image.isNull()) {
-            QTextCursor cursor = m_textEdit->textCursor();
-            cursor.insertImage(image);
-        }
+        m_textEdit->insertImageFromFile(filePath);
     }
 }
 
@@ -881,4 +1827,73 @@ void TextEditorManager::setReadOnly(bool readOnly)
     m_cutAction->setEnabled(!readOnly);
     m_pasteAction->setEnabled(!readOnly);
     m_insertImageAction->setEnabled(!readOnly);
+}
+
+void TextEditorManager::loadNote(const QString &notePath)
+{
+    m_currentNotePath = notePath;
+    
+    // 如果路径为空，加载默认内容
+    if (notePath.isEmpty()) {
+        m_textEdit->setHtml("<html><body><p>欢迎使用IntelliMedia Notes！</p><p>请从侧边栏选择一个笔记或创建新笔记开始。</p></body></html>");
+        return;
+    }
+    
+    // 在实际项目中，这里应该从数据库读取笔记内容
+    // 这里只是简单的实现，实际应用时需要替换为实际的笔记加载逻辑
+    m_textEdit->setHtml("<html><body><h1>笔记：" + notePath + "</h1><p>这是来自路径" + notePath + "的笔记内容</p></body></html>");
+    
+    // 重置修改状态
+    m_textEdit->document()->setModified(false);
+    m_hasUnsavedChanges = false;
+}
+
+void TextEditorManager::saveNote()
+{
+    if (m_currentNotePath.isEmpty()) {
+        return;
+    }
+    
+    // 在实际项目中，这里应该保存到数据库
+    // 这里只是简单的实现，实际应用时需要替换为实际的笔记保存逻辑
+    QString content = m_textEdit->toHtml();
+    
+    // 打印日志
+    qDebug() << "保存笔记内容:" << m_currentNotePath;
+    
+    // 重置修改状态
+    m_textEdit->document()->setModified(false);
+    m_hasUnsavedChanges = false;
+}
+
+void TextEditorManager::insertImageFromButton()
+{
+    // 调用onInsertImageTriggered方法
+    onInsertImageTriggered();
+}
+
+void TextEditorManager::handleEditorClicked(const QPoint &pos)
+{
+    // 检查是否有文本选中
+    bool hasSelection = m_textEdit->textCursor().hasSelection();
+    
+    if (!hasSelection) {
+        // 如果没有文本选中，隐藏工具栏
+        m_floatingToolBar->hide();
+    }
+}
+
+void TextEditorManager::documentModified()
+{
+    // 标记有未保存的更改
+    m_hasUnsavedChanges = true;
+    
+    // 发出内容修改信号
+    emit contentModified();
+}
+
+void TextEditorManager::setDarkTheme(bool dark)
+{
+    // 调用setTheme方法实现功能
+    setTheme(dark);
 } 

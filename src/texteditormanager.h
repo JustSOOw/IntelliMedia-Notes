@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-01 18:46:06
+ * @LastEditTime: 2025-05-02 21:50:23
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.h
  * @Description: QTextEdit编辑器管理类，实现富文本编辑功能
  * 
@@ -153,6 +153,15 @@ public:
     QToolButton* alignCenterButton() const { return m_alignCenterButton; }
     QToolButton* alignRightButton() const { return m_alignRightButton; }
     QToolButton* alignJustifyButton() const { return m_alignJustifyButton; }
+    QComboBox* fontComboBox() const { return m_fontComboBox; }
+    QComboBox* fontSizeComboBox() const { return m_fontSizeComboBox; }
+    QComboBox* headingComboBox() const { return m_headingComboBox; }
+    
+signals:
+    // 添加字体、字号和标题选择的信号
+    void fontFamilyChanged(const QString &family);
+    void fontSizeChanged(const QString &size);
+    void headingChanged(int level);
     
 protected:
     void showEvent(QShowEvent *event) override;
@@ -174,6 +183,11 @@ private:
     QToolButton *m_alignCenterButton;
     QToolButton *m_alignRightButton;
     QToolButton *m_alignJustifyButton;
+
+    // 新增：字体、字号和标题选择控件
+    QComboBox *m_fontComboBox;
+    QComboBox *m_fontSizeComboBox;
+    QComboBox *m_headingComboBox;
 
     QColor m_textColor;
     QColor m_highlightColor;
@@ -258,6 +272,12 @@ private slots:
     void onPasteTriggered();
     void onInsertImageTriggered();
     
+    // 新增：字体、字号和标题选择槽函数
+    void onFontFamilyChanged(const QString &family);
+    void onFontSizeChanged(const QString &size);
+    void onHeadingChanged(int index);
+    void applyHeading(int level);
+    
 private:
     // UI组件
     QWidget *m_editorContainer;
@@ -274,6 +294,12 @@ private:
     QAction *m_copyAction;
     QAction *m_pasteAction;
     QAction *m_insertImageAction;
+    
+    // 新增：字体、字号和标题选择操作
+    QAction *m_fontAction;
+    QFontComboBox *m_fontComboBox;
+    QComboBox *m_fontSizeComboBox;
+    QComboBox *m_headingComboBox;
     
     // 状态变量
     QString m_currentNotePath;

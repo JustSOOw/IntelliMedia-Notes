@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-02 22:01:41
+ * @LastEditTime: 2025-05-02 22:02:32
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -57,6 +57,8 @@
 #include <QTimer> // *** 添加 QTimer 头文件 ***
 #include <QPixmap> // 添加 QPixmap 头文件
 #include <QCursor> // 添加 QCursor 头文件
+#include <QFontDatabase>
+#include <QFontComboBox>
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
@@ -1244,7 +1246,7 @@ void NoteTextEdit::scrollContentsBy(int dx, int dy)
 // FloatingToolBar 实现
 //=======================================================================================
 FloatingToolBar::FloatingToolBar(QWidget *parent)
-    : QWidget(parent, Qt::ToolTip | Qt::FramelessWindowHint)
+    : QWidget(parent, Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint)
     , m_isDarkTheme(false)
     , m_textColor(Qt::black)
     , m_highlightColor(Qt::yellow)
@@ -1259,6 +1261,19 @@ FloatingToolBar::FloatingToolBar(QWidget *parent)
     
     // 安装事件过滤器
     qApp->installEventFilter(this);
+    
+    // 连接字体、字号和标题选择的信号
+    connect(m_fontComboBox, &QComboBox::currentTextChanged, this, [this](const QString &text) {
+        emit fontFamilyChanged(text);
+    });
+    
+    connect(m_fontSizeComboBox, &QComboBox::currentTextChanged, this, [this](const QString &text) {
+        emit fontSizeChanged(text);
+    });
+    
+    connect(m_headingComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        emit headingChanged(index);
+    });
 }
 
 void FloatingToolBar::setupUI()
@@ -1280,6 +1295,11 @@ void FloatingToolBar::setupUI()
     m_alignRightButton = new QToolButton(this);
     m_alignJustifyButton = new QToolButton(this);
     
+    // 创建字体、字号和标题选择控件
+    m_fontComboBox = new QComboBox(this);
+    m_fontSizeComboBox = new QComboBox(this);
+    m_headingComboBox = new QComboBox(this);
+    
     // 设置图标
     m_boldButton->setIcon(QIcon(":/icons/editor/bold.svg"));
     m_italicButton->setIcon(QIcon(":/icons/editor/italic.svg"));
@@ -1291,6 +1311,33 @@ void FloatingToolBar::setupUI()
     m_alignCenterButton->setIcon(QIcon(":/icons/editor/align-center.svg"));
     m_alignRightButton->setIcon(QIcon(":/icons/editor/align-right.svg"));
     m_alignJustifyButton->setIcon(QIcon(":/icons/editor/align-justify.svg"));
+    
+    // 初始化字体下拉框
+    QStringList fontFamilies = QFontDatabase::families();
+    m_fontComboBox->addItems(fontFamilies);
+    m_fontComboBox->setToolTip("选择字体");
+    m_fontComboBox->setMinimumWidth(120);
+    m_fontComboBox->setMaxVisibleItems(15);
+    
+    // 初始化字号下拉框
+    QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
+    m_fontSizeComboBox->addItems(fontSizes);
+    m_fontSizeComboBox->setToolTip("选择字号");
+    m_fontSizeComboBox->setMinimumWidth(50);
+    m_fontSizeComboBox->setMaxVisibleItems(15);
+    m_fontSizeComboBox->setCurrentText("12");
+    
+    // 初始化标题级别下拉框
+    m_headingComboBox->addItem("正文");
+    m_headingComboBox->addItem("一级标题");
+    m_headingComboBox->addItem("二级标题");
+    m_headingComboBox->addItem("三级标题");
+    m_headingComboBox->addItem("四级标题");
+    m_headingComboBox->addItem("五级标题");
+    m_headingComboBox->addItem("六级标题");
+    m_headingComboBox->setToolTip("选择标题级别");
+    m_headingComboBox->setMinimumWidth(80);
+    m_headingComboBox->setMaxVisibleItems(7);
     
     // 设置工具提示
     m_boldButton->setToolTip("粗体");
@@ -1344,6 +1391,27 @@ void FloatingToolBar::setupUI()
     m_alignRightButton->setStyleSheet(buttonStyle);
     m_alignJustifyButton->setStyleSheet(buttonStyle);
     
+    // 设置下拉框样式
+    QString comboBoxStyle = "QComboBox { border: 1px solid #cccccc; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 22px; } "
+                            "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
+                            "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } "
+                            "QComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }";
+    
+    m_fontComboBox->setStyleSheet(comboBoxStyle);
+    m_fontSizeComboBox->setStyleSheet(comboBoxStyle);
+    m_headingComboBox->setStyleSheet(comboBoxStyle);
+    
+    // 添加字体、字号和标题选择到布局
+    layout->addWidget(m_fontComboBox);
+    layout->addWidget(m_fontSizeComboBox);
+    layout->addWidget(m_headingComboBox);
+    
+    // 添加分隔符
+    QFrame *separator0 = new QFrame(this);
+    separator0->setFrameShape(QFrame::VLine);
+    separator0->setFrameShadow(QFrame::Sunken);
+    layout->addWidget(separator0);
+    
     // 添加按钮到布局
     layout->addWidget(m_boldButton);
     layout->addWidget(m_italicButton);
@@ -1386,6 +1454,11 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
                               "QToolButton:checked { background-color: #555555; } "
                               "QToolButton:pressed { background-color: #666666; }";
         
+        QString comboBoxStyle = "QComboBox { border: 1px solid #555555; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 22px; background-color: #444444; color: white; } "
+                                "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 15px; border-left-width: 1px; border-left-color: #555555; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
+                                "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } "
+                                "QComboBox QAbstractItemView { border: 1px solid #555555; background-color: #333333; color: white; selection-background-color: #555555; }";
+        
         m_boldButton->setStyleSheet(buttonStyle);
         m_italicButton->setStyleSheet(buttonStyle);
         m_underlineButton->setStyleSheet(buttonStyle);
@@ -1396,6 +1469,10 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
         m_alignCenterButton->setStyleSheet(buttonStyle);
         m_alignRightButton->setStyleSheet(buttonStyle);
         m_alignJustifyButton->setStyleSheet(buttonStyle);
+        
+        m_fontComboBox->setStyleSheet(comboBoxStyle);
+        m_fontSizeComboBox->setStyleSheet(comboBoxStyle);
+        m_headingComboBox->setStyleSheet(comboBoxStyle);
     } else {
         setStyleSheet("FloatingToolBar { border: 1px solid #cccccc; border-radius: 4px; background-color: #f5f5f5; }");
         
@@ -1404,6 +1481,11 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
                               "QToolButton:checked { background-color: #c0c0c0; } "
                               "QToolButton:pressed { background-color: #b0b0b0; }";
         
+        QString comboBoxStyle = "QComboBox { border: 1px solid #cccccc; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 22px; background-color: white; color: black; } "
+                                "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
+                                "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } "
+                                "QComboBox QAbstractItemView { border: 1px solid #cccccc; background-color: white; color: black; selection-background-color: #e0e0e0; }";
+        
         m_boldButton->setStyleSheet(buttonStyle);
         m_italicButton->setStyleSheet(buttonStyle);
         m_underlineButton->setStyleSheet(buttonStyle);
@@ -1414,6 +1496,10 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
         m_alignCenterButton->setStyleSheet(buttonStyle);
         m_alignRightButton->setStyleSheet(buttonStyle);
         m_alignJustifyButton->setStyleSheet(buttonStyle);
+        
+        m_fontComboBox->setStyleSheet(comboBoxStyle);
+        m_fontSizeComboBox->setStyleSheet(comboBoxStyle);
+        m_headingComboBox->setStyleSheet(comboBoxStyle);
     }
 }
 
@@ -1584,6 +1670,11 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     connect(m_floatingToolBar->alignRightButton(), &QToolButton::clicked, this, &TextEditorManager::onAlignRightTriggered);
     connect(m_floatingToolBar->alignJustifyButton(), &QToolButton::clicked, this, &TextEditorManager::onAlignJustifyTriggered);
     
+    // 连接浮动工具栏字体、字号和标题选择控件的信号
+    connect(m_floatingToolBar, &FloatingToolBar::fontFamilyChanged, this, &TextEditorManager::onFontFamilyChanged);
+    connect(m_floatingToolBar, &FloatingToolBar::fontSizeChanged, this, &TextEditorManager::onFontSizeChanged);
+    connect(m_floatingToolBar, &FloatingToolBar::headingChanged, this, &TextEditorManager::onHeadingChanged);
+    
     // 设置默认亮色主题
     setTheme(m_isDarkTheme);
 }
@@ -1613,6 +1704,61 @@ void TextEditorManager::setupTopToolBar()
     m_pasteAction = m_topToolBar->addAction(QIcon(":/icons/editor/paste.svg"), "粘贴");
     m_topToolBar->addSeparator();
     
+    // 添加字体、字号和标题选择控件
+    m_fontAction = m_topToolBar->addAction(QIcon(":/icons/editor/font.svg"), "字体");
+    QWidget *fontWidget = new QWidget(m_topToolBar);
+    QHBoxLayout *fontLayout = new QHBoxLayout(fontWidget);
+    fontLayout->setContentsMargins(5, 0, 5, 0);
+    fontLayout->setSpacing(5);
+    
+    m_fontComboBox = new QFontComboBox(fontWidget);
+    m_fontComboBox->setMinimumWidth(150);
+    m_fontComboBox->setMaximumWidth(200);
+    m_fontComboBox->setToolTip("选择字体");
+    fontLayout->addWidget(m_fontComboBox);
+    
+    m_topToolBar->addWidget(fontWidget);
+    
+    // 添加字号下拉框
+    QWidget *fontSizeWidget = new QWidget(m_topToolBar);
+    QHBoxLayout *fontSizeLayout = new QHBoxLayout(fontSizeWidget);
+    fontSizeLayout->setContentsMargins(0, 0, 5, 0);
+    fontSizeLayout->setSpacing(5);
+    
+    m_fontSizeComboBox = new QComboBox(fontSizeWidget);
+    m_fontSizeComboBox->setMinimumWidth(60);
+    m_fontSizeComboBox->setMaximumWidth(80);
+    m_fontSizeComboBox->setToolTip("选择字号");
+    m_fontSizeComboBox->setEditable(true);
+    QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
+    m_fontSizeComboBox->addItems(fontSizes);
+    m_fontSizeComboBox->setCurrentText("12");
+    fontSizeLayout->addWidget(m_fontSizeComboBox);
+    
+    m_topToolBar->addWidget(fontSizeWidget);
+    
+    // 添加标题级别下拉框
+    QWidget *headingWidget = new QWidget(m_topToolBar);
+    QHBoxLayout *headingLayout = new QHBoxLayout(headingWidget);
+    headingLayout->setContentsMargins(0, 0, 5, 0);
+    headingLayout->setSpacing(5);
+    
+    m_headingComboBox = new QComboBox(headingWidget);
+    m_headingComboBox->setMinimumWidth(100);
+    m_headingComboBox->setMaximumWidth(150);
+    m_headingComboBox->setToolTip("选择标题级别");
+    m_headingComboBox->addItem("正文");
+    m_headingComboBox->addItem("一级标题");
+    m_headingComboBox->addItem("二级标题");
+    m_headingComboBox->addItem("三级标题");
+    m_headingComboBox->addItem("四级标题");
+    m_headingComboBox->addItem("五级标题");
+    m_headingComboBox->addItem("六级标题");
+    headingLayout->addWidget(m_headingComboBox);
+    
+    m_topToolBar->addWidget(headingWidget);
+    m_topToolBar->addSeparator();
+    
     m_insertImageAction = m_topToolBar->addAction(QIcon(":/icons/editor/image.svg"), "插入图片");
     
     // 设置工具提示
@@ -1623,6 +1769,7 @@ void TextEditorManager::setupTopToolBar()
     m_copyAction->setToolTip("复制选中文本 (Ctrl+C)");
     m_pasteAction->setToolTip("粘贴文本 (Ctrl+V)");
     m_insertImageAction->setToolTip("从文件插入图片");
+    m_fontAction->setToolTip("字体设置");
     
     // 连接信号
     connect(m_saveAction, &QAction::triggered, this, &TextEditorManager::onSaveTriggered);
@@ -1632,6 +1779,13 @@ void TextEditorManager::setupTopToolBar()
     connect(m_copyAction, &QAction::triggered, this, &TextEditorManager::onCopyTriggered);
     connect(m_pasteAction, &QAction::triggered, this, &TextEditorManager::onPasteTriggered);
     connect(m_insertImageAction, &QAction::triggered, this, &TextEditorManager::onInsertImageTriggered);
+    
+    // 连接字体、字号和标题选择的信号
+    connect(m_fontComboBox, &QFontComboBox::currentFontChanged, this, [this](const QFont &font) {
+        onFontFamilyChanged(font.family());
+    });
+    connect(m_fontSizeComboBox, &QComboBox::currentTextChanged, this, &TextEditorManager::onFontSizeChanged);
+    connect(m_headingComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextEditorManager::onHeadingChanged);
     
     // 绑定编辑器的撤销/重做状态
     connect(m_textEdit->document(), &QTextDocument::undoAvailable, m_undoAction, &QAction::setEnabled);
@@ -1807,17 +1961,73 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     // 获取当前光标的字符格式
     QTextCharFormat format = currentCharFormat();
     
-    // 更新工具栏按钮状态
+    // 更新浮动工具栏按钮状态
     m_floatingToolBar->setFormatActions(format);
     
-    // 设置对齐按钮状态
+    // 获取当前块格式
     QTextBlockFormat blockFormat = m_textEdit->textCursor().blockFormat();
     Qt::Alignment alignment = blockFormat.alignment();
     
+    // 更新对齐按钮状态
     m_floatingToolBar->alignLeftButton()->setChecked(alignment == Qt::AlignLeft);
     m_floatingToolBar->alignCenterButton()->setChecked(alignment == Qt::AlignCenter);
     m_floatingToolBar->alignRightButton()->setChecked(alignment == Qt::AlignRight);
     m_floatingToolBar->alignJustifyButton()->setChecked(alignment == Qt::AlignJustify);
+    
+    // 更新顶部工具栏的字体、字号选择器
+    if (format.hasProperty(QTextFormat::FontFamily)) {
+        // 更新字体下拉框，防止信号循环
+        QSignalBlocker blocker(m_fontComboBox);
+        m_fontComboBox->setCurrentText(format.fontFamily());
+    }
+    
+    if (format.hasProperty(QTextFormat::FontPointSize)) {
+        // 更新字号下拉框，防止信号循环
+        QSignalBlocker blocker(m_fontSizeComboBox);
+        m_fontSizeComboBox->setCurrentText(QString::number(static_cast<int>(format.fontPointSize())));
+    }
+    
+    // 更新标题级别下拉框
+    // 这里需要根据当前块的字体大小和粗细来判断标题级别
+    QSignalBlocker blocker(m_headingComboBox);
+    
+    int fontSize = static_cast<int>(format.fontPointSize());
+    bool isBold = (format.fontWeight() >= QFont::Bold);
+    
+    if (!isBold || fontSize <= 12) {
+        m_headingComboBox->setCurrentIndex(0); // 正文
+    } else {
+        // 根据字体大小判断标题级别
+        if (fontSize >= 24) {
+            m_headingComboBox->setCurrentIndex(1); // 一级标题
+        } else if (fontSize >= 20) {
+            m_headingComboBox->setCurrentIndex(2); // 二级标题
+        } else if (fontSize >= 18) {
+            m_headingComboBox->setCurrentIndex(3); // 三级标题
+        } else if (fontSize >= 16) {
+            m_headingComboBox->setCurrentIndex(4); // 四级标题
+        } else if (fontSize >= 14) {
+            m_headingComboBox->setCurrentIndex(5); // 五级标题
+        } else {
+            m_headingComboBox->setCurrentIndex(6); // 六级标题
+        }
+    }
+    
+    // 也更新浮动工具栏的下拉框（如果有）
+    if (m_floatingToolBar->fontComboBox()) {
+        QSignalBlocker ftblocker1(m_floatingToolBar->fontComboBox());
+        m_floatingToolBar->fontComboBox()->setCurrentText(format.fontFamily());
+    }
+    
+    if (m_floatingToolBar->fontSizeComboBox()) {
+        QSignalBlocker ftblocker2(m_floatingToolBar->fontSizeComboBox());
+        m_floatingToolBar->fontSizeComboBox()->setCurrentText(QString::number(static_cast<int>(format.fontPointSize())));
+    }
+    
+    if (m_floatingToolBar->headingComboBox()) {
+        QSignalBlocker ftblocker3(m_floatingToolBar->headingComboBox());
+        m_floatingToolBar->headingComboBox()->setCurrentIndex(m_headingComboBox->currentIndex());
+    }
 }
 
 QTextCharFormat TextEditorManager::currentCharFormat() const
@@ -2112,4 +2322,91 @@ void TextEditorManager::setDarkTheme(bool dark)
 {
     // 调用setTheme方法实现功能
     setTheme(dark);
+}
+
+void TextEditorManager::onFontFamilyChanged(const QString &family)
+{
+    QTextCharFormat fmt;
+    fmt.setFontFamily(family);
+    mergeFormatOnWordOrSelection(fmt);
+    documentModified();
+}
+
+void TextEditorManager::onFontSizeChanged(const QString &size)
+{
+    bool ok;
+    int fontSize = size.toInt(&ok);
+    if (ok) {
+        QTextCharFormat fmt;
+        fmt.setFontPointSize(fontSize);
+        mergeFormatOnWordOrSelection(fmt);
+        documentModified();
+    }
+}
+
+void TextEditorManager::onHeadingChanged(int index)
+{
+    applyHeading(index);
+    documentModified();
+}
+
+void TextEditorManager::applyHeading(int level)
+{
+    QTextCursor cursor = m_textEdit->textCursor();
+    QTextBlockFormat blockFormat = cursor.blockFormat();
+    QTextCharFormat charFormat = cursor.charFormat();
+    
+    // 保存当前块的对齐方式
+    Qt::Alignment alignment = blockFormat.alignment();
+    
+    // 首先清除任何现有的字体大小和粗体设置
+    charFormat.setFontWeight(QFont::Normal);
+    
+    if (level == 0) { // 正文
+        // 正文样式
+        charFormat.setFontPointSize(12); // 正文使用12号字体
+    } else {
+        // 标题样式 (标题级别从1开始，对应h1到h6)
+        charFormat.setFontWeight(QFont::Bold); // 所有标题都使用粗体
+        
+        // 根据标题级别设置字体大小
+        switch (level) {
+            case 1: // 一级标题
+                charFormat.setFontPointSize(24);
+                break;
+            case 2: // 二级标题
+                charFormat.setFontPointSize(20);
+                break;
+            case 3: // 三级标题
+                charFormat.setFontPointSize(18);
+                break;
+            case 4: // 四级标题
+                charFormat.setFontPointSize(16);
+                break;
+            case 5: // 五级标题
+                charFormat.setFontPointSize(14);
+                break;
+            case 6: // 六级标题
+                charFormat.setFontPointSize(13);
+                break;
+        }
+    }
+    
+    // 开始修改块和字符格式
+    cursor.beginEditBlock();
+    
+    // 应用块格式（保持原有的对齐方式）
+    blockFormat.setAlignment(alignment);
+    cursor.setBlockFormat(blockFormat);
+    
+    // 应用字符格式（字体粗细和大小）
+    cursor.select(QTextCursor::BlockUnderCursor);
+    cursor.mergeCharFormat(charFormat);
+    
+    cursor.endEditBlock();
+    
+    // 不需要调用 m_textEdit->mergeCurrentCharFormat(charFormat)，因为我们已经直接设置了整个块的格式
+    
+    // 更新焦点回到编辑器
+    m_textEdit->setFocus();
 } 

@@ -190,4 +190,22 @@ IntelliMedia Notes充分利用了QML的强大特性：
   - dark_theme.qss: 暗色主题样式
 
 - **forms/**: UI文件
-  - mainwindow.ui: 主窗口UI设计 
+  - mainwindow.ui: 主窗口UI设计
+
+## 图片处理关键技术点 (NoteTextEdit)
+
+为了在 `QTextEdit` 中实现行内图片的选中、移动和调整大小，特别是在图文混排的情况下，采用了以下关键技术：
+
+1.  **基于几何区域的命中检测 (`mousePressEvent`)**: 放弃主要依赖 `cursorForPosition` 来判断点击对象。改为遍历视口内可见文本块的图片片段 (`QTextFragment`)，计算每个图片在文档坐标系中的精确矩形，并转换为视口坐标。通过检查鼠标点击的视口坐标是否落在某个图片的视口矩形内来确定选中的图片。这比依赖光标位置更精确，不易受相邻文本或格式干扰。
+2.  **精确的光标定位**: 选中图片时，将 `m_selectedImageCursor`（用于追踪选中状态的光标）明确设置到图片对象字符的**起始位置**。
+3.  **调整大小格式获取修正 (`updateImageSize`)**: 在调整大小时，获取当前图片格式不再使用 `m_selectedImageCursor.charFormat()`（它获取的是插入点格式），而是创建一个临时光标，向前移动选中图片字符，然后获取这个选中字符的格式 (`tempCursor.charFormat()`)。
+4.  **拖放状态管理 (`mouseMoveEvent`, `dropEvent`)**:
+    *   在 `mouseMoveEvent` 检测到拖动开始时，将当前选中图片的**位置**和**格式**存储在临时的成员变量 (`m_dragStartPosition`, `m_draggedImageFormat`) 中。
+    *   **不**在启动拖动时删除原图或清除选中状态，避免 `QDrag::exec()` 阻塞期间状态被意外修改。
+    *   在 `dropEvent` 处理内部移动时，先根据存储的 `m_dragStartPosition` 删除原始图片，然后在放置点使用存储的 `m_draggedImageFormat` 插入图片，最后清理临时变量。
+5.  **事件处理顺序 (`mouseMoveEvent`)**: 调整了 `mouseMoveEvent` 的处理顺序，确保在进行手柄命中判断或拖放操作前，先调用基类事件处理并更新图片选中矩形 (`updateSelectionIndicator`)，以保证状态的同步。
+6.  **显式光标更新 (`dropEvent`)**: 在 `dropEvent` 处理完内部移动并设置 `m_selectedImageCursor` 后，显式调用 `setTextCursor()` 来更新 `QTextEdit` 的主编辑光标，防止光标卡死。
+7.  **手柄绘制 (`drawSelectionIndicator`)**: 手柄的绘制基于 `updateSelectionIndicator` 计算出的 `m_selectedImageRect`（图片在视口中的矩形）进行定位。
+8.  **强制重绘与焦点 (`dropEvent`)**: 在内部移动图片并更新光标后，调用 `viewport()->repaint()` 和 `setFocus()` 来解决光标视觉上卡死（不显示或不闪烁）的问题。
+
+这些措施共同解决了在图文混排时，图片选择不精确、手柄绘制混乱、拖动状态丢失、调整大小失败以及移动后光标显示异常等问题。 

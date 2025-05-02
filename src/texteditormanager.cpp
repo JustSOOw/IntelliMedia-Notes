@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-02 17:26:38
+ * @LastEditTime: 2025-05-02 18:20:02
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -279,6 +279,161 @@ void NoteTextEdit::mouseReleaseEvent(QMouseEvent *event)
         bool hasSelection = textCursor().hasSelection();
         emit selectionChanged(event->pos(), hasSelection);
 
+        // === 手动拖拽结束逻辑 ===
+        if (m_manualDragging) {
+            qDebug() << "mouseReleaseEvent: Manual dragging finished.";
+            setCursor(Qt::ArrowCursor); // 恢复箭头光标
+            // 销毁拖拽预览标签
+            if (m_dragPreviewLabel) {
+                m_dragPreviewLabel->hide();
+                m_dragPreviewLabel->deleteLater();
+                m_dragPreviewLabel = nullptr;
+                qDebug() << "Drag preview label destroyed.";
+            }
+            
+            QTextCursor dropCursor = cursorForPosition(event->pos());
+            int newPos = dropCursor.position();
+            qDebug() << "Drop position calculated:" << newPos;
+
+            // 只有当位置真正改变时才执行移动操作
+            if (newPos != m_dragStartPosition && newPos != m_dragStartPosition + 1) { // 考虑插入时光标可能后移一位
+                qDebug() << "Position changed. Moving image from" << m_dragStartPosition << "to" << newPos;
+                
+                // 使用 beginEditBlock/endEditBlock 保证原子性
+                // document()->documentLayout()->blockSignals(true); // 尝试阻止布局信号
+                QTextCursor editCursor = textCursor(); // 获取一个光标用于编辑块
+                editCursor.beginEditBlock(); 
+
+                QTextCursor deleteCursor(document());
+                bool deleteFirst = (newPos < m_dragStartPosition);
+                int originalDeletePos = m_dragStartPosition;
+
+                qDebug() << "Original image format to move:" << m_draggedImageFormat.name() << "isValid:" << m_draggedImageFormat.isValid();
+                qDebug() << "Delete first:" << deleteFirst;
+
+                if (deleteFirst) {
+                     // 先删除旧图片
+                     deleteCursor.setPosition(originalDeletePos);
+                     // 检查删除前光标位置的格式
+                     QTextCharFormat formatBeforeDelete = deleteCursor.charFormat();
+                     qDebug() << "Before delete (delete first) - cursor at:" << deleteCursor.position() << "Format is image:" << formatBeforeDelete.isImageFormat() << "Name:" << formatBeforeDelete.property(QTextFormat::UserProperty + 1).toString();
+                     
+                     deleteCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+                     if (deleteCursor.charFormat().isImageFormat()) {
+                        deleteCursor.removeSelectedText();
+                        qDebug() << "Original image deleted (delete first). Position was:" << originalDeletePos;
+                        // 删除后，如果新位置在旧位置之后，需要调整新位置
+                        if (newPos > originalDeletePos) {
+                            newPos--;
+                            qDebug() << "Adjusted newPos after delete:" << newPos;
+                        }
+                     } else {
+                          qDebug() << "Error: Could not select image for deletion (delete first) at pos:" << originalDeletePos;
+                     }
+                     
+                     // 再插入新图片
+                     dropCursor.setPosition(newPos);
+                     dropCursor.insertImage(m_draggedImageFormat);
+                     qDebug() << "New image inserted at:" << newPos;
+                } else {
+                    // 先插入新图片
+                    // 如果插入位置在原图之后，直接插入
+                    // 如果插入位置在原图之前，插入后需要调整删除位置
+                    int insertPos = newPos;
+                    bool adjustDeletePos = (insertPos <= originalDeletePos);
+                    dropCursor.setPosition(insertPos);
+                    dropCursor.insertImage(m_draggedImageFormat);
+                    qDebug() << "New image inserted at:" << insertPos;
+
+                    // 再删除旧图片
+                    int adjustedDeletePos = originalDeletePos;
+                    if (adjustDeletePos) {
+                        adjustedDeletePos++; // 因为前面插入了一个字符
+                        qDebug() << "Adjusted delete position due to prior insert:" << adjustedDeletePos;
+                    }
+                    deleteCursor.setPosition(adjustedDeletePos);
+                    // 检查删除前光标位置的格式
+                    QTextCharFormat formatBeforeDelete = deleteCursor.charFormat();
+                    qDebug() << "Before delete (insert first) - cursor at:" << deleteCursor.position() << "Format is image:" << formatBeforeDelete.isImageFormat() << "Name:" << formatBeforeDelete.property(QTextFormat::UserProperty + 1).toString();
+                    
+                    deleteCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+                    if (deleteCursor.charFormat().isImageFormat()) {
+                        deleteCursor.removeSelectedText();
+                        qDebug() << "Original image deleted (insert first). Position was:" << adjustedDeletePos;
+                    } else {
+                        qDebug() << "Error: Could not select image for deletion (insert first) at pos:" << adjustedDeletePos;
+                    }
+                }
+                
+                editCursor.endEditBlock(); // 结束编辑块
+                // document()->documentLayout()->blockSignals(false);
+                qDebug() << "Edit block finished.";
+                // emit document()->contentsChanged(); // textChanged() 会自动触发
+                // this->m_hasUnsavedChanges = true; // NoteTextEdit 不直接管理保存状态
+                emit contentChangedByInteraction(); // 发出信号通知管理器内容已变
+                // 可能需要更新光标到新插入图片的位置
+                setTextCursor(dropCursor); 
+                updateSelectionIndicator(); // 更新选中指示器到新位置
+            } else {
+                 qDebug() << "Position not changed significantly. Move cancelled.";
+            }
+            
+            // 重置拖拽状态
+            m_manualDragging = false;
+            m_isMoving = false; // 确保移动状态也重置
+            m_dragStartPosition = -1;
+            // this->m_draggedImageFormat = QTextCharFormat(); // 这个是 NoteTextEdit 的成员，不需要 this->
+            // m_draggedImageFormat = QTextCharFormat(); // 错误：类型不匹配
+            m_draggedImageFormat = QTextImageFormat(); // 正确：使用 QTextImageFormat 的默认构造函数
+            event->accept(); // 接受事件
+            qDebug() << "Manual drag state reset.";
+            return; // 结束处理
+        }
+        // === 手动拖拽结束 ===
+
+        // === 调整大小结束逻辑 ===
+        if (m_isResizing) {
+            qDebug() << "mouseReleaseEvent: Resizing finished.";
+            m_isResizing = false;
+            m_currentHandle = -1;
+            // updateSelectionIndicator(); // 可能不需要立即更新，因为光标还在
+            setCursor(Qt::ArrowCursor); // 恢复箭头光标
+            emit imageResized(); // 发出信号
+            // this->m_hasUnsavedChanges = true; // NoteTextEdit 不直接管理保存状态
+            emit contentChangedByInteraction(); // 发出信号通知管理器内容已变
+            viewport()->update(); // 更新视图
+            event->accept();
+            qDebug() << "Resize state reset.";
+            return;
+        }
+        // === 调整大小结束 ===
+
+        // 重置移动状态（如果只是点击或移动距离不够）
+        if (m_isMoving) {
+            qDebug() << "mouseReleaseEvent: Resetting 'isMoving' state (click or short move).";
+            m_isMoving = false;
+        }
+
+        // 如果事件未被拖拽或调整大小处理，则调用基类实现
+        QTextEdit::mouseReleaseEvent(event);
+        qDebug() << "mouseReleaseEvent: Base class called.";
+
+        // 处理常规文本选择后的浮动工具栏显示
+        QTextCursor cursor = textCursor();
+        if (cursor.hasSelection()) {
+            QRect selectionRect = cursorRect(cursor);
+            // 调整位置，使其出现在选区下方
+            QPoint toolbarPos = mapToGlobal(selectionRect.bottomLeft() + QPoint(0, 5)); 
+            emit selectionChanged(toolbarPos, true);
+            qDebug() << "mouseReleaseEvent: Emitted selectionChanged for text selection.";
+        } else {
+            // 如果没有选择，检查是否点击了空白区域以隐藏工具栏
+            // (handleEditorClicked 信号现在可以处理这个逻辑)
+            emit selectionChanged(QPoint(), false); // 隐藏工具栏
+            qDebug() << "mouseReleaseEvent: Emitted selectionChanged to hide toolbar.";
+            // 可以在这里触发 editorClicked 信号
+            emit editorClicked(mapToGlobal(event->pos()));
+        }
     } else {
         m_trackingMouse = false; // 重置 m_trackingMouse
     }
@@ -340,20 +495,20 @@ void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
         qDebug() << "mouseMoveEvent: Moving active. Delta:" << (event->pos() - m_moveStartPos).manhattanLength();
         // 检查是否达到拖拽阈值
         if ((event->pos() - m_moveStartPos).manhattanLength() >= QApplication::startDragDistance()) {
-            qDebug() << "mouseMoveEvent: StartDragDistance met, initiating QDrag.";
-            QDrag *drag = new QDrag(this);
-            QMimeData *mime = new QMimeData;
-            // 获取当前选中图片的最新信息 (以防万一在 move 期间光标变了)
+            qDebug() << "mouseMoveEvent: StartDragDistance met, initiating manual drag operation.";
+            
+            // *** 完全替换使用QDrag的方案 ***
+            // 获取当前选中图片的最新信息
             QTextImageFormat currentFormat;
-            QTextCursor currentImgCursor = m_selectedImageCursor; // 使用当前选中的光标
+            QTextCursor currentImgCursor = m_selectedImageCursor;
             if (currentImgCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor) && 
                 currentImgCursor.charFormat().isImageFormat()) {
-                 currentFormat = currentImgCursor.charFormat().toImageFormat();
+                currentFormat = currentImgCursor.charFormat().toImageFormat();
             } else {
-                 qDebug() << "mouseMoveEvent: Drag failed - Could not re-verify selected image.";
-                 m_isMoving = false; // 重置状态
-                 event->ignore(); // 忽略事件
-                 return;
+                qDebug() << "mouseMoveEvent: Drag failed - Could not re-verify selected image.";
+                m_isMoving = false;
+                event->ignore();
+                return;
             }
 
             QString imgPath = currentFormat.name();
@@ -363,46 +518,44 @@ void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
                 event->ignore();
                 return;
             }
-            mime->setUrls({QUrl::fromLocalFile(imgPath)});
-            drag->setMimeData(mime);
-
-            QPixmap pix(imgPath);
-            if (!pix.isNull() && !m_selectedImageRect.size().isEmpty()) { 
-                 pix = pix.scaled(m_selectedImageRect.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            } else {
-                 pix = QPixmap(32, 32); 
-                 pix.fill(Qt::gray);
-            }
-            drag->setPixmap(pix);
-            updateSelectionIndicator(); 
-            drag->setHotSpot(event->pos() - m_selectedImageRect.topLeft()); 
             
-            // *** 开始拖动前，存储位置和格式，但不删除原图 ***
-            m_dragStartPosition = m_selectedImageCursor.position(); // 存储起始位置
-            m_draggedImageFormat = currentFormat;                 // 存储格式
-            qDebug() << "mouseMoveEvent: Stored startPos:" << m_dragStartPosition << "and format before drag.";
+            // 存储拖拽图片的信息，备用
+            m_dragStartPosition = m_selectedImageCursor.position();
+            m_draggedImageFormat = currentFormat;
+            qDebug() << "mouseMoveEvent: Stored startPos:" << m_dragStartPosition << "and format for manual drag.";
             
-            // 不在此处删除图片或清除选中光标
-            // QTextCursor deleteCursor = m_selectedImageCursor;
-            // ... (删除代码移除) ...
-            // m_selectedImageCursor = QTextCursor(); 
-            // m_selectedImageRect = QRect();      
+            // 启用手动拖拽模式
+            m_manualDragging = true;
             
-            qDebug() << "mouseMoveEvent: Calling drag->exec()...";
-            drag->exec(Qt::MoveAction);
-            qDebug() << "mouseMoveEvent: drag->exec() returned."; 
+            // 设置鼠标形状为拖拽状态
+            setCursor(Qt::DragMoveCursor);
             
-
-
-            m_isMoving = false; // 拖拽结束后重置移动状态
-            // event->accept(); // Accept 在这里可能过早，dropEvent 会处理 accept
-            return; // 返回，让 dropEvent 处理后续
+            // 创建预览图标（可选）
+            // 这里我们用其他方式显示拖拽预览
+            
+            // 在此拦截事件，不要调用drag->exec()
+            event->accept();
+            return;
         } else {
             // 未达到拖拽阈值，仅接受事件阻止文本选择
             qDebug() << "mouseMoveEvent: Moving but below drag distance.";
             event->accept();
             return;
         }
+    }
+    
+    // 手动拖拽模式的处理
+    if (m_manualDragging) {
+        // 计算当前放置位置（直接使用 QTextEdit 已有的视口到文档的转换逻辑）
+        QPointF docPos = event->pos() + QPointF(horizontalScrollBar()->value(), verticalScrollBar()->value());
+        
+        // 创建临时光标并移动到最接近的位置
+        QTextCursor dropCursor = cursorForPosition(event->pos());
+        
+        // 可选：在此显示拖拽预览
+        
+        event->accept();
+        return;
     }
 
     // 5. 处理手柄悬停检测 (基于更新后的状态)

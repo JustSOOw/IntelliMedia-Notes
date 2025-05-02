@@ -54,6 +54,7 @@
 #include <QGroupBox>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QDrag>
 
 class NoteTextEdit;
 class FloatingToolBar;
@@ -102,6 +103,8 @@ signals:
     void editorClicked(const QPoint &pos);
     // 图片调整大小完成时发出信号
     void imageResized();
+    // 内容因为拖拽或调整大小被修改时发出信号
+    void contentChangedByInteraction();
 
 private:
     bool m_trackingMouse;
@@ -112,11 +115,12 @@ private:
     int m_currentHandle;             // 当前拖拽的手柄索引 (0-3: TL, TR, BL, BR)
     QPoint m_resizeStartPos;         // 开始调整大小时的鼠标位置
     QSize m_originalImageSize;       // 开始调整大小时图片的原始尺寸
-    bool m_isMoving;                 // 是否正在移动图片
+    bool m_isMoving = false;               // 是否正在移动图片
     QPoint m_moveStartPos;           // 开始移动时的鼠标位置
-    QTextImageFormat m_draggedImageFormat; // 用于内部拖动时临时存储图片格式
-    int m_dragStartPosition = -1;      // 用于内部拖动时临时存储起始位置
-
+    QTextImageFormat m_draggedImageFormat; // 拖拽的图片格式
+    int m_dragStartPosition = -1;          // 拖拽开始位置
+    bool m_manualDragging = false;         // 手动拖拽模式标志
+    QLabel *m_dragPreviewLabel = nullptr;  // 拖拽预览标签
 
     // 辅助函数
     void updateSelectionIndicator(); // 更新选中图片状态和矩形

@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-02 18:20:02
+ * @LastEditTime: 2025-05-02 22:01:41
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -55,6 +55,8 @@
 #include <QGroupBox>
 #include <QDrag>
 #include <QTimer> // *** 添加 QTimer 头文件 ***
+#include <QPixmap> // 添加 QPixmap 头文件
+#include <QCursor> // 添加 QCursor 头文件
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
@@ -524,15 +526,35 @@ void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
             m_draggedImageFormat = currentFormat;
             qDebug() << "mouseMoveEvent: Stored startPos:" << m_dragStartPosition << "and format for manual drag.";
             
+            // --- 创建和显示拖拽预览 ---
+            QImage image(imgPath);
+            if (!image.isNull()) {
+                QPixmap previewPixmap = QPixmap::fromImage(image).scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation); // 缩放预览图
+                if (!m_dragPreviewLabel) {
+                    m_dragPreviewLabel = new QLabel(nullptr, Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+                    m_dragPreviewLabel->setAttribute(Qt::WA_TranslucentBackground);
+                    // 设置明显的样式：半透明浅蓝色背景 + 蓝色虚线边框
+                    m_dragPreviewLabel->setStyleSheet("border: 2px dashed blue; background-color: rgba(173, 216, 230, 100);");
+                }
+                m_dragPreviewLabel->setPixmap(previewPixmap);
+                m_dragPreviewLabel->adjustSize();
+                m_dragPreviewLabel->move(QCursor::pos() + QPoint(15, 15)); // 使用 QCursor::pos() 获取全局位置，并偏移
+                m_dragPreviewLabel->show();
+                m_dragPreviewLabel->raise(); // 确保在顶层
+            } else {
+                 qDebug() << "mouseMoveEvent: Failed to load image for preview:" << imgPath;
+            }
+             // --- 结束创建和显示拖拽预览 ---
+
             // 启用手动拖拽模式
             m_manualDragging = true;
-            
+
             // 设置鼠标形状为拖拽状态
             setCursor(Qt::DragMoveCursor);
-            
-            // 创建预览图标（可选）
+
+            // 创建预览图标（可选） - 已通过QLabel实现
             // 这里我们用其他方式显示拖拽预览
-            
+
             // 在此拦截事件，不要调用drag->exec()
             event->accept();
             return;
@@ -548,12 +570,17 @@ void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
     if (m_manualDragging) {
         // 计算当前放置位置（直接使用 QTextEdit 已有的视口到文档的转换逻辑）
         QPointF docPos = event->pos() + QPointF(horizontalScrollBar()->value(), verticalScrollBar()->value());
-        
+
         // 创建临时光标并移动到最接近的位置
         QTextCursor dropCursor = cursorForPosition(event->pos());
-        
+
         // 可选：在此显示拖拽预览
-        
+        // 更新预览标签的位置
+        if (m_dragPreviewLabel) {
+             m_dragPreviewLabel->move(QCursor::pos() + QPoint(15, 15));
+        }
+
+
         event->accept();
         return;
     }

@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-03 18:08:37
+ * @LastEditTime: 2025-05-03 18:36:19
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -1552,60 +1552,93 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
 
 void FloatingToolBar::updatePosition(const QPoint &)
 {
-    QTextEdit *editor = qobject_cast<QTextEdit*>(parent());
-    if (!editor) return;
-    
+    // QTextEdit *editor = qobject_cast<QTextEdit*>(parent()); // 错误：父对象是 viewport
+    NoteTextEdit *editor = qobject_cast<NoteTextEdit*>(parentWidget()->parentWidget()); // 获取 NoteTextEdit 实例
+    if (!editor) {
+        qWarning() << "FloatingToolBar::updatePosition - Could not get NoteTextEdit parent.";
+        return;
+    }
+
     QTextCursor cursor = editor->textCursor();
-    QRect startRect = editor->cursorRect(cursor);
-    QRect endRect = startRect;
-    
-    // 如果有选中文本，获取选区的起始和结束位置的矩形
-    if (cursor.hasSelection()) {
-        int startPos = cursor.selectionStart();
-        int endPos = cursor.selectionEnd();
-        
-        // 创建两个新光标，分别指向选区起始和结束位置
-        QTextCursor startCursor = cursor;
-        QTextCursor endCursor = cursor;
-        startCursor.setPosition(startPos);
-        endCursor.setPosition(endPos);
-        
-        // 获取这两个位置的矩形
-        startRect = editor->cursorRect(startCursor);
-        endRect = editor->cursorRect(endCursor);
+    if (!cursor.hasSelection()) {
+        // 如果没有选择，可以考虑隐藏或不移动
+        // hide(); // 或者 return;
+        return; // 暂时返回，避免在没有选择时移动
     }
     
-    // 合并起始和结束矩形，获得选区的外接矩形
-    QRect selectionRect = startRect.united(endRect);
+    // 获取选区的起始和结束位置的矩形 (相对于 viewport)
+    int startPos = cursor.selectionStart();
+    int endPos = cursor.selectionEnd();
+    QTextCursor startCursor = cursor;
+    QTextCursor endCursor = cursor;
+    startCursor.setPosition(startPos);
+    endCursor.setPosition(endPos);
     
-    // 将选区矩形转换为全局坐标
-    QPoint globalBottomLeft = editor->mapToGlobal(selectionRect.bottomLeft());
-    QPoint globalTopLeft = editor->mapToGlobal(selectionRect.topLeft());
-    
-    // 获取屏幕尺寸信息，用于确保工具栏不会超出屏幕
+    // 使用 viewport()->cursorRect() 获取相对于 viewport 的坐标
+    QRect startRectViewport = editor->cursorRect(startCursor);
+    QRect endRectViewport = editor->cursorRect(endCursor);
+
+    // 合并起始和结束矩形，获得选区的外接矩形 (相对于 viewport)
+    QRect selectionRectViewport = startRectViewport.united(endRectViewport);
+
+    // 将选区矩形的视口坐标转换为全局坐标，用于屏幕边界检查
+    QPoint globalTopLeft = editor->viewport()->mapToGlobal(selectionRectViewport.topLeft());
+    QPoint globalBottomLeft = editor->viewport()->mapToGlobal(selectionRectViewport.bottomLeft());
+
+    // 获取屏幕尺寸信息
     QScreen *screen = QGuiApplication::screenAt(globalBottomLeft);
     if (!screen) screen = QGuiApplication::primaryScreen();
     QRect screenGeometry = screen->availableGeometry();
-    
-    // 默认位置：在选区下方且水平居中
-    int x = globalBottomLeft.x() + (selectionRect.width() - width()) / 2;
-    int y = globalBottomLeft.y() + 2; // 紧贴选区下方两个像素
-    
+
+    // --- 计算目标全局坐标 ---
+    // 默认全局位置：在选区下方且水平居中
+    int globalX = globalBottomLeft.x() + (selectionRectViewport.width() - width()) / 2;
+    int globalY = globalBottomLeft.y() + 5; // 稍微增加与选区的距离
+
     // 如果工具栏超出了屏幕底部，则改为显示在选区上方
-    if (y + height() > screenGeometry.bottom()) {
-        y = globalTopLeft.y() - height() - 2; // 紧贴选区上方两个像素
+    if (globalY + height() > screenGeometry.bottom()) {
+        globalY = globalTopLeft.y() - height() - 5; // 稍微增加与选区的距离
     }
-    
+
     // 确保工具栏水平不超出屏幕
-    if (x < screenGeometry.left()) {
-        x = screenGeometry.left() + 2; // 距离左边缘两个像素
+    if (globalX < screenGeometry.left()) {
+        globalX = screenGeometry.left() + 5;
+    } else if (globalX + width() > screenGeometry.right()) {
+        globalX = screenGeometry.right() - width() - 5;
     }
-    else if (x + width() > screenGeometry.right()) {
-        x = screenGeometry.right() - width() - 2; // 距离右边缘两个像素
+    // --- 结束计算目标全局坐标 ---
+
+    // --- 获取编辑器 viewport 的全局几何区域 ---
+    QRect viewportRect = editor->viewport()->rect();
+    QPoint viewportTopLeftGlobal = editor->viewport()->mapToGlobal(viewportRect.topLeft());
+    QPoint viewportBottomRightGlobal = editor->viewport()->mapToGlobal(viewportRect.bottomRight());
+    QRect viewportGlobalRect(viewportTopLeftGlobal, viewportBottomRightGlobal);
+    // --- 结束获取 viewport 全局几何区域 ---
+    
+    // --- 根据 viewport 边界钳制全局坐标 ---
+    // 钳制 X 轴
+    if (globalX < viewportGlobalRect.left()) {
+        globalX = viewportGlobalRect.left();
+    } else if (globalX + width() > viewportGlobalRect.right()) {
+        globalX = viewportGlobalRect.right() - width();
     }
     
-    // 设置工具栏位置
-    move(x, y);
+    // 钳制 Y 轴
+    if (globalY < viewportGlobalRect.top()) {
+        globalY = viewportGlobalRect.top();
+    } else if (globalY + height() > viewportGlobalRect.bottom()) {
+        globalY = viewportGlobalRect.bottom() - height();
+    }
+    // --- 结束坐标钳制 ---
+
+    // FloatingToolBar 是顶级窗口 (Qt::Tool)，move 需要全局坐标
+    move(globalX, globalY);
+
+    // 确保显示
+    if (!isVisible()) {
+         show();
+    }
+    raise(); // 确保在顶层
 }
 
 void FloatingToolBar::setFormatActions(const QTextCharFormat &format)

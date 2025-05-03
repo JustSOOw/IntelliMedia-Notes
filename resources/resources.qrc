@@ -48,5 +48,6 @@
         <file>icons/editor/copy.svg</file>
         <file>icons/editor/paste.svg</file>
         <file>icons/editor/image.svg</file>
+        <file>icons/editor/dropdown.svg</file>
     </qresource>
 </RCC>

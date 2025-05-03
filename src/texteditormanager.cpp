@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-02 22:02:32
+ * @LastEditTime: 2025-05-03 18:08:37
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -59,6 +59,8 @@
 #include <QCursor> // 添加 QCursor 头文件
 #include <QFontDatabase>
 #include <QFontComboBox>
+#include <QAbstractItemView> // <-- 包含 QAbstractItemView 头文件
+#include <QAbstractScrollArea> // <-- 包含 QAbstractScrollArea 头文件，setSizeAdjustPolicy 需要
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
@@ -96,7 +98,7 @@ NoteTextEdit::NoteTextEdit(QWidget *parent)
 void NoteTextEdit::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
-        m_isMoving = false; 
+        m_isMoving = false;
         m_isResizing = false; 
         m_currentHandle = -1;
         m_trackingMouse = true;
@@ -137,7 +139,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
                   m_originalImageSize = QSize(imageFormat.width(), imageFormat.height()); 
               }
             
-            m_isResizing = true; 
+            m_isResizing = true;
             m_currentHandle = handleIndex;
             m_resizeStartPos = pressPosViewport;
             event->accept();
@@ -253,7 +255,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
     }
     // 处理非左键点击
     else {
-        QTextEdit::mousePressEvent(event);
+    QTextEdit::mousePressEvent(event);
     }
 }
 
@@ -512,13 +514,13 @@ void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
                 qDebug() << "mouseMoveEvent: Drag failed - Could not re-verify selected image.";
                 m_isMoving = false;
                 event->ignore();
-                return;
-            }
+            return;
+        }
 
             QString imgPath = currentFormat.name();
             if (imgPath.isEmpty()) {
                 qDebug() << "mouseMoveEvent: Drag failed - Image path is empty.";
-                m_isMoving = false;
+        m_isMoving = false;
                 event->ignore();
                 return;
             }
@@ -563,9 +565,9 @@ void NoteTextEdit::mouseMoveEvent(QMouseEvent *event)
         } else {
             // 未达到拖拽阈值，仅接受事件阻止文本选择
             qDebug() << "mouseMoveEvent: Moving but below drag distance.";
-            event->accept();
-            return;
-        }
+        event->accept();
+        return;
+    }
     }
     
     // 手动拖拽模式的处理
@@ -791,8 +793,8 @@ void NoteTextEdit::dropEvent(QDropEvent *event)
                     }
                     // *** 结束块更新尝试 ***
 
-                    updateSelectionIndicator(); 
-                    viewport()->update(); 
+                    updateSelectionIndicator();
+                    viewport()->update();
                     
                     event->acceptProposedAction();
                     m_draggedImageFormat = QTextImageFormat(); // 清理存储的格式
@@ -801,10 +803,10 @@ void NoteTextEdit::dropEvent(QDropEvent *event)
                     return;
                 } else {
                      qDebug() << "DropEvent: External drop detected.";
-                     // 外部拖放：插入图片文件
+                // 外部拖放：插入图片文件
                      QTextCursor dropCursor = cursorForPosition(event->position().toPoint());
-                     dropCursor.clearSelection();
-                     setTextCursor(dropCursor);
+                dropCursor.clearSelection();
+                setTextCursor(dropCursor);
                      // 插入图片后，新的图片应该被选中
                      if (insertImageFromFile(filePath)) { // insertImageFromFile 现在返回bool
                         // 插入成功后，将光标定位到图片前并选中
@@ -813,7 +815,7 @@ void NoteTextEdit::dropEvent(QDropEvent *event)
                         qDebug() << "DropEvent (External): Selected image cursor at:" << m_selectedImageCursor.position(); // 保留关键放置日志
                         updateSelectionIndicator(); // 更新选中框
                         viewport()->update(); // 强制重绘
-                        event->acceptProposedAction();
+                event->acceptProposedAction();
                         // qDebug() << "DropEvent: External drop finished."; // 减少日志
                      } else {
                         qDebug() << "DropEvent: External drop failed to insert image.";
@@ -824,7 +826,7 @@ void NoteTextEdit::dropEvent(QDropEvent *event)
             }
         }
     }
-
+    
     // 如果不是图片，使用默认处理
     // qDebug() << "DropEvent: Not an image URL, falling back to QTextEdit::dropEvent."; // 减少日志
     QTextEdit::dropEvent(event);
@@ -923,7 +925,7 @@ void NoteTextEdit::updateSelectionIndicator()
     // 1. 检查光标有效性
     if (m_selectedImageCursor.isNull()) {
         if (!m_selectedImageRect.isNull()) { 
-             m_selectedImageRect = QRect();
+        m_selectedImageRect = QRect();
              viewport()->update(); 
          }
         return;
@@ -953,7 +955,7 @@ void NoteTextEdit::updateSelectionIndicator()
     if (!formatObtained) { 
        if (!m_selectedImageRect.isNull()) { 
            qDebug() << "updateSelectionIndicator: Clearing rect because no valid format obtained.";
-           m_selectedImageRect = QRect();
+        m_selectedImageRect = QRect();
            viewport()->update(); 
        }
         return;
@@ -969,8 +971,8 @@ void NoteTextEdit::updateSelectionIndicator()
         QTextLine line = layout->lineAt(i);
         if (posInBlock >= line.textStart() && posInBlock < line.textStart() + line.textLength()) {
             QRectF blockBound = document()->documentLayout()->blockBoundingRect(block);
-            qreal x = line.cursorToX(posInBlock); 
-            qreal y = line.y();                  
+            qreal x = line.cursorToX(posInBlock);
+            qreal y = line.y();
             docRect = QRectF(blockBound.left() + x, blockBound.top() + y, format.width(), format.height());
             foundLine = true;
             break;
@@ -1296,9 +1298,54 @@ void FloatingToolBar::setupUI()
     m_alignJustifyButton = new QToolButton(this);
     
     // 创建字体、字号和标题选择控件
-    m_fontComboBox = new QComboBox(this);
+    m_fontComboBox = new QFontComboBox(this);
+    m_fontComboBox->setFixedWidth(80); // 设置固定宽度，使按钮有统一的大小
+    m_fontComboBox->setToolTip("选择字体");
+    m_fontComboBox->view()->setMinimumWidth(180); // 下拉列表较宽
+    m_fontComboBox->view()->setSizeAdjustPolicy(QAbstractItemView::AdjustToContents);
+    
+    // 恢复正常样式并修复空白问题
+    m_fontComboBox->setStyleSheet(
+        "QFontComboBox { border: 1px solid #cccccc; border-radius: 4px; text-overflow: ellipsis; }"
+        "QFontComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }"
+        "QFontComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; }"
+        "QFontComboBox QLineEdit { padding-right: 5px; }" // 减少右侧填充
+        "QFontComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }"
+    );
+    
+    // 添加字号下拉框
     m_fontSizeComboBox = new QComboBox(this);
+    m_fontSizeComboBox->setFixedWidth(35); // 字号按钮可以更窄
+    m_fontSizeComboBox->view()->setMinimumWidth(60);
+    m_fontSizeComboBox->setToolTip("选择字号");
+    
+    // 恢复正常样式并修复空白问题
+    m_fontSizeComboBox->setStyleSheet(
+        "QComboBox { border: 1px solid #cccccc; border-radius: 4px; qproperty-alignment: AlignCenter; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }"
+        "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; }"
+        "QComboBox QLineEdit { padding-right: 5px; }" // 减少右侧填充
+        "QComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }"
+    );
+    
+    QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
+    m_fontSizeComboBox->addItems(fontSizes);
+    m_fontSizeComboBox->setCurrentText(QString::number(12)); // 默认字号
+    
+    // 添加标题级别下拉框
     m_headingComboBox = new QComboBox(this);
+    m_headingComboBox->setFixedWidth(70); // 设置固定宽度
+    m_headingComboBox->view()->setMinimumWidth(150); // 下拉列表较宽
+    m_headingComboBox->setToolTip("选择标题级别");
+    
+    // 恢复正常样式并修复空白问题
+    m_headingComboBox->setStyleSheet(
+        "QComboBox { border: 1px solid #cccccc; border-radius: 4px; qproperty-alignment: AlignCenter; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }"
+        "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; }"
+        "QComboBox QLineEdit { padding-right: 5px; }" // 减少右侧填充
+        "QComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }"
+    );
     
     // 设置图标
     m_boldButton->setIcon(QIcon(":/icons/editor/bold.svg"));
@@ -1312,45 +1359,6 @@ void FloatingToolBar::setupUI()
     m_alignRightButton->setIcon(QIcon(":/icons/editor/align-right.svg"));
     m_alignJustifyButton->setIcon(QIcon(":/icons/editor/align-justify.svg"));
     
-    // 初始化字体下拉框
-    QStringList fontFamilies = QFontDatabase::families();
-    m_fontComboBox->addItems(fontFamilies);
-    m_fontComboBox->setToolTip("选择字体");
-    m_fontComboBox->setMinimumWidth(120);
-    m_fontComboBox->setMaxVisibleItems(15);
-    
-    // 初始化字号下拉框
-    QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
-    m_fontSizeComboBox->addItems(fontSizes);
-    m_fontSizeComboBox->setToolTip("选择字号");
-    m_fontSizeComboBox->setMinimumWidth(50);
-    m_fontSizeComboBox->setMaxVisibleItems(15);
-    m_fontSizeComboBox->setCurrentText("12");
-    
-    // 初始化标题级别下拉框
-    m_headingComboBox->addItem("正文");
-    m_headingComboBox->addItem("一级标题");
-    m_headingComboBox->addItem("二级标题");
-    m_headingComboBox->addItem("三级标题");
-    m_headingComboBox->addItem("四级标题");
-    m_headingComboBox->addItem("五级标题");
-    m_headingComboBox->addItem("六级标题");
-    m_headingComboBox->setToolTip("选择标题级别");
-    m_headingComboBox->setMinimumWidth(80);
-    m_headingComboBox->setMaxVisibleItems(7);
-    
-    // 设置工具提示
-    m_boldButton->setToolTip("粗体");
-    m_italicButton->setToolTip("斜体");
-    m_underlineButton->setToolTip("下划线");
-    m_strikeOutButton->setToolTip("删除线");
-    m_textColorButton->setToolTip("文本颜色");
-    m_highlightButton->setToolTip("文本高亮");
-    m_alignLeftButton->setToolTip("左对齐");
-    m_alignCenterButton->setToolTip("居中对齐");
-    m_alignRightButton->setToolTip("右对齐");
-    m_alignJustifyButton->setToolTip("两端对齐");
-    
     // 设置按钮可选中
     m_boldButton->setCheckable(true);
     m_italicButton->setCheckable(true);
@@ -1362,7 +1370,7 @@ void FloatingToolBar::setupUI()
     m_alignJustifyButton->setCheckable(true);
     
     // 设置按钮大小
-    QSize buttonSize(24, 24);
+    QSize buttonSize(20, 20); // <-- 缩小按钮尺寸
     m_boldButton->setIconSize(buttonSize);
     m_italicButton->setIconSize(buttonSize);
     m_underlineButton->setIconSize(buttonSize);
@@ -1375,7 +1383,7 @@ void FloatingToolBar::setupUI()
     m_alignJustifyButton->setIconSize(buttonSize);
     
     // 设置按钮样式
-    QString buttonStyle = "QToolButton { border: none; padding: 2px; border-radius: 4px; background-color: transparent; } "
+    QString buttonStyle = "QToolButton { border: none; padding: 2px; border-radius: 4px; background-color: transparent; } " // <-- 减小内边距
                           "QToolButton:hover { background-color: #e0e0e0; } "
                           "QToolButton:checked { background-color: #c0c0c0; } "
                           "QToolButton:pressed { background-color: #b0b0b0; }";
@@ -1391,10 +1399,10 @@ void FloatingToolBar::setupUI()
     m_alignRightButton->setStyleSheet(buttonStyle);
     m_alignJustifyButton->setStyleSheet(buttonStyle);
     
-    // 设置下拉框样式
-    QString comboBoxStyle = "QComboBox { border: 1px solid #cccccc; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 22px; } "
+    // 设置下拉框样式 (检查下拉箭头图标路径)
+    QString comboBoxStyle = "QComboBox { border: 1px solid #cccccc; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 20px; } " // <-- 减小最小高度
                             "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
-                            "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } "
+                            "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } " // <-- 确认此图标资源有效
                             "QComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }";
     
     m_fontComboBox->setStyleSheet(comboBoxStyle);
@@ -1439,6 +1447,27 @@ void FloatingToolBar::setupUI()
     layout->addWidget(m_alignJustifyButton);
     
     setLayout(layout);
+    
+    // 添加标题级别下拉框的选项
+    m_headingComboBox->addItem("正文");
+    m_headingComboBox->addItem("一级标题");
+    m_headingComboBox->addItem("二级标题");
+    m_headingComboBox->addItem("三级标题");
+    m_headingComboBox->addItem("四级标题");
+    m_headingComboBox->addItem("五级标题");
+    m_headingComboBox->addItem("六级标题");
+    
+    // 设置工具提示
+    m_boldButton->setToolTip("粗体");
+    m_italicButton->setToolTip("斜体");
+    m_underlineButton->setToolTip("下划线");
+    m_strikeOutButton->setToolTip("删除线");
+    m_textColorButton->setToolTip("文本颜色");
+    m_highlightButton->setToolTip("文本高亮");
+    m_alignLeftButton->setToolTip("左对齐");
+    m_alignCenterButton->setToolTip("居中对齐");
+    m_alignRightButton->setToolTip("右对齐");
+    m_alignJustifyButton->setToolTip("两端对齐");
 }
 
 void FloatingToolBar::setTheme(bool isDarkTheme)
@@ -1449,14 +1478,15 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
     if (isDarkTheme) {
         setStyleSheet("FloatingToolBar { border: 1px solid #444444; border-radius: 4px; background-color: #333333; }");
         
-        QString buttonStyle = "QToolButton { border: none; padding: 2px; border-radius: 4px; background-color: transparent; color: white; } "
+        QString buttonStyle = "QToolButton { border: none; padding: 1px; border-radius: 3px; background-color: transparent; color: white; } " // <-- 减小内边距
                               "QToolButton:hover { background-color: #444444; } "
                               "QToolButton:checked { background-color: #555555; } "
                               "QToolButton:pressed { background-color: #666666; }";
         
-        QString comboBoxStyle = "QComboBox { border: 1px solid #555555; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 22px; background-color: #444444; color: white; } "
-                                "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 15px; border-left-width: 1px; border-left-color: #555555; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
-                                "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } "
+        QString comboBoxStyle = "QComboBox { border: 1px solid #555555; border-radius: 3px; padding: 1px; min-height: 20px; background-color: #444444; color: white; } " // <-- 减小最小高度
+                                "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #555555; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
+                                "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; } "
+                                "QComboBox QLineEdit { padding-right: 5px; background-color: #444444; color: white; }" // 减少右侧填充
                                 "QComboBox QAbstractItemView { border: 1px solid #555555; background-color: #333333; color: white; selection-background-color: #555555; }";
         
         m_boldButton->setStyleSheet(buttonStyle);
@@ -1473,17 +1503,26 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
         m_fontComboBox->setStyleSheet(comboBoxStyle);
         m_fontSizeComboBox->setStyleSheet(comboBoxStyle);
         m_headingComboBox->setStyleSheet(comboBoxStyle);
+        
+        // 设置深色主题下的lineEdit样式，确保居中效果和省略号显示
+        if (m_headingComboBox->lineEdit()) {
+            m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; padding: 0 4px 0 4px; text-overflow: ellipsis; min-width: 0; background-color: #444444; color: white; }");
+        }
+        if (m_fontSizeComboBox->lineEdit()) {
+            m_fontSizeComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; padding: 0 4px 0 4px; text-overflow: ellipsis; min-width: 0; background-color: #444444; color: white; }");
+        }
     } else {
         setStyleSheet("FloatingToolBar { border: 1px solid #cccccc; border-radius: 4px; background-color: #f5f5f5; }");
         
-        QString buttonStyle = "QToolButton { border: none; padding: 2px; border-radius: 4px; background-color: transparent; color: black; } "
+        QString buttonStyle = "QToolButton { border: none; padding: 1px; border-radius: 3px; background-color: transparent; color: black; } " // <-- 减小内边距
                               "QToolButton:hover { background-color: #e0e0e0; } "
                               "QToolButton:checked { background-color: #c0c0c0; } "
                               "QToolButton:pressed { background-color: #b0b0b0; }";
         
-        QString comboBoxStyle = "QComboBox { border: 1px solid #cccccc; border-radius: 3px; padding: 1px 18px 1px 3px; min-height: 22px; background-color: white; color: black; } "
-                                "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
-                                "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 12px; height: 12px; } "
+        QString comboBoxStyle = "QComboBox { border: 1px solid #cccccc; border-radius: 3px; padding: 1px; min-height: 20px; background-color: white; color: black; } " // <-- 减小最小高度
+                                "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 3px; border-bottom-right-radius: 3px; } "
+                                "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; } "
+                                "QComboBox QLineEdit { padding-right: 5px; background-color: white; color: black; }" // 减少右侧填充
                                 "QComboBox QAbstractItemView { border: 1px solid #cccccc; background-color: white; color: black; selection-background-color: #e0e0e0; }";
         
         m_boldButton->setStyleSheet(buttonStyle);
@@ -1500,38 +1539,73 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
         m_fontComboBox->setStyleSheet(comboBoxStyle);
         m_fontSizeComboBox->setStyleSheet(comboBoxStyle);
         m_headingComboBox->setStyleSheet(comboBoxStyle);
+        
+        // 设置亮色主题下的lineEdit样式，确保居中效果和省略号显示
+        if (m_headingComboBox->lineEdit()) {
+            m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; padding: 0 4px 0 4px; text-overflow: ellipsis; min-width: 0; background-color: white; color: black; }");
+        }
+        if (m_fontSizeComboBox->lineEdit()) {
+            m_fontSizeComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; padding: 0 4px 0 4px; text-overflow: ellipsis; min-width: 0; background-color: white; color: black; }");
+        }
     }
 }
 
-void FloatingToolBar::updatePosition(const QPoint &pos)
+void FloatingToolBar::updatePosition(const QPoint &)
 {
-    // 获取编辑器中的选择位置，使工具栏显示在选择文本的上方
-    QWidget *parentWidget = qobject_cast<QWidget*>(parent());
-    if (!parentWidget) return;
+    QTextEdit *editor = qobject_cast<QTextEdit*>(parent());
+    if (!editor) return;
     
-    // 计算工具栏位置，使其显示在文本上方约20像素处
-    QPoint globalPos = parentWidget->mapToGlobal(pos);
-    globalPos.setY(globalPos.y() - height() - 5); // 在文本上方5个像素
+    QTextCursor cursor = editor->textCursor();
+    QRect startRect = editor->cursorRect(cursor);
+    QRect endRect = startRect;
     
-    // 确保工具栏不会超出屏幕边界
-    QRect screenGeometry = QGuiApplication::screenAt(globalPos)->geometry();
-    
-    // 调整X坐标，确保工具栏不会超出屏幕右侧
-    if (globalPos.x() + width() > screenGeometry.right()) {
-        globalPos.setX(screenGeometry.right() - width());
+    // 如果有选中文本，获取选区的起始和结束位置的矩形
+    if (cursor.hasSelection()) {
+        int startPos = cursor.selectionStart();
+        int endPos = cursor.selectionEnd();
+        
+        // 创建两个新光标，分别指向选区起始和结束位置
+        QTextCursor startCursor = cursor;
+        QTextCursor endCursor = cursor;
+        startCursor.setPosition(startPos);
+        endCursor.setPosition(endPos);
+        
+        // 获取这两个位置的矩形
+        startRect = editor->cursorRect(startCursor);
+        endRect = editor->cursorRect(endCursor);
     }
     
-    // 调整X坐标，确保工具栏不会超出屏幕左侧
-    if (globalPos.x() < screenGeometry.left()) {
-        globalPos.setX(screenGeometry.left());
+    // 合并起始和结束矩形，获得选区的外接矩形
+    QRect selectionRect = startRect.united(endRect);
+    
+    // 将选区矩形转换为全局坐标
+    QPoint globalBottomLeft = editor->mapToGlobal(selectionRect.bottomLeft());
+    QPoint globalTopLeft = editor->mapToGlobal(selectionRect.topLeft());
+    
+    // 获取屏幕尺寸信息，用于确保工具栏不会超出屏幕
+    QScreen *screen = QGuiApplication::screenAt(globalBottomLeft);
+    if (!screen) screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->availableGeometry();
+    
+    // 默认位置：在选区下方且水平居中
+    int x = globalBottomLeft.x() + (selectionRect.width() - width()) / 2;
+    int y = globalBottomLeft.y() + 2; // 紧贴选区下方两个像素
+    
+    // 如果工具栏超出了屏幕底部，则改为显示在选区上方
+    if (y + height() > screenGeometry.bottom()) {
+        y = globalTopLeft.y() - height() - 2; // 紧贴选区上方两个像素
     }
     
-    // 如果工具栏会超出屏幕顶部，则显示在文本下方
-    if (globalPos.y() < screenGeometry.top()) {
-        globalPos.setY(pos.y() + 20); // 在文本下方20个像素
+    // 确保工具栏水平不超出屏幕
+    if (x < screenGeometry.left()) {
+        x = screenGeometry.left() + 2; // 距离左边缘两个像素
+    }
+    else if (x + width() > screenGeometry.right()) {
+        x = screenGeometry.right() - width() - 2; // 距离右边缘两个像素
     }
     
-    move(globalPos);
+    // 设置工具栏位置
+    move(x, y);
 }
 
 void FloatingToolBar::setFormatActions(const QTextCharFormat &format)
@@ -1604,12 +1678,36 @@ bool FloatingToolBar::eventFilter(QObject *watched, QEvent *event)
     // 监听鼠标点击事件，当点击工具栏外部区域时隐藏工具栏
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (!geometry().contains(mouseEvent->globalPosition().toPoint()) && isVisible()) {
-            // 如果点击事件不在工具栏内且工具栏可见，隐藏工具栏
+        QPoint globalClickPos = mouseEvent->globalPosition().toPoint();
+
+        // 检查点击是否在工具栏自身内部
+        bool clickInsideToolbar = geometry().contains(globalClickPos);
+
+        // 检查点击是否在任何可见的下拉框视图内部
+        bool clickInsideDropdown = false;
+        QList<QComboBox*> comboBoxes = {m_fontComboBox, m_fontSizeComboBox, m_headingComboBox};
+        for (QComboBox* comboBox : comboBoxes) {
+            if (comboBox && comboBox->view() && comboBox->view()->isVisible()) { // 添加对 view() 指针的检查
+                // 获取视图的全局几何区域
+                // QRect viewGeometry = comboBox->view()->mapToGlobal(comboBox->view()->rect()); // 错误用法
+                QPoint viewTopLeftGlobal = comboBox->view()->mapToGlobal(QPoint(0, 0));
+                QRect viewGeometry(viewTopLeftGlobal, comboBox->view()->size()); // 使用全局左上角和尺寸构造全局矩形
+                if (viewGeometry.contains(globalClickPos)) {
+                    clickInsideDropdown = true;
+                    break; // 点击在一个下拉框内，无需再检查其他下拉框
+                }
+            }
+        }
+
+        // 如果点击既不在工具栏内，也不在可见的下拉框内，并且工具栏当前可见，则隐藏
+        if (!clickInsideToolbar && !clickInsideDropdown && isVisible()) {
             hide();
+            // 返回 true 表示事件已被处理，防止可能的进一步传递导致意外行为
+            return true; 
         }
     }
     
+    // 对于其他事件，调用基类的 eventFilter
     return QWidget::eventFilter(watched, event);
 }
 
@@ -1658,6 +1756,9 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     connect(m_textEdit, &NoteTextEdit::imageResized, this, &TextEditorManager::documentModified);
     connect(m_updateToolBarTimer, &QTimer::timeout, this, &TextEditorManager::updateToolBarForCurrentFormat);
     
+    // 设置字体下拉框处理
+    setupFontComboBoxes();
+    
     // 连接工具栏按钮的信号
     connect(m_floatingToolBar->boldButton(), &QToolButton::clicked, this, &TextEditorManager::onBoldTriggered);
     connect(m_floatingToolBar->italicButton(), &QToolButton::clicked, this, &TextEditorManager::onItalicTriggered);
@@ -1705,18 +1806,29 @@ void TextEditorManager::setupTopToolBar()
     m_topToolBar->addSeparator();
     
     // 添加字体、字号和标题选择控件
-    m_fontAction = m_topToolBar->addAction(QIcon(":/icons/editor/font.svg"), "字体");
     QWidget *fontWidget = new QWidget(m_topToolBar);
     QHBoxLayout *fontLayout = new QHBoxLayout(fontWidget);
     fontLayout->setContentsMargins(5, 0, 5, 0);
     fontLayout->setSpacing(5);
     
     m_fontComboBox = new QFontComboBox(fontWidget);
-    m_fontComboBox->setMinimumWidth(150);
-    m_fontComboBox->setMaximumWidth(200);
+    m_fontComboBox->setMinimumWidth(80); // 保持最小宽度
+    m_fontComboBox->setMaximumWidth(110); // 稍微增加最大宽度以容纳更多文本
     m_fontComboBox->setToolTip("选择字体");
-    fontLayout->addWidget(m_fontComboBox);
+    m_fontComboBox->setEditable(true);
+    m_fontComboBox->lineEdit()->setReadOnly(true);
+    m_fontComboBox->lineEdit()->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
     
+    // 恢复正常样式并修复空白问题
+    m_fontComboBox->setStyleSheet(
+        "QFontComboBox { border: 1px solid #cccccc; border-radius: 4px; text-overflow: ellipsis; }"
+        "QFontComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }"
+        "QFontComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; }"
+        "QFontComboBox QLineEdit { padding-right: 5px; }" // 减少右侧填充
+        "QFontComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }"
+    );
+    
+    fontLayout->addWidget(m_fontComboBox);
     m_topToolBar->addWidget(fontWidget);
     
     // 添加字号下拉框
@@ -1726,15 +1838,26 @@ void TextEditorManager::setupTopToolBar()
     fontSizeLayout->setSpacing(5);
     
     m_fontSizeComboBox = new QComboBox(fontSizeWidget);
-    m_fontSizeComboBox->setMinimumWidth(60);
-    m_fontSizeComboBox->setMaximumWidth(80);
+    m_fontSizeComboBox->setMinimumWidth(40); // <-- 调整宽度
+    m_fontSizeComboBox->setMaximumWidth(60); // <-- 调整宽度
     m_fontSizeComboBox->setToolTip("选择字号");
     m_fontSizeComboBox->setEditable(true);
+    m_fontSizeComboBox->lineEdit()->setReadOnly(true);
+    m_fontSizeComboBox->lineEdit()->setAlignment(Qt::AlignCenter);
+    
+    // 恢复正常样式并修复空白问题
+    m_fontSizeComboBox->setStyleSheet(
+        "QComboBox { border: 1px solid #cccccc; border-radius: 4px; qproperty-alignment: AlignCenter; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }"
+        "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; }"
+        "QComboBox QLineEdit { padding-right: 5px; }" // 减少右侧填充
+        "QComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }"
+    );
+    
     QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
     m_fontSizeComboBox->addItems(fontSizes);
     m_fontSizeComboBox->setCurrentText("12");
     fontSizeLayout->addWidget(m_fontSizeComboBox);
-    
     m_topToolBar->addWidget(fontSizeWidget);
     
     // 添加标题级别下拉框
@@ -1744,9 +1867,25 @@ void TextEditorManager::setupTopToolBar()
     headingLayout->setSpacing(5);
     
     m_headingComboBox = new QComboBox(headingWidget);
-    m_headingComboBox->setMinimumWidth(100);
-    m_headingComboBox->setMaximumWidth(150);
+    m_headingComboBox->setFixedWidth(80); // 设置固定宽度
+    m_headingComboBox->view()->setMinimumWidth(150); // 下拉列表较宽
     m_headingComboBox->setToolTip("选择标题级别");
+    
+    // 修改：设置为可编辑并强制居中显示
+    m_headingComboBox->setEditable(true);
+    m_headingComboBox->lineEdit()->setReadOnly(true);
+    m_headingComboBox->lineEdit()->setAlignment(Qt::AlignCenter);
+    
+    // 恢复正常样式并修复空白问题
+    m_headingComboBox->setStyleSheet(
+        "QComboBox { border: 1px solid #cccccc; border-radius: 4px; qproperty-alignment: AlignCenter; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: right; width: 15px; border-left-width: 1px; border-left-color: #cccccc; border-left-style: solid; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }"
+        "QComboBox::down-arrow { image: url(:/icons/editor/dropdown.svg); width: 8px; height: 8px; }"
+        "QComboBox QLineEdit { padding-right: 5px; }" // 减少右侧填充
+        "QComboBox QAbstractItemView { border: 1px solid #cccccc; selection-background-color: #e0e0e0; }"
+    );
+    
+    // 设置图标
     m_headingComboBox->addItem("正文");
     m_headingComboBox->addItem("一级标题");
     m_headingComboBox->addItem("二级标题");
@@ -1755,7 +1894,6 @@ void TextEditorManager::setupTopToolBar()
     m_headingComboBox->addItem("五级标题");
     m_headingComboBox->addItem("六级标题");
     headingLayout->addWidget(m_headingComboBox);
-    
     m_topToolBar->addWidget(headingWidget);
     m_topToolBar->addSeparator();
     
@@ -1769,7 +1907,6 @@ void TextEditorManager::setupTopToolBar()
     m_copyAction->setToolTip("复制选中文本 (Ctrl+C)");
     m_pasteAction->setToolTip("粘贴文本 (Ctrl+V)");
     m_insertImageAction->setToolTip("从文件插入图片");
-    m_fontAction->setToolTip("字体设置");
     
     // 连接信号
     connect(m_saveAction, &QAction::triggered, this, &TextEditorManager::onSaveTriggered);
@@ -1806,8 +1943,7 @@ void TextEditorManager::setTheme(bool isDarkTheme)
     // 设置浮动工具栏主题
     m_floatingToolBar->setTheme(isDarkTheme);
     
-    // 设置文本编辑器主题 - 移除样式表设置，让主窗口的QSS处理
-    // 注意：这里只保留最基本的设置，其他样式将由全局QSS处理
+    // 设置文本编辑器主题 
     m_textEdit->setStyleSheet("");
     
     // 更新按钮图标颜色
@@ -1934,7 +2070,8 @@ void TextEditorManager::handleSelectionChanged(const QPoint &pos, bool hasSelect
 {
     if (hasSelection) {
         // 如果有文本选中，更新工具栏位置并显示
-        m_floatingToolBar->updatePosition(pos);
+        // 不使用传入的pos参数，让updatePosition自己确定位置
+        m_floatingToolBar->updatePosition(QPoint());
         m_floatingToolBar->show();
         
         // 启动更新计时器，避免频繁更新
@@ -1975,10 +2112,25 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     m_floatingToolBar->alignJustifyButton()->setChecked(alignment == Qt::AlignJustify);
     
     // 更新顶部工具栏的字体、字号选择器
-    if (format.hasProperty(QTextFormat::FontFamily)) {
+    if (format.hasProperty(QTextFormat::FontFamilies)) { // <-- 使用 FontFamilies
         // 更新字体下拉框，防止信号循环
-        QSignalBlocker blocker(m_fontComboBox);
-        m_fontComboBox->setCurrentText(format.fontFamily());
+        QStringList families = format.fontFamilies().toStringList(); // <-- 使用 fontFamilies().toStringList()
+        if (!families.isEmpty()) {
+            QSignalBlocker blocker(m_fontComboBox);
+            
+            // 原始字体名称
+            QString fontFamily = families.first();
+            
+            // 设置实际字体（用于内部存储）
+            m_fontComboBox->setCurrentText(fontFamily);
+            
+            // 设置显示用的省略文本
+            QString displayText = fontFamily;
+            if (displayText.length() > 15) {
+                displayText = displayText.left(12) + "...";
+            }
+            m_fontComboBox->lineEdit()->setText(displayText);
+        }
     }
     
     if (format.hasProperty(QTextFormat::FontPointSize)) {
@@ -2015,8 +2167,25 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     
     // 也更新浮动工具栏的下拉框（如果有）
     if (m_floatingToolBar->fontComboBox()) {
-        QSignalBlocker ftblocker1(m_floatingToolBar->fontComboBox());
-        m_floatingToolBar->fontComboBox()->setCurrentText(format.fontFamily());
+        if (format.hasProperty(QTextFormat::FontFamilies)) { // <-- 使用 FontFamilies
+             QStringList families = format.fontFamilies().toStringList(); // <-- 使用 fontFamilies().toStringList()
+             if (!families.isEmpty()) {
+                QSignalBlocker ftblocker1(m_floatingToolBar->fontComboBox());
+                
+                // 原始字体名称
+                QString fontFamily = families.first();
+                
+                // 设置实际字体（用于内部存储）
+                m_floatingToolBar->fontComboBox()->setCurrentText(fontFamily);
+                
+                // 设置显示用的省略文本
+                QString displayText = fontFamily;
+                if (displayText.length() > 15) {
+                    displayText = displayText.left(12) + "...";
+                }
+                m_floatingToolBar->fontComboBox()->lineEdit()->setText(displayText);
+             }
+        }
     }
     
     if (m_floatingToolBar->fontSizeComboBox()) {
@@ -2327,7 +2496,7 @@ void TextEditorManager::setDarkTheme(bool dark)
 void TextEditorManager::onFontFamilyChanged(const QString &family)
 {
     QTextCharFormat fmt;
-    fmt.setFontFamily(family);
+    fmt.setFontFamilies({family}); // <-- 使用 setFontFamilies
     mergeFormatOnWordOrSelection(fmt);
     documentModified();
 }
@@ -2409,4 +2578,87 @@ void TextEditorManager::applyHeading(int level)
     
     // 更新焦点回到编辑器
     m_textEdit->setFocus();
-} 
+}
+
+void TextEditorManager::setupFontComboBoxes()
+{
+    const int topToolbarMaxLength = 15;
+    const int topToolbarKeepLength = 12;
+    const int floatToolbarMaxLength = 10; // 悬浮工具栏使用更短的阈值
+    const int floatToolbarKeepLength = 7;  // 悬浮工具栏保留更少的字符
+    
+    // 主工具栏字体下拉框设置
+    m_fontComboBox->setEditable(true);
+    m_fontComboBox->lineEdit()->setReadOnly(true);
+    
+    // 处理字体名称显示
+    connect(m_fontComboBox, &QFontComboBox::currentTextChanged, this, [this, topToolbarMaxLength, topToolbarKeepLength, floatToolbarMaxLength, floatToolbarKeepLength](const QString &text) {
+        // 仅当不是从代码设置时触发，避免信号循环
+        if (m_fontComboBox->signalsBlocked())
+            return;
+            
+        // 应用字体，但不更改显示文本
+        QTextCharFormat fmt;
+        fmt.setFontFamilies({text});
+        mergeFormatOnWordOrSelection(fmt);
+        
+        // 设置主工具栏省略显示文本
+        setEllipsisDisplayText(m_fontComboBox, text, topToolbarMaxLength, topToolbarKeepLength);
+        
+        // 同步浮动工具栏的字体和显示文本
+        if (m_floatingToolBar && m_floatingToolBar->fontComboBox()) {
+             QSignalBlocker ftblocker(m_floatingToolBar->fontComboBox());
+             m_floatingToolBar->fontComboBox()->setCurrentText(text); // 设置完整字体名称
+             setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), text, floatToolbarMaxLength, floatToolbarKeepLength); // 设置省略显示
+        }
+    });
+    
+    // --- 处理初始状态 --- 
+    setEllipsisDisplayText(m_fontComboBox, m_fontComboBox->currentText(), topToolbarMaxLength, topToolbarKeepLength);
+    
+    // 浮动工具栏字体下拉框设置
+    if (m_floatingToolBar && m_floatingToolBar->fontComboBox()) {
+        m_floatingToolBar->fontComboBox()->setEditable(true);
+        m_floatingToolBar->fontComboBox()->lineEdit()->setReadOnly(true);
+        
+        // 处理浮动工具栏字体名称显示
+        connect(m_floatingToolBar->fontComboBox(), &QFontComboBox::currentTextChanged, this, [this, topToolbarMaxLength, topToolbarKeepLength, floatToolbarMaxLength, floatToolbarKeepLength](const QString &text) {
+            // 仅当不是从代码设置时触发，避免信号循环
+            if (m_floatingToolBar->fontComboBox()->signalsBlocked())
+                return;
+                
+            // 应用字体，但不更改显示文本
+            QTextCharFormat fmt;
+            fmt.setFontFamilies({text});
+            mergeFormatOnWordOrSelection(fmt);
+            
+            // 设置浮动工具栏省略显示文本
+            setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), text, floatToolbarMaxLength, floatToolbarKeepLength);
+            
+            // 同步主工具栏的字体和显示文本
+             QSignalBlocker mblocker(m_fontComboBox);
+             m_fontComboBox->setCurrentText(text); // 设置完整字体名称
+             setEllipsisDisplayText(m_fontComboBox, text, topToolbarMaxLength, topToolbarKeepLength); // 设置省略显示
+        });
+        
+        // --- 处理初始状态 --- 
+        setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), m_floatingToolBar->fontComboBox()->currentText(), floatToolbarMaxLength, floatToolbarKeepLength);
+    }
+}
+
+// 将 setEllipsisDisplayText 的实现放在这里
+void TextEditorManager::setEllipsisDisplayText(QComboBox *comboBox, const QString &fullText, int maxLength, int keepLength)
+{
+    if (!comboBox || !comboBox->lineEdit()) return;
+    
+    QString displayText = fullText;
+    if (displayText.length() > maxLength) {
+        displayText = displayText.left(keepLength) + "...";
+    }
+    
+    // 更新显示文本，但不触发信号
+    QSignalBlocker blocker(comboBox);
+    comboBox->lineEdit()->setText(displayText);
+}
+
+// 确保只有一个 updateToolBarForCurrentFormat 实现 

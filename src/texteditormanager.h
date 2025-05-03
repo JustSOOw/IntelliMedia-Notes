@@ -252,6 +252,7 @@ private slots:
     void handleTextEditClicked(const QPoint &pos);
     void documentModified();
     void updateToolBarForCurrentFormat();
+    void setupFontComboBoxes();
     
     // 工具栏按钮槽函数
     void onBoldTriggered();
@@ -318,6 +319,7 @@ private:
     QIcon createColorIcon(const QString &path, const QColor &color, const QColor &disabledColor);
     QTextCharFormat currentCharFormat() const;
     void mergeFormatOnWordOrSelection(const QTextCharFormat &format);
+    void setEllipsisDisplayText(QComboBox *comboBox, const QString &fullText, int maxLength, int keepLength);
 };
 
 #endif // TEXTEDITORMANAGER_H 

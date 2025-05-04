@@ -111,3 +111,169 @@ QToolBar QToolButton:pressed {
 QToolBar QToolButton:disabled {
     color: #707070;
 }
+
+/* 滚动条样式 - 暗色主题 */
+QScrollBar:vertical {
+    background-color: #2d2d2d;
+    width: 12px;
+    margin: 0px;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #505050;
+    min-height: 20px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #606060;
+}
+
+QScrollBar::handle:vertical:pressed {
+    background-color: #707070;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: none;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background-color: #2d2d2d;
+}
+
+QScrollBar:horizontal {
+    background-color: #2d2d2d;
+    height: 12px;
+    margin: 0px;
+    border: none;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #505050;
+    min-width: 20px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #606060;
+}
+
+QScrollBar::handle:horizontal:pressed {
+    background-color: #707070;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+    background: none;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background-color: #2d2d2d;
+}
+
+/* ComboBox 样式 - 暗色主题 */
+QComboBox {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 1px 1px 1px 3px;
+    min-height: 20px;
+}
+
+QComboBox:hover {
+    border: 1px solid #666666;
+    background-color: #404040;
+}
+
+QComboBox:focus {
+    border: 1px solid #777777;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left-width: 1px;
+    border-left-color: #555555;
+    border-left-style: solid;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: #404040;
+}
+
+QComboBox::down-arrow {
+    image: url(:/icons/editor/dropdown.svg);
+    width: 12px;
+    height: 12px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    selection-background-color: #505050;
+    selection-color: #ffffff;
+    outline: none;
+}
+
+/* QFontComboBox 样式 - 暗色主题 */
+QFontComboBox {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 1px 1px 1px 3px;
+    min-height: 20px;
+}
+
+QFontComboBox:hover {
+    border: 1px solid #666666;
+    background-color: #404040;
+}
+
+QFontComboBox:focus {
+    border: 1px solid #777777;
+}
+
+QFontComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left-width: 1px;
+    border-left-color: #555555;
+    border-left-style: solid;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: #404040;
+}
+
+QFontComboBox::down-arrow {
+    image: url(:/icons/editor/dropdown.svg);
+    width: 12px;
+    height: 12px;
+}
+
+QFontComboBox QAbstractItemView {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    selection-background-color: #505050;
+    selection-color: #ffffff;
+    outline: none;
+}
+
+/* 分隔线样式 - 暗色主题 */
+QFrame[frameShape="5"], QFrame[frameShape="VLine"] {
+    color: #4a4a4a;
+    width: 1px;
+}
+
+QFrame[frameShape="4"], QFrame[frameShape="HLine"] {
+    color: #4a4a4a;
+    height: 1px;
+}

@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-29 22:52:25
+ * @LastEditTime: 2025-05-04 15:29:59
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -183,9 +183,28 @@ void MainWindow::loadAndApplyStyleSheet(const QString &sheetName)
     QFile file(sheetName);
     if (file.open(QFile::ReadOnly | QFile::Text)) {
         QString styleSheet = QLatin1String(file.readAll());
-        // **重要：设置qApp的样式表以确保全局应用**
-        qApp->setStyleSheet(styleSheet); 
+        
+        // 先加载全局样式表
+        QFile globalStyleFile(":/styles/style.qss");
+        QString globalStyle;
+        if (globalStyleFile.open(QFile::ReadOnly | QFile::Text)) {
+            globalStyle = QLatin1String(globalStyleFile.readAll());
+            globalStyleFile.close();
+        } else {
+            qWarning() << "无法打开全局样式表文件";
+        }
+        
+        // 合并全局样式和主题样式
+        qApp->setStyleSheet(globalStyle + styleSheet); 
         file.close();
+        
+        // 设置主窗口的属性，用于在QSS中区分暗色主题
+        if (sheetName.contains("dark_theme")) {
+            setProperty("dark", true);
+        } else {
+            setProperty("dark", false);
+        }
+        
         qDebug() << "应用了全局样式表:" << sheetName;
     } else {
         qWarning() << "无法打开样式表文件:" << sheetName;

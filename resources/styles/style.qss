@@ -1,0 +1,246 @@
+/* 全局样式 - 适用于所有主题 */
+
+/* 按钮尺寸控制 - 将工具按钮和下拉框分开设置 */
+FloatingToolBar QToolButton,
+QToolBar QToolButton {
+    border: none;
+    padding: 2px;
+    border-radius: 4px;
+    background-color: transparent;
+    min-width: 24px;
+    max-width: 24px;
+    min-height: 24px;
+    max-height: 24px;
+}
+
+/* 工具栏和工具栏容器部件样式 */
+FloatingToolBar QWidget, 
+QToolBar QWidget {
+    background-color: transparent;
+}
+
+/* 浮动工具栏按钮悬停/选中/按下状态 - 浅色主题 */
+QMainWindow[dark="false"] FloatingToolBar QToolButton:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+QMainWindow[dark="false"] FloatingToolBar QToolButton:checked {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+QMainWindow[dark="false"] FloatingToolBar QToolButton:pressed {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* 浮动工具栏按钮悬停/选中/按下状态 - 暗色主题 */
+QMainWindow[dark="true"] FloatingToolBar QToolButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+QMainWindow[dark="true"] FloatingToolBar QToolButton:checked {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+QMainWindow[dark="true"] FloatingToolBar QToolButton:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 工具栏分隔线样式 - 浅色主题 */
+QMainWindow[dark="false"] FloatingToolBar QFrame[frameShape="5"],
+QMainWindow[dark="false"] FloatingToolBar QFrame[frameShape="VLine"] {
+    color: #d0d0d0;
+    background-color: #d0d0d0;
+    width: 1px;
+}
+
+/* 工具栏分隔线样式 - 暗色主题 */
+QMainWindow[dark="true"] FloatingToolBar QFrame[frameShape="5"],
+QMainWindow[dark="true"] FloatingToolBar QFrame[frameShape="VLine"] {
+    color: #4a4a4a;
+    background-color: #4a4a4a;
+    width: 1px;
+}
+
+/* 工具栏和下拉框的紧凑布局 */
+FloatingToolBar, QToolBar {
+    spacing: 1px;
+}
+
+/* 修复顶部工具栏中嵌套的部件容器 */
+QToolBar QWidget {
+    margin: 0;
+    padding: 0;
+}
+
+QHBoxLayout {
+    margin: 0;
+    padding: 0;
+    spacing: 1px;
+}
+
+/* 仅限制特定ID的字体下拉框 */
+QFontComboBox#floatingFontComboBox {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    height: 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
+
+/* 顶部工具栏字体下拉框 - 固定宽度120px */
+QFontComboBox#topFontComboBox {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+    height: 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
+
+/* 专门为字号下拉框设置更窄的宽度 */
+QComboBox#floatingFontSizeComboBox,
+QComboBox#topFontSizeComboBox {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+    height: 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
+
+/* 专门为标题下拉框设置宽度 */
+QComboBox#floatingHeadingComboBox,
+QComboBox#topHeadingComboBox {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    height: 22px;
+    min-height: 22px;
+    max-height: 22px;
+}
+
+/* 断开下拉列表和下拉按钮的关联，防止列表宽度影响按钮宽度 */
+QFontComboBox::drop-down, 
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 16px;
+    border: none;
+}
+
+/* 控制字体下拉框中显示的文本，避免过长的文本导致框体拉长 */
+QFontComboBox#floatingFontComboBox QLineEdit {
+    background-color: transparent;
+    border: none;
+    padding: 0px 2px;
+    max-width: 60px;
+}
+
+QFontComboBox#topFontComboBox QLineEdit {
+    background-color: transparent;
+    border: none;
+    padding: 0px 2px;
+    max-width: 85px;
+}
+
+/* 控制字号和标题下拉框中显示的文本 */
+QComboBox#floatingFontSizeComboBox QLineEdit,
+QComboBox#topFontSizeComboBox QLineEdit,
+QComboBox#floatingHeadingComboBox QLineEdit,
+QComboBox#topHeadingComboBox QLineEdit {
+    background-color: transparent;
+    border: none;
+    padding: 0px 2px;
+}
+
+/* 下拉菜单弹出样式设置，彻底断开与按钮宽度的连接 */
+QComboBox QAbstractItemView,
+QFontComboBox QAbstractItemView {
+    border: 1px solid #cccccc;
+    border-radius: 2px;
+}
+
+/* 下拉菜单宽度控制 - 完全独立设置，不受按钮宽度影响 */
+/* 悬浮工具栏字体下拉列表宽度 */
+QFontComboBox#floatingFontComboBox QAbstractItemView {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+}
+
+/* 顶部工具栏字体下拉列表宽度 */
+QFontComboBox#topFontComboBox QAbstractItemView {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+}
+
+/* 强制设置QListView样式，解决下拉菜单宽度问题 */
+QFontComboBox#topFontComboBox QListView,
+QFontComboBox#floatingFontComboBox QListView {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+}
+
+/* 专门处理浮动工具栏字体下拉框的滚动条和弹出框宽度 */
+QFontComboBox#floatingFontComboBox::popup {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+}
+
+/* 通过QComboBox的popup属性设置宽度，更彻底分离下拉框与按钮的关系 */
+QFontComboBox#topFontComboBox::item,
+QFontComboBox#floatingFontComboBox::item {
+    background-color: transparent;
+    height: 22px;
+    padding: 1px 6px;
+    min-width: 250px !important;
+}
+
+QFontComboBox#topFontComboBox QScrollBar,
+QFontComboBox#floatingFontComboBox QScrollBar {
+    width: 8px;
+}
+
+/* 字号下拉列表宽度 */
+QComboBox#floatingFontSizeComboBox QAbstractItemView,
+QComboBox#topFontSizeComboBox QAbstractItemView {
+    min-width: 60px;
+    max-width: 80px;
+}
+
+/* 标题下拉列表宽度 */
+QComboBox#floatingHeadingComboBox QAbstractItemView,
+QComboBox#topHeadingComboBox QAbstractItemView {
+    min-width: 80px;
+    max-width: 200px;
+}
+
+/* 字号和标题下拉框中的文本居中 */
+QComboBox#floatingFontSizeComboBox,
+QComboBox#topFontSizeComboBox {
+    qproperty-alignment: AlignCenter;
+}
+
+QComboBox#floatingHeadingComboBox,
+QComboBox#topHeadingComboBox {
+    qproperty-alignment: AlignCenter;
+}
+
+/* 让下拉箭头使用系统主题色并调整尺寸 */
+QComboBox::down-arrow,
+QFontComboBox::down-arrow {
+    image: url(:/icons/editor/dropdown.svg);
+    width: 10px;
+    height: 10px;
+}
+
+/* 顶部工具栏整体高度控制 */
+QToolBar {
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+}

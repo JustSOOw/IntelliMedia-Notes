@@ -55,6 +55,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QDrag>
+#include "fixedwidthfontcombo.h"
 
 class NoteTextEdit;
 class FloatingToolBar;
@@ -153,7 +154,7 @@ public:
     QToolButton* alignCenterButton() const { return m_alignCenterButton; }
     QToolButton* alignRightButton() const { return m_alignRightButton; }
     QToolButton* alignJustifyButton() const { return m_alignJustifyButton; }
-    QComboBox* fontComboBox() const { return m_fontComboBox; }
+    FixedWidthFontCombo* fontComboBox() const { return m_fontComboBox; }
     QComboBox* fontSizeComboBox() const { return m_fontSizeComboBox; }
     QComboBox* headingComboBox() const { return m_headingComboBox; }
     
@@ -185,7 +186,7 @@ private:
     QToolButton *m_alignJustifyButton;
 
     // 新增：字体、字号和标题选择控件
-    QComboBox *m_fontComboBox;
+    FixedWidthFontCombo *m_fontComboBox;
     QComboBox *m_fontSizeComboBox;
     QComboBox *m_headingComboBox;
 
@@ -282,7 +283,7 @@ private slots:
 private:
     // UI组件
     QWidget *m_editorContainer;
-    NoteTextEdit *m_textEdit;  // 直接使用m_textEdit
+    NoteTextEdit *m_textEdit;
     FloatingToolBar *m_floatingToolBar;
     QToolBar *m_topToolBar;
     QTimer *m_updateToolBarTimer;
@@ -298,7 +299,7 @@ private:
     
     // 新增：字体、字号和标题选择操作
     QAction *m_fontAction;
-    QFontComboBox *m_fontComboBox;
+    FixedWidthFontCombo *m_fontComboBox;
     QComboBox *m_fontSizeComboBox;
     QComboBox *m_headingComboBox;
     

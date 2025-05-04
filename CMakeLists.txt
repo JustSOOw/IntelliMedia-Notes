@@ -29,6 +29,7 @@ set(PROJECT_SOURCES
         src/searchmanager.h
         src/texteditormanager.cpp
         src/texteditormanager.h
+        src/fixedwidthfontcombo.h
         forms/mainwindow.ui   # UI file is now in forms/
 )
 

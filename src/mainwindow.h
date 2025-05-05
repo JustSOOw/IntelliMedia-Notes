@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-19 23:00:48
+ * @LastEditTime: 2025-05-13 11:45:00
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.h
  * @Description: 
  * 
@@ -43,6 +43,8 @@ class QMouseEvent; // 事件处理的前向声明
 class SidebarManager;
 class SearchManager;
 class TextEditorManager; // 添加文本编辑器管理器前向声明
+class AiAssistantDialog; // 添加AI助手对话框前向声明
+class IAiService; // 添加AI服务接口前向声明
 
 class MainWindow : public QMainWindow
 {
@@ -63,6 +65,12 @@ public:
         BottomLeft = Bottom | Left,
         BottomRight = Bottom | Right
     };
+    
+    // 设置AI服务
+    void setAiService(IAiService *service);
+    
+    // 获取AI服务
+    IAiService* getAiService() const { return m_aiService; }
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -84,6 +92,10 @@ private slots:
     void openSearchDialog();      // 打开搜索对话框
     void onSearchClosed();        // 处理搜索对话框关闭事件
     void handleContentModified(); // 处理编辑器内容修改
+    
+    // AI相关槽函数
+    void showAiAssistant();      // 显示AI助手对话框
+    void insertAiContent(const QString &content); // 插入AI生成的内容到编辑器
 
 private:
     Ui::MainWindow *ui;
@@ -136,6 +148,10 @@ private:
     // 文本编辑器相关
     TextEditorManager *m_textEditorManager = nullptr; // 文本编辑器管理器
     
+    // AI相关
+    AiAssistantDialog *m_aiAssistantDialog = nullptr; // AI助手对话框
+    IAiService *m_aiService = nullptr;  // AI服务接口
+    
     // 初始化侧边栏
     void setupSidebar();
     
@@ -144,6 +160,9 @@ private:
     
     // 初始化文本编辑器
     void setupTextEditor();
+    
+    // 初始化AI助手
+    void setupAiAssistant();
     
     // 保存当前笔记
     void saveCurrentNote();

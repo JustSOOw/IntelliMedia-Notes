@@ -2,13 +2,14 @@
  * @Author: cursor AI
  * @Date: 2025-05-12 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-05 17:17:35
+ * @LastEditTime: 2025-05-05 22:43:07
  * @FilePath: \IntelliMedia_Notes\src\aiassistantdialog.cpp
  * @Description: AI助手对话框实现
  * 
  * Copyright (c) 2025, All Rights Reserved. 
  */
 #include "aiassistantdialog.h"
+#include "IAiService.h"
 #include <QShowEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -22,6 +23,7 @@
 #include <QJsonArray>
 #include <QTimer>
 #include <QFile>
+#include <QMessageBox>
 
 // 构造函数
 AiAssistantDialog::AiAssistantDialog(QWidget *parent)
@@ -42,6 +44,7 @@ AiAssistantDialog::AiAssistantDialog(QWidget *parent)
     , m_dragging(false)
     , m_currentFunction("继续写作") // 默认功能
     , m_currentTone("专业") // 默认语气
+    , m_aiService(nullptr) // 初始无AI服务
 {
     // 设置窗口属性
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
@@ -605,6 +608,72 @@ void AiAssistantDialog::onToneSelected(QAction* action)
     updateFunctionButtonText();
 }
 
+// 显示加载状态
+void AiAssistantDialog::showLoadingState()
+{
+    // 禁用输入和相关按钮
+    m_inputLineEdit->setEnabled(false);
+    m_sendButton->setEnabled(false);
+    m_functionButton->setEnabled(false);
+    m_responseTextEdit->setReadOnly(true);
+    
+    // 创建并显示加载提示
+    m_responseTextEdit->clear();
+    m_responseTextEdit->setAlignment(Qt::AlignCenter);
+    
+    // 添加加载动画文本
+    QString loadingText = "<div style='text-align:center; margin-top:30px;'>";
+    
+    // 添加加载图标 (使用Unicode字符作为简单动画)
+    loadingText += "<div style='font-size:24px; margin-bottom:15px;'>⏳</div>";
+    
+    // 主要文本
+    loadingText += "<div style='font-size:16px; margin-bottom:10px;'><b>正在与DeepSeek AI交流...</b></div>";
+    
+    // 添加提示
+    loadingText += QString("<div style='font-size:12px; color:%1; margin-top:20px;'>")
+        .arg(m_isDarkTheme ? "#aaa" : "#666");
+    loadingText += "请耐心等待，这可能需要几秒钟时间";
+    loadingText += "</div>";
+    
+    // 添加DeepSeek API可能不稳定的提示
+    loadingText += QString("<div style='font-size:11px; color:%1; margin-top:10px; font-style:italic;'>")
+        .arg(m_isDarkTheme ? "#999" : "#999");
+    loadingText += "提示: 如果长时间没有响应，可能是DeepSeek API暂时不可用<br>";
+    loadingText += "请尝试稍后再试";
+    loadingText += "</div>";
+    
+    loadingText += "</div>";
+    
+    m_responseTextEdit->setHtml(loadingText);
+    
+    // 添加处理中...动画效果
+    QTimer *animationTimer = new QTimer(this);
+    QStringList dots = {" ", ".", "..", "..."};
+    int dotIndex = 0;
+    
+    connect(animationTimer, &QTimer::timeout, this, [this, dots, animationTimer, &dotIndex]() {
+        // 更新标题添加动画效果
+        m_titleLabel->setText("AI助手 - 处理中" + dots.at(static_cast<int>(dotIndex)));
+        dotIndex = (dotIndex + 1) % static_cast<int>(dots.size());
+    });
+    
+    // 350毫秒更新一次动画
+    animationTimer->start(350);
+    
+    // 在请求完成或超时时停止动画
+    QTimer::singleShot(30000, this, [animationTimer]() {
+        // 30秒后如果仍未收到响应，停止动画
+        if (animationTimer->isActive()) {
+            animationTimer->stop();
+            animationTimer->deleteLater();
+        }
+    });
+    
+    // 设置对话框标题
+    m_titleLabel->setText("AI助手 - 处理中...");
+}
+
 // 发送消息到AI
 void AiAssistantDialog::sendMessage()
 {
@@ -617,118 +686,43 @@ void AiAssistantDialog::sendMessage()
     // 清空输入框
     m_inputLineEdit->clear();
     
-    // 显示处理中状态
-    m_responseTextEdit->setText("正在思考中...");
-    m_responseTextEdit->repaint(); // 强制立即重绘
+    // 显示加载状态
+    showLoadingState();
     
-    // 禁用按钮，避免重复发送
-    m_sendButton->setEnabled(false);
-    m_functionButton->setEnabled(false);
-    
-    // 使用定时器模拟AI响应延迟
-    QTimer::singleShot(800, this, &AiAssistantDialog::processAiResponse);
-}
-
-// 处理AI响应（模拟）
-void AiAssistantDialog::processAiResponse()
-{
-    // 获取用户输入和选中文本
-    QString userInput = m_inputLineEdit->text().trimmed();
-    
-    // 模拟AI响应
-    QString aiResponse = simulateAiResponse(userInput, m_currentFunction, m_currentTone);
-    
-    // 显示AI响应
-    m_responseTextEdit->setText(aiResponse);
-    
-    // 保存生成的内容
-    m_generatedContent = aiResponse;
-    
-    // 启用按钮
-    m_sendButton->setEnabled(true);
-    m_functionButton->setEnabled(true);
-    m_insertButton->setEnabled(true);
-    m_retryButton->setEnabled(true);
-}
-
-// 模拟AI响应（临时实现）
-QString AiAssistantDialog::simulateAiResponse(const QString &userInput, const QString &function, const QString &tone)
-{
-    // 获取功能提示词
-    QString functionPrompt;
-    QJsonArray functions = m_aiConfig["functions"].toArray();
-    for (const QJsonValue &value : functions) {
-        QJsonObject functionObj = value.toObject();
-        if (functionObj["name"].toString() == function) {
-            functionPrompt = functionObj["prompt"].toString();
-            break;
-        }
+    // 检查AI服务是否可用
+    if (!m_aiService) {
+        handleAiError("AI服务", "AI服务未初始化");
+        return;
     }
     
-    // 获取语气提示词
-    QString tonePrompt;
-    QJsonArray tones = m_aiConfig["tones"].toArray();
-    for (const QJsonValue &value : tones) {
-        QJsonObject toneObj = value.toObject();
-        if (toneObj["name"].toString() == tone) {
-            tonePrompt = toneObj["prompt"].toString();
-            break;
-        }
-    }
+    // 处理AI请求
+    processAiRequest();
+}
+
+// 处理AI请求
+void AiAssistantDialog::processAiRequest()
+{
+    // 获取用户输入或选中文本
+    QString text = !m_selectedText.isEmpty() ? m_selectedText : m_inputLineEdit->text().trimmed();
     
-    // 构建模拟响应
-    QString response;
-    
-    // 根据功能类型生成不同的示例响应
-    if (function == "继续写作") {
-        if (!m_selectedText.isEmpty()) {
-            response = m_selectedText + "\n\n这是AI生成的继续写作内容。根据前文的上下文，我们可以进一步展开论述。"
-                      "在进行文章创作时，保持连贯性和逻辑性至关重要。本段是示例文本，"
-                      "在实际接入AI服务后，将由真实的AI模型根据选中内容生成更加连贯和相关的文本。";
-        } else if (!userInput.isEmpty()) {
-            response = "基于您的输入，AI继续写作：\n\n" + userInput + "\n\n"
-                      "这是基于您输入的AI生成内容。在实际接入AI服务后，"
-                      "将由真实的AI模型根据您的输入生成更加连贯和相关的文本。";
-        } else {
-            response = "请提供一些文本内容或选择编辑器中的文本，以便我继续写作。";
-        }
-    } else if (function == "内容润色") {
-        if (!m_selectedText.isEmpty()) {
-            response = "原文：\n\n" + m_selectedText.left(50) + "...\n\n"
-                      "润色后：\n\n这是AI润色后的示例内容。润色后的文本将更加流畅、表达更加准确，"
-                      "词汇更加丰富多样。在实际接入AI服务后，会保留原文的核心意思，"
-                      "同时提升文本的表达质量和专业程度。";
-        } else {
-            response = "请在编辑器中选择需要润色的文本内容。";
-        }
-    } else if (function == "语法检查") {
-        if (!m_selectedText.isEmpty()) {
-            response = "原文：\n\n" + m_selectedText.left(50) + "...\n\n"
-                      "语法检查结果：\n\n这是AI语法检查的示例结果。在实际接入AI服务后，"
-                      "将会指出文本中的语法错误、拼写错误、标点使用不当等问题，并提供修改建议。";
-        } else {
-            response = "请在编辑器中选择需要进行语法检查的文本内容。";
-        }
-    } else if (function == "重新组织") {
-        if (!m_selectedText.isEmpty()) {
-            response = "原文结构：\n\n" + m_selectedText.left(50) + "...\n\n"
-                      "重新组织后：\n\n这是AI重新组织后的示例内容。重新组织后的文本将具有更清晰的结构，"
-                      "段落之间的逻辑关系更加明确，整体内容更加易于理解。在实际接入AI服务后，"
-                      "将保留原文的所有信息点，但以更优的结构呈现。";
-        } else {
-            response = "请在编辑器中选择需要重新组织的文本内容。";
-        }
+    // 根据当前功能调用不同的AI服务方法
+    if (m_currentFunction == "继续写作") {
+        m_aiService->generateGenericText("请继续完成下面的文本，保持风格一致：\n\n" + text);
+    } else if (m_currentFunction == "内容润色") {
+        m_aiService->rewriteText(text);
+    } else if (m_currentFunction == "语法纠错") {
+        m_aiService->fixText(text);
+    } else if (m_currentFunction == "内容精简") {
+        m_aiService->generateGenericText("请将以下文本精简，保留核心信息但使表达更加简洁：\n\n" + text);
+    } else if (m_currentFunction == "内容扩写") {
+        m_aiService->generateGenericText("请扩展以下内容，增加细节和相关信息，使文本更加丰富：\n\n" + text);
+    } else if (m_currentFunction == "语气转变") {
+        QString tonePrompt = "请将以下文本转变为" + m_currentTone + "的语气，但保持原意不变：\n\n";
+        m_aiService->generateGenericText(tonePrompt + text);
     } else {
-        response = "暂不支持此功能，请选择其他功能或等待后续更新。";
+        // 默认使用通用文本生成
+        m_aiService->generateGenericText(text);
     }
-    
-    // 添加语气信息（在实际AI接入后，这将影响生成的内容风格）
-    if (!tonePrompt.isEmpty()) {
-        response += "\n\n注：该内容使用了"" + tone + ""语气生成。在实际接入AI服务后，"
-                   "文本风格将根据选择的语气有所不同。";
-    }
-    
-    return response;
 }
 
 // 插入按钮点击处理
@@ -746,8 +740,17 @@ void AiAssistantDialog::onInsertButtonClicked()
 // 重试按钮点击处理
 void AiAssistantDialog::onRetryButtonClicked()
 {
-    // 重新发送消息，生成新的内容
-    sendMessage();
+    // 显示加载状态
+    showLoadingState();
+    
+    // 检查AI服务是否可用
+    if (!m_aiService) {
+        handleAiError("AI服务", "AI服务未初始化");
+        return;
+    }
+    
+    // 重新处理AI请求
+    processAiRequest();
 }
 
 // 取消按钮点击处理
@@ -755,4 +758,230 @@ void AiAssistantDialog::onCancelButtonClicked()
 {
     // 关闭对话框
     reject();
+}
+
+// 设置AI服务
+void AiAssistantDialog::setAiService(IAiService *service)
+{
+    // 如果已有服务，先断开信号连接
+    if (m_aiService) {
+        disconnect(m_aiService, nullptr, this, nullptr);
+    }
+    
+    m_aiService = service;
+    
+    if (m_aiService) {
+        // 连接AI服务信号
+        connectAiServiceSignals();
+    }
+}
+
+// 连接AI服务信号
+void AiAssistantDialog::connectAiServiceSignals()
+{
+    if (!m_aiService) {
+        return;
+    }
+    
+    // 连接各种完成信号
+    connect(m_aiService, &IAiService::rewriteFinished, 
+            this, &AiAssistantDialog::handleRewriteFinished);
+    
+    connect(m_aiService, &IAiService::summaryFinished, 
+            this, &AiAssistantDialog::handleSummaryFinished);
+    
+    connect(m_aiService, &IAiService::fixFinished, 
+            this, &AiAssistantDialog::handleFixFinished);
+    
+    connect(m_aiService, &IAiService::genericTextFinished, 
+            this, &AiAssistantDialog::handleGenericTextFinished);
+    
+    // 连接错误信号
+    connect(m_aiService, &IAiService::aiError, 
+            this, &AiAssistantDialog::handleAiError);
+}
+
+// 处理润色完成
+void AiAssistantDialog::handleRewriteFinished(const QString& originalText, const QString& rewrittenText)
+{
+    // 显示润色结果
+    m_responseTextEdit->clear();
+    m_responseTextEdit->append("<b>原文：</b>");
+    m_responseTextEdit->append(originalText);
+    m_responseTextEdit->append("\n<b>润色后：</b>");
+    m_responseTextEdit->append(rewrittenText);
+    
+    // 保存生成的内容
+    m_generatedContent = rewrittenText;
+    
+    // 启用按钮
+    m_sendButton->setEnabled(true);
+    m_functionButton->setEnabled(true);
+    m_insertButton->setEnabled(true);
+    m_retryButton->setEnabled(true);
+}
+
+// 处理总结完成
+void AiAssistantDialog::handleSummaryFinished(const QString& originalText, const QString& summaryText)
+{
+    // 显示总结结果
+    m_responseTextEdit->clear();
+    m_responseTextEdit->append("<b>原文：</b>");
+    m_responseTextEdit->append(originalText);
+    m_responseTextEdit->append("\n<b>总结：</b>");
+    m_responseTextEdit->append(summaryText);
+    
+    // 保存生成的内容
+    m_generatedContent = summaryText;
+    
+    // 启用按钮
+    m_sendButton->setEnabled(true);
+    m_functionButton->setEnabled(true);
+    m_insertButton->setEnabled(true);
+    m_retryButton->setEnabled(true);
+}
+
+// 处理修复完成
+void AiAssistantDialog::handleFixFinished(const QString& originalText, const QString& fixedText)
+{
+    // 显示修复结果
+    m_responseTextEdit->clear();
+    m_responseTextEdit->append("<b>原文：</b>");
+    m_responseTextEdit->append(originalText);
+    m_responseTextEdit->append("\n<b>修复后：</b>");
+    m_responseTextEdit->append(fixedText);
+    
+    // 保存生成的内容
+    m_generatedContent = fixedText;
+    
+    // 启用按钮
+    m_sendButton->setEnabled(true);
+    m_functionButton->setEnabled(true);
+    m_insertButton->setEnabled(true);
+    m_retryButton->setEnabled(true);
+}
+
+// 处理通用文本生成完成
+void AiAssistantDialog::handleGenericTextFinished(const QString& prompt, const QString& generatedText)
+{
+    // 显示生成结果
+    m_responseTextEdit->clear();
+    
+    // 根据当前功能调整显示方式
+    if (m_currentFunction == "继续写作") {
+        m_responseTextEdit->setText(generatedText);
+    } else if (m_currentFunction == "内容扩写") {
+        m_responseTextEdit->append("<b>原文：</b>");
+        m_responseTextEdit->append(m_selectedText);
+        m_responseTextEdit->append("\n<b>扩写后：</b>");
+        m_responseTextEdit->append(generatedText);
+    } else if (m_currentFunction == "内容精简") {
+        m_responseTextEdit->append("<b>原文：</b>");
+        m_responseTextEdit->append(m_selectedText);
+        m_responseTextEdit->append("\n<b>精简后：</b>");
+        m_responseTextEdit->append(generatedText);
+    } else if (m_currentFunction == "语气转变") {
+        m_responseTextEdit->append("<b>原文：</b>");
+        m_responseTextEdit->append(m_selectedText);
+        m_responseTextEdit->append(QString("\n<b>使用%1语气后：</b>").arg(m_currentTone));
+        m_responseTextEdit->append(generatedText);
+    } else {
+        m_responseTextEdit->setText(generatedText);
+    }
+    
+    // 保存生成的内容
+    m_generatedContent = generatedText;
+    
+    // 启用按钮
+    m_sendButton->setEnabled(true);
+    m_functionButton->setEnabled(true);
+    m_insertButton->setEnabled(true);
+    m_retryButton->setEnabled(true);
+}
+
+// AI错误处理
+void AiAssistantDialog::handleAiError(const QString& operationDescription, const QString& errorMessage)
+{
+    qWarning() << "AI错误:" << operationDescription << "-" << errorMessage;
+    
+    // 隐藏加载状态
+    m_responseTextEdit->setReadOnly(false);
+    
+    // 构建更友好的错误消息
+    QString friendlyError;
+    QString detailedError;
+    
+    // 根据错误消息提供具体建议
+    if (errorMessage.contains("API密钥无效") || errorMessage.contains("认证失败")) {
+        friendlyError = "API密钥问题";
+        detailedError = "您的DeepSeek API密钥可能无效或已过期。请检查设置中的API密钥配置。";
+    } 
+    else if (errorMessage.contains("超过API速率限制") || errorMessage.contains("超过API配额")) {
+        friendlyError = "API使用限制";
+        detailedError = "您已达到DeepSeek API的使用限制。请稍后再试或检查您的账户状态。";
+    }
+    else if (errorMessage.contains("请求超时") || errorMessage.contains("连接被拒绝") || 
+             errorMessage.contains("网络") || errorMessage.contains("找不到服务器")) {
+        friendlyError = "网络连接问题";
+        detailedError = "无法连接到DeepSeek服务器。请检查您的网络连接或稍后再试。";
+    }
+    else if (errorMessage.contains("服务器内部错误") || errorMessage.contains("繁忙")) {
+        friendlyError = "DeepSeek服务器问题";
+        detailedError = "DeepSeek服务器当前可能存在问题。根据最近的报告，DeepSeek API可能正在经历服务中断。请稍后再试。";
+    }
+    else if (errorMessage.contains("服务未初始化")) {
+        friendlyError = "AI服务未初始化";
+        detailedError = "AI服务未能正确初始化。这可能是因为API密钥问题或DeepSeek服务当前不可用。";
+    }
+    else {
+        friendlyError = "AI服务错误";
+        detailedError = errorMessage;
+    }
+    
+    // 记录错误
+    qWarning() << "友好错误消息:" << friendlyError;
+    qWarning() << "详细错误消息:" << detailedError;
+    
+    // 显示错误信息对话框
+    QMessageBox errorBox(QMessageBox::Warning, 
+                         "在" + operationDescription + "操作中发生错误", 
+                         friendlyError + "\n\n" + detailedError,
+                         QMessageBox::Ok, 
+                         this);
+    errorBox.setDetailedText("原始错误: " + errorMessage + 
+                             "\n\n提示: DeepSeek API近期可能存在稳定性问题，建议：\n" +
+                             "1. 检查API密钥是否正确\n" +
+                             "2. 确认网络连接正常\n" +
+                             "3. 稍后再试\n" +
+                             "4. 尝试使用其他AI服务提供商");
+    
+    // 设置对话框样式
+    errorBox.setWindowFlags(errorBox.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    if (m_isDarkTheme) {
+        errorBox.setStyleSheet("QMessageBox { background-color: #333; color: #fff; }"
+                               "QLabel { color: #fff; }"
+                               "QPushButton { background-color: #555; color: #fff; padding: 6px 12px; border-radius: 4px; }"
+                               "QPushButton:hover { background-color: #666; }"
+                               "QTextEdit { background-color: #444; color: #ddd; border: 1px solid #555; }");
+    }
+    
+    errorBox.exec();
+    
+    // 允许重试
+    m_retryButton->setEnabled(true);
+    
+    // 在编辑框中显示错误
+    m_responseTextEdit->clear();
+    m_responseTextEdit->setTextColor(m_isDarkTheme ? QColor(255, 100, 100) : QColor(200, 0, 0));
+    m_responseTextEdit->append("错误: " + friendlyError);
+    m_responseTextEdit->append("\n" + detailedError);
+    
+    // 建议用户检查DeepSeek状态
+    m_responseTextEdit->append("\n建议：");
+    m_responseTextEdit->append("• 检查API密钥是否正确");
+    m_responseTextEdit->append("• 确认网络连接正常");
+    m_responseTextEdit->append("• 稍后再试");
+    
+    // 恢复默认文本颜色
+    m_responseTextEdit->setTextColor(getTextColor());
 } 

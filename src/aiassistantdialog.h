@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2025-05-12 10:00:00
  * @LastEditors: cursor AI
- * @LastEditTime: 2025-05-12 10:00:00
+ * @LastEditTime: 2025-05-13 10:45:00
  * @FilePath: \IntelliMedia_Notes\src\aiassistantdialog.h
  * @Description: AI助手对话框，用于处理文本编辑时的AI交互
  * 
@@ -29,6 +29,9 @@
 #include <QAction>
 #include <QToolButton>
 
+// 前向声明
+class IAiService;
+
 // AI助手对话框，用于实现与AI的交互
 class AiAssistantDialog : public QDialog
 {
@@ -46,6 +49,9 @@ public:
     
     // 设置对话框主题（深色/浅色）
     void setDarkTheme(bool dark);
+    
+    // 设置AI服务
+    void setAiService(IAiService *service);
 
 signals:
     // 插入AI生成的内容到文档信号
@@ -77,8 +83,12 @@ private slots:
     void onRetryButtonClicked();
     void onCancelButtonClicked();
     
-    // 处理AI响应（模拟阶段）
-    void processAiResponse();
+    // AI服务响应处理
+    void handleRewriteFinished(const QString& originalText, const QString& rewrittenText);
+    void handleSummaryFinished(const QString& originalText, const QString& summaryText);
+    void handleFixFinished(const QString& originalText, const QString& fixedText);
+    void handleGenericTextFinished(const QString& prompt, const QString& generatedText);
+    void handleAiError(const QString& operationDescription, const QString& errorMessage);
 
 private:
     // UI组件
@@ -114,6 +124,7 @@ private:
     bool m_isDarkTheme;              // 当前主题状态
     QString m_currentFunction;       // 当前选中的功能
     QString m_currentTone;           // 当前选中的语气
+    IAiService *m_aiService;         // AI服务接口
     
     // 拖拽相关
     bool m_dragging;                 // 是否正在拖拽
@@ -136,8 +147,14 @@ private:
     QColor getInputBackgroundColor() const;
     QColor getButtonColor() const;
     
-    // 模拟AI响应（临时实现）
-    QString simulateAiResponse(const QString &userInput, const QString &function, const QString &tone);
+    // 显示加载状态
+    void showLoadingState();
+    
+    // 连接AI服务信号
+    void connectAiServiceSignals();
+    
+    // 处理AI请求
+    void processAiRequest();
 };
 
 #endif // AIASSISTANTDIALOG_H 

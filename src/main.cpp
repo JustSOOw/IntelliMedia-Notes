@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "DeepSeekService.h"
 
 #include <QApplication>
 #include <QFile>
@@ -33,7 +34,23 @@ int main(int argc, char *argv[])
     // 应用组合样式
     a.setStyleSheet(globalStyle + lightThemeStyle);
 
+    // 创建DeepSeek AI服务
+    DeepSeekService *aiService = new DeepSeekService();
+    
+    // 如果有需要，这里可以从配置文件或环境变量中读取API密钥
+    // 目前使用的是DeepSeekService中默认硬编码的密钥
+    
     MainWindow w;
+    
+    // 将AI服务传递给主窗口
+    w.setAiService(aiService);
+    
     w.show();
+    
+    // 设置应用程序退出时自动删除aiService
+    QObject::connect(&a, &QApplication::aboutToQuit, [aiService]() {
+        delete aiService;
+    });
+    
     return a.exec();
 }

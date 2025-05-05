@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-05 14:59:42
+ * @LastEditTime: 2025-05-05 22:31:57
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -2854,4 +2854,44 @@ void TextEditorManager::onInsertAiGeneratedContent(const QString &content)
         documentModified();
     }
 }
+
+// ... existing code ...
+
+// 获取当前选中的文本
+QString TextEditorManager::getSelectedText() const
+{
+    if (!m_textEdit) {
+        return QString();
+    }
+    
+    return m_textEdit->textCursor().selectedText();
+}
+
+// 在当前位置插入文本
+void TextEditorManager::insertText(const QString& text)
+{
+    if (!m_textEdit || text.isEmpty()) {
+        return;
+    }
+    
+    // 获取当前光标
+    QTextCursor cursor = m_textEdit->textCursor();
+    
+    // 如果有选中的文本，先删除它
+    if (cursor.hasSelection()) {
+        cursor.removeSelectedText();
+    }
+    
+    // 插入新文本
+    cursor.insertText(text);
+    
+    // 将修改后的光标设置回编辑器
+    m_textEdit->setTextCursor(cursor);
+    
+    // 标记文档已修改
+    m_hasUnsavedChanges = true;
+    emit contentModified();
+}
+
+// ... existing code ...
 

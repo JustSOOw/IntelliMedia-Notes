@@ -243,6 +243,10 @@ public:
     // AI助手相关方法
     void showAiAssistantDialog(); // 显示AI助手对话框
     
+    // 新增：获取选中文本和插入文本方法
+    QString getSelectedText() const; // 获取当前选中的文本
+    void insertText(const QString& text); // 在当前位置插入文本
+    
     // 工具栏访问
     QToolBar* topToolBar() const { return m_topToolBar; }
     

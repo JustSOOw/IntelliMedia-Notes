@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-04 15:29:59
+ * @LastEditTime: 2025-05-13 12:00:00
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -13,6 +13,8 @@
 #include "sidebarmanager.h" // 包含侧边栏管理器头文件
 #include "searchmanager.h"  // 包含搜索管理器头文件
 #include "texteditormanager.h" // 包含文本编辑器管理器头文件
+#include "aiassistantdialog.h" // 包含AI助手对话框头文件
+#include "IAiService.h" // 包含AI服务接口头文件
 
 #include <QToolButton>
 #include <QIcon>
@@ -322,6 +324,11 @@ void MainWindow::toggleTheme()
     // 更新文本编辑器主题 - 这里需确保在样式表加载后调用
     if (m_textEditorManager) {
         m_textEditorManager->setDarkTheme(m_isDarkTheme);
+    }
+
+    // 通知AI助手对话框主题已更改
+    if (m_aiAssistantDialog) {
+        m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
     }
 }
 
@@ -672,5 +679,70 @@ void MainWindow::onSearchClosed()
 {
     if (m_sidebarManager) {
         m_sidebarManager->resetToDefaultView();
+    }
+}
+
+// 设置AI服务
+void MainWindow::setAiService(IAiService *service)
+{
+    m_aiService = service;
+    
+    // 初始化AI助手对话框
+    setupAiAssistant();
+}
+
+// 初始化AI助手
+void MainWindow::setupAiAssistant()
+{
+    if (!m_aiService) {
+        qWarning() << "无法初始化AI助手：AI服务未设置";
+        return;
+    }
+    
+    // 创建AI助手对话框
+    m_aiAssistantDialog = new AiAssistantDialog(this);
+    
+    // 设置AI服务
+    m_aiAssistantDialog->setAiService(m_aiService);
+    
+    // 设置对话框主题与应用程序一致
+    m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
+    
+    // 连接插入内容信号
+    connect(m_aiAssistantDialog, &AiAssistantDialog::insertContentToDocument,
+            this, &MainWindow::insertAiContent);
+}
+
+// 显示AI助手对话框
+void MainWindow::showAiAssistant()
+{
+    if (!m_aiAssistantDialog) {
+        setupAiAssistant();
+    }
+    
+    if (m_aiAssistantDialog) {
+        // 获取当前编辑器选中的文本
+        QString selectedText = m_textEditorManager->getSelectedText();
+        
+        // 设置选中的文本到对话框
+        m_aiAssistantDialog->setSelectedText(selectedText);
+        
+        // 计算对话框位置（居中显示）
+        QRect mainWindowGeometry = geometry();
+        QRect dialogGeometry = m_aiAssistantDialog->geometry();
+        int x = mainWindowGeometry.center().x() - dialogGeometry.width() / 2;
+        int y = mainWindowGeometry.center().y() - dialogGeometry.height() / 2;
+        m_aiAssistantDialog->move(x, y);
+        
+        // 显示对话框
+        m_aiAssistantDialog->exec();
+    }
+}
+
+// 插入AI生成的内容到编辑器
+void MainWindow::insertAiContent(const QString &content)
+{
+    if (m_textEditorManager) {
+        m_textEditorManager->insertText(content);
     }
 }

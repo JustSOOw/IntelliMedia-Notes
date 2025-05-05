@@ -32,6 +32,9 @@ set(PROJECT_SOURCES
         src/fixedwidthfontcombo.h
         src/aiassistantdialog.cpp
         src/aiassistantdialog.h
+        src/IAiService.h
+        src/DeepSeekService.h
+        src/DeepSeekService.cpp
         forms/mainwindow.ui   # UI file is now in forms/
 )
 

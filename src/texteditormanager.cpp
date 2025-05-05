@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-04 17:21:32
+ * @LastEditTime: 2025-05-05 14:59:42
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -61,6 +61,22 @@
 #include <QFontComboBox>
 #include <QAbstractItemView> // <-- 包含 QAbstractItemView 头文件
 #include <QAbstractScrollArea> // <-- 包含 QAbstractScrollArea 头文件，setSizeAdjustPolicy 需要
+#include <QMessageBox> // 添加QMessageBox头文件
+#include <QFileDialog>
+#include <QTextStream>
+#include <QApplication>
+#include <QClipboard>
+#include <QMimeData>
+#include <QBuffer>
+#include <QImageReader>
+#include <QFile>
+#include <QDebug>
+#include <QDateTime>
+#include <QStandardPaths>
+#include <QColorDialog>
+#include <QDesktopServices>
+#include <QKeyEvent>
+#include <QSvgRenderer>
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
@@ -1256,6 +1272,7 @@ void FloatingToolBar::setupUI()
     m_alignCenterButton = new QToolButton(this);
     m_alignRightButton = new QToolButton(this);
     m_alignJustifyButton = new QToolButton(this);
+    m_aiAssistantButton = new QToolButton(this); // 创建AI助手按钮
     
     // 创建字体、字号和标题选择控件
     m_fontComboBox = new FixedWidthFontCombo(this);
@@ -1301,6 +1318,7 @@ void FloatingToolBar::setupUI()
     m_alignCenterButton->setIcon(QIcon(":/icons/editor/align-center.svg"));
     m_alignRightButton->setIcon(QIcon(":/icons/editor/align-right.svg"));
     m_alignJustifyButton->setIcon(QIcon(":/icons/editor/align-justify.svg"));
+    m_aiAssistantButton->setIcon(QIcon(":/icons/editor/ai.svg")); // 设置AI助手按钮图标
     
     // 设置按钮可选中
     m_boldButton->setCheckable(true);
@@ -1324,6 +1342,16 @@ void FloatingToolBar::setupUI()
     m_alignCenterButton->setIconSize(buttonSize);
     m_alignRightButton->setIconSize(buttonSize);
     m_alignJustifyButton->setIconSize(buttonSize);
+    m_aiAssistantButton->setIconSize(buttonSize); // 设置AI助手按钮图标大小
+    
+    // 先添加AI助手按钮到布局（放在最左侧）
+    layout->addWidget(m_aiAssistantButton);
+    
+    // 添加分隔符
+    QFrame *separator0 = new QFrame(this);
+    separator0->setFrameShape(QFrame::VLine);
+    separator0->setFrameShadow(QFrame::Sunken);
+    layout->addWidget(separator0);
     
     // 添加字体、字号和标题选择到布局
     layout->addWidget(m_fontComboBox);
@@ -1331,10 +1359,10 @@ void FloatingToolBar::setupUI()
     layout->addWidget(m_headingComboBox);
     
     // 添加分隔符
-    QFrame *separator0 = new QFrame(this);
-    separator0->setFrameShape(QFrame::VLine);
-    separator0->setFrameShadow(QFrame::Sunken);
-    layout->addWidget(separator0);
+    QFrame *separator1 = new QFrame(this);
+    separator1->setFrameShape(QFrame::VLine);
+    separator1->setFrameShadow(QFrame::Sunken);
+    layout->addWidget(separator1);
     
     // 添加按钮到布局
     layout->addWidget(m_boldButton);
@@ -1343,19 +1371,19 @@ void FloatingToolBar::setupUI()
     layout->addWidget(m_strikeOutButton);
     
     // 添加分隔符
-    QFrame *separator1 = new QFrame(this);
-    separator1->setFrameShape(QFrame::VLine);
-    separator1->setFrameShadow(QFrame::Sunken);
-    layout->addWidget(separator1);
+    QFrame *separator2 = new QFrame(this);
+    separator2->setFrameShape(QFrame::VLine);
+    separator2->setFrameShadow(QFrame::Sunken);
+    layout->addWidget(separator2);
     
     layout->addWidget(m_textColorButton);
     layout->addWidget(m_highlightButton);
     
     // 添加分隔符
-    QFrame *separator2 = new QFrame(this);
-    separator2->setFrameShape(QFrame::VLine);
-    separator2->setFrameShadow(QFrame::Sunken);
-    layout->addWidget(separator2);
+    QFrame *separator3 = new QFrame(this);
+    separator3->setFrameShape(QFrame::VLine);
+    separator3->setFrameShadow(QFrame::Sunken);
+    layout->addWidget(separator3);
     
     layout->addWidget(m_alignLeftButton);
     layout->addWidget(m_alignCenterButton);
@@ -1384,6 +1412,7 @@ void FloatingToolBar::setupUI()
     m_alignCenterButton->setToolTip("居中对齐");
     m_alignRightButton->setToolTip("右对齐");
     m_alignJustifyButton->setToolTip("两端对齐");
+    m_aiAssistantButton->setToolTip("AI助手"); // 设置AI助手按钮提示
 }
 
 void FloatingToolBar::setTheme(bool isDarkTheme)
@@ -1654,9 +1683,11 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     , m_hasUnsavedChanges(false)  // 初始化m_hasUnsavedChanges
     , m_currentNotePath("")       // 初始化路径为空字符串
     , m_currentFilePath("")       // 初始化路径为空字符串
+    , m_aiAssistantDialog(nullptr) // 初始化AI助手对话框为nullptr
+    , m_showAiAssistantAction(nullptr) // 初始化显示AI助手的动作为nullptr
 {
     // 创建编辑器容器
-    m_editorContainer = new QWidget(qobject_cast<QWidget*>(parent));
+    m_editorContainer = new QWidget(parent);
     QVBoxLayout *containerLayout = new QVBoxLayout(m_editorContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
     containerLayout->setSpacing(0);
@@ -1702,6 +1733,7 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     connect(m_floatingToolBar->alignCenterButton(), &QToolButton::clicked, this, &TextEditorManager::onAlignCenterTriggered);
     connect(m_floatingToolBar->alignRightButton(), &QToolButton::clicked, this, &TextEditorManager::onAlignRightTriggered);
     connect(m_floatingToolBar->alignJustifyButton(), &QToolButton::clicked, this, &TextEditorManager::onAlignJustifyTriggered);
+    connect(m_floatingToolBar->aiAssistantButton(), &QToolButton::clicked, this, &TextEditorManager::onShowAiAssistantActionTriggered);
     
     // 连接浮动工具栏字体、字号和标题选择控件的信号
     connect(m_floatingToolBar, &FloatingToolBar::fontFamilyChanged, this, &TextEditorManager::onFontFamilyChanged);
@@ -1714,6 +1746,11 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     // 连接字号和标题选择信号，确保使用统一的槽函数处理
     connect(m_fontSizeComboBox, &QComboBox::currentTextChanged, this, &TextEditorManager::onFontSizeChanged);
     connect(m_headingComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextEditorManager::onHeadingChanged);
+    
+    // 初始化AI助手按钮状态 - 初始时没有选中文本，所以禁用按钮
+    if (m_showAiAssistantAction) {
+        m_showAiAssistantAction->setEnabled(false);
+    }
 }
 
 TextEditorManager::~TextEditorManager()
@@ -1826,6 +1863,14 @@ void TextEditorManager::setupTopToolBar()
     
     m_insertImageAction = m_topToolBar->addAction(QIcon(":/icons/editor/image.svg"), "插入图片");
     
+    // 添加分隔符
+    m_topToolBar->addSeparator();
+    
+    // 添加AI助手按钮
+    m_showAiAssistantAction = m_topToolBar->addAction(QIcon(":/icons/editor/ai.svg"), "AI助手");
+    m_showAiAssistantAction->setToolTip("使用AI助手处理选中文本");
+    connect(m_showAiAssistantAction, &QAction::triggered, this, &TextEditorManager::onShowAiAssistantActionTriggered);
+    
     // 设置工具提示
     m_saveAction->setToolTip("保存笔记 (Ctrl+S)");
     m_undoAction->setToolTip("撤销上一步操作 (Ctrl+Z)");
@@ -1887,6 +1932,11 @@ void TextEditorManager::setTheme(bool isDarkTheme)
     }
     if (m_headingComboBox->lineEdit()) {
         m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
+    }
+    
+    // 更新AI助手对话框的主题
+    if (m_aiAssistantDialog) {
+        m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
     }
 }
 
@@ -2040,6 +2090,11 @@ QString TextEditorManager::saveContent() const
 
 void TextEditorManager::handleSelectionChanged(const QPoint &pos, bool hasSelection)
 {
+    // 更新顶部工具栏AI助手按钮的可用状态
+    if (m_showAiAssistantAction) {
+        m_showAiAssistantAction->setEnabled(hasSelection);
+    }
+    
     if (hasSelection) {
         // 如果有文本选中，更新工具栏位置并显示
         // 不使用传入的pos参数，让updatePosition自己确定位置
@@ -2454,8 +2509,34 @@ void TextEditorManager::documentModified()
 
 void TextEditorManager::setDarkTheme(bool dark)
 {
-    // 调用setTheme方法实现功能
-    setTheme(dark);
+    m_isDarkTheme = dark;
+    
+    // 设置浮动工具栏主题
+    m_floatingToolBar->setTheme(dark);
+    
+    // 设置文本编辑器主题 
+    m_textEdit->setStyleSheet("");
+    
+    // 更新按钮图标颜色
+    updateActionIcons();
+    
+    // 清除直接设置的样式，使用全局样式表
+    m_fontComboBox->setStyleSheet("");
+    m_fontSizeComboBox->setStyleSheet("");  
+    m_headingComboBox->setStyleSheet("");
+    
+    // 仅设置必要的文本对齐样式
+    if (m_fontSizeComboBox->lineEdit()) {
+        m_fontSizeComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
+    }
+    if (m_headingComboBox->lineEdit()) {
+        m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
+    }
+    
+    // 更新AI助手对话框的主题
+    if (m_aiAssistantDialog) {
+        m_aiAssistantDialog->setDarkTheme(dark);
+    }
 }
 
 void TextEditorManager::onFontFamilyChanged(const QString &family)
@@ -2677,4 +2758,100 @@ void TextEditorManager::setEllipsisDisplayText(QComboBox *comboBox, const QStrin
     comboBox->lineEdit()->setText(displayText);
 }
 
-// 确保只有一个 updateToolBarForCurrentFormat 实现 
+// AI助手相关方法实现
+//=======================================================================================
+
+// 显示AI助手对话框
+void TextEditorManager::showAiAssistantDialog()
+{
+    // 获取编辑器中选中的文本
+    QString selectedText = m_textEdit->textCursor().selectedText();
+    
+    // 如果选中的文本为空，直接返回，不显示对话框
+    if (selectedText.isEmpty()) {
+        return;
+    }
+    
+    // 隐藏悬浮工具栏，避免遮挡
+    if (m_floatingToolBar && m_floatingToolBar->isVisible()) {
+        m_floatingToolBar->hide();
+    }
+    
+    // 如果对话框不存在，创建一个
+    if (!m_aiAssistantDialog) {
+        m_aiAssistantDialog = new AiAssistantDialog(m_editorContainer);
+        m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
+        
+        // 连接信号和槽
+        connect(m_aiAssistantDialog, &AiAssistantDialog::insertContentToDocument,
+                this, &TextEditorManager::onInsertAiGeneratedContent);
+    }
+    
+    // 更新对话框主题以确保与当前编辑器主题一致
+    m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
+    
+    // 设置选中的文本
+    m_aiAssistantDialog->setSelectedText(selectedText);
+    
+    // 计算对话框的位置，使其在选中文本下方紧贴显示
+    QTextCursor cursor = m_textEdit->textCursor();
+    QRect cursorRect = m_textEdit->cursorRect(cursor);
+    QPoint dialogPos = m_textEdit->viewport()->mapToGlobal(cursorRect.bottomLeft());
+    
+    // 确保对话框不会超出屏幕边界
+    QScreen *screen = QGuiApplication::screenAt(dialogPos);
+    if (!screen) screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->availableGeometry();
+    
+    int dialogWidth = m_aiAssistantDialog->width();
+    int dialogHeight = m_aiAssistantDialog->height();
+    
+    // 确保对话框不会超出屏幕右侧边界
+    if (dialogPos.x() + dialogWidth > screenGeometry.right()) {
+        dialogPos.setX(screenGeometry.right() - dialogWidth);
+    }
+    
+    // 确保对话框不会超出屏幕底部边界
+    if (dialogPos.y() + dialogHeight > screenGeometry.bottom()) {
+        // 如果超出，则在选中文本上方显示
+        dialogPos.setY(m_textEdit->viewport()->mapToGlobal(cursorRect.topLeft()).y() - dialogHeight);
+    }
+    
+    // 设置对话框位置
+    m_aiAssistantDialog->move(dialogPos);
+    
+    // 显示对话框
+    m_aiAssistantDialog->exec();
+}
+
+// 处理显示AI助手的动作触发
+void TextEditorManager::onShowAiAssistantActionTriggered()
+{
+    // 检查是否有选中内容
+    QString selectedText = m_textEdit->textCursor().selectedText();
+    if (!selectedText.isEmpty()) {
+        showAiAssistantDialog();
+    }
+    // 如果没有选中内容，什么也不做，不弹出提示窗口
+}
+
+// 处理插入AI生成的内容
+void TextEditorManager::onInsertAiGeneratedContent(const QString &content)
+{
+    if (!content.isEmpty()) {
+        // 获取当前光标
+        QTextCursor cursor = m_textEdit->textCursor();
+        
+        // 如果有选中文本，先删除它
+        if (cursor.hasSelection()) {
+            cursor.removeSelectedText();
+        }
+        
+        // 插入AI生成的内容
+        cursor.insertText(content);
+        
+        // 标记文档为已修改
+        documentModified();
+    }
+}
+

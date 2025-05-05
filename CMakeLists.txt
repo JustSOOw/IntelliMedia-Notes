@@ -30,6 +30,8 @@ set(PROJECT_SOURCES
         src/texteditormanager.cpp
         src/texteditormanager.h
         src/fixedwidthfontcombo.h
+        src/aiassistantdialog.cpp
+        src/aiassistantdialog.h
         forms/mainwindow.ui   # UI file is now in forms/
 )
 

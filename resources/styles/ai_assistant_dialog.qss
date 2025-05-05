@@ -1,0 +1,133 @@
+/* AI助手对话框样式表 */
+
+/* 对话框基本样式 */
+AiAssistantDialog {
+    background-color: %bg-color%;
+    border: 1px solid %border-color%;
+    border-radius: 5px;
+}
+
+/* 标签样式 */
+AiAssistantDialog QLabel {
+    color: %text-color%;
+}
+
+/* 输入框样式 */
+AiAssistantDialog QLineEdit {
+    background-color: %input-bg-color%;
+    color: %text-color%;
+    border: 1px solid %border-color%;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
+AiAssistantDialog QLineEdit:focus {
+    border: 1px solid %button-color%;
+}
+
+/* 文本编辑区域样式 */
+AiAssistantDialog QTextEdit {
+    background-color: %input-bg-color%;
+    color: %text-color%;
+    border: 1px solid %border-color%;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+/* 下拉菜单按钮样式 */
+AiAssistantDialog QToolButton {
+    background-color: %input-bg-color%;
+    color: %text-color%;
+    border: 1px solid %border-color%;
+    border-radius: 4px;
+    padding: 2px 8px 2px 12px;
+    text-align: left;
+    padding-right: 30px; /* 为下拉箭头留出足够空间 */
+    min-width: 60px;    /* 确保按钮有足够宽度 */
+}
+
+AiAssistantDialog QToolButton::menu-indicator {
+    subcontrol-origin: padding;
+    subcontrol-position: right center;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    image: url(:/icons/editor/dropdown.svg);
+}
+
+/* 功能按钮菜单样式 */
+AiAssistantDialog QMenu {
+    background-color: %input-bg-color%;
+    color: %text-color%;
+    border: 1px solid %border-color%;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+AiAssistantDialog QMenu::item {
+    padding: 5px 20px 5px 24px;
+    border-radius: 3px;
+}
+
+AiAssistantDialog QMenu::item:selected {
+    background-color: rgba(%button-color-rgb%, 0.2);
+}
+
+AiAssistantDialog QMenu::icon {
+    position: absolute;
+    left: 4px;
+}
+
+/* 按钮样式 */
+AiAssistantDialog QPushButton {
+    background-color: %button-color%;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+
+AiAssistantDialog QPushButton:hover {
+    background-color: %button-hover-color%;
+}
+
+AiAssistantDialog QPushButton:pressed {
+    background-color: %button-pressed-color%;
+}
+
+AiAssistantDialog QPushButton:disabled {
+    background-color: %button-disabled-color%;
+    color: #aaaaaa;
+}
+
+/* 取消按钮特殊样式 */
+AiAssistantDialog #m_cancelButton {
+    background-color: %cancel-button-bg%;
+    color: %text-color%;
+    border: 1px solid %border-color%;
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+
+AiAssistantDialog #m_cancelButton:hover {
+    background-color: %cancel-button-hover%;
+}
+
+/* 关闭按钮样式 */
+AiAssistantDialog QPushButton[text="×"] {
+    color: %text-color%;
+    background-color: transparent;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+AiAssistantDialog QPushButton[text="×"]:hover {
+    background-color: #ff4d4d;
+    color: white;
+    border-radius: 12px;
+}
+
+/* 分割线样式 */
+AiAssistantDialog QFrame[frameShape="4"] {
+    color: %border-color%;
+} 

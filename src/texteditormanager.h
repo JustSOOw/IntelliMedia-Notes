@@ -56,6 +56,7 @@
 #include <QPaintEvent>
 #include <QDrag>
 #include "fixedwidthfontcombo.h"
+#include "aiassistantdialog.h"
 
 class NoteTextEdit;
 class FloatingToolBar;
@@ -154,6 +155,7 @@ public:
     QToolButton* alignCenterButton() const { return m_alignCenterButton; }
     QToolButton* alignRightButton() const { return m_alignRightButton; }
     QToolButton* alignJustifyButton() const { return m_alignJustifyButton; }
+    QToolButton* aiAssistantButton() const { return m_aiAssistantButton; }
     FixedWidthFontCombo* fontComboBox() const { return m_fontComboBox; }
     QComboBox* fontSizeComboBox() const { return m_fontSizeComboBox; }
     QComboBox* headingComboBox() const { return m_headingComboBox; }
@@ -184,6 +186,7 @@ private:
     QToolButton *m_alignCenterButton;
     QToolButton *m_alignRightButton;
     QToolButton *m_alignJustifyButton;
+    QToolButton *m_aiAssistantButton;
 
     // 新增：字体、字号和标题选择控件
     FixedWidthFontCombo *m_fontComboBox;
@@ -236,6 +239,9 @@ public:
     void alignRight();
     void alignJustify();
     void setReadOnly(bool readOnly);
+
+    // AI助手相关方法
+    void showAiAssistantDialog(); // 显示AI助手对话框
     
     // 工具栏访问
     QToolBar* topToolBar() const { return m_topToolBar; }
@@ -280,6 +286,10 @@ private slots:
     void onHeadingChanged(int index);
     void applyHeading(int level);
     
+    // AI助手相关槽
+    void onShowAiAssistantActionTriggered(); // 处理显示AI助手的动作触发
+    void onInsertAiGeneratedContent(const QString &content); // 处理插入AI生成的内容
+    
 private:
     // UI组件
     QWidget *m_editorContainer;
@@ -310,6 +320,10 @@ private:
     bool m_isDarkTheme;
     QColor m_textColor;
     QColor m_highlightColor;
+    
+    // AI助手相关成员
+    AiAssistantDialog *m_aiAssistantDialog; // AI助手对话框
+    QAction *m_showAiAssistantAction; // 显示AI助手的动作
     
     // 帮助函数
     void setupUI();

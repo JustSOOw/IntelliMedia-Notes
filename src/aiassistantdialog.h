@@ -1,8 +1,8 @@
 /*
  * @Author: cursor AI
  * @Date: 2025-05-12 10:00:00
- * @LastEditors: cursor AI
- * @LastEditTime: 2025-05-13 10:45:00
+ * @LastEditors: Furdow wang22338014@gmail.com
+ * @LastEditTime: 2025-05-06 18:21:56
  * @FilePath: \IntelliMedia_Notes\src\aiassistantdialog.h
  * @Description: AI助手对话框，用于处理文本编辑时的AI交互
  * 
@@ -28,6 +28,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QToolButton>
+#include <QShowEvent>
 
 // 前向声明
 class IAiService;
@@ -52,6 +53,9 @@ public:
     
     // 设置AI服务
     void setAiService(IAiService *service);
+    
+    // 设置悬浮工具栏
+    void setFloatingToolBar(QWidget *toolbar) { m_floatingToolBar = toolbar; }
 
 signals:
     // 插入AI生成的内容到文档信号
@@ -102,21 +106,27 @@ private:
     QPushButton *m_retryButton;      // 重新尝试按钮
     QPushButton *m_cancelButton;     // 取消按钮
     QLabel *m_titleLabel;            // 标题标签
+    QWidget *m_floatingToolBar;      // 悬浮工具栏引用
     
+    // 添加定时器成员
+    QTimer *m_animationTimer;       // 加载动画定时器
+    int m_animationDotIndex;        // 动画点索引
+
     // 功能和语气选项
+    QAction *m_freeChatAction;        // 自由对话
     QAction *m_continueWritingAction;  // 继续写作
     QAction *m_polishContentAction;    // 内容润色
     QAction *m_expandContentAction;    // 内容扩写
     QAction *m_simplifyContentAction;  // 内容精简
     QAction *m_grammarCheckAction;     // 语法纠错
     QAction *m_changeToneAction;       // 语气转变
+    QAction *m_humorousToneAction;     // 幽默语气
     
     // 语气子菜单项
     QAction *m_professionalToneAction; // 专业语气
     QAction *m_casualToneAction;       // 日常语气
     QAction *m_honestToneAction;       // 坦诚语气
     QAction *m_confidentToneAction;    // 自信语气
-    QAction *m_humorousToneAction;     // 幽默语气
     
     // 数据成员
     QString m_selectedText;          // 编辑器中选中的文本
@@ -125,6 +135,7 @@ private:
     QString m_currentFunction;       // 当前选中的功能
     QString m_currentTone;           // 当前选中的语气
     IAiService *m_aiService;         // AI服务接口
+    QString m_lastErrorType;         // 上一次错误的类型，用于重试逻辑
     
     // 拖拽相关
     bool m_dragging;                 // 是否正在拖拽
@@ -146,6 +157,9 @@ private:
     QColor getBorderColor() const;
     QColor getInputBackgroundColor() const;
     QColor getButtonColor() const;
+    
+    // --- 辅助函数：停止加载动画 ---
+    void stopLoadingAnimation();
     
     // 显示加载状态
     void showLoadingState();

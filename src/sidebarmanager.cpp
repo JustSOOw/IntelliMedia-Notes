@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-17 12:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-21 22:07:48
+ * @LastEditTime: 2025-05-06 15:58:42
  * @FilePath: \IntelliMedia_Notes\src\sidebarmanager.cpp
  * @Description: 侧边栏管理器实现
  * 

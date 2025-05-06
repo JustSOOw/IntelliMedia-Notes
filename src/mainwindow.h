@@ -94,7 +94,8 @@ private slots:
     void handleContentModified(); // 处理编辑器内容修改
     
     // AI相关槽函数
-    void showAiAssistant();      // 显示AI助手对话框
+    void showAiAssistant();      // 显示AI助手对话框（无参数版本）
+    void showAiAssistantWithText(const QString &selectedTextFromEditor); // 处理带文本的请求
     void insertAiContent(const QString &content); // 插入AI生成的内容到编辑器
 
 private:

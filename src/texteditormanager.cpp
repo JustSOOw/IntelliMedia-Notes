@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-05 22:31:57
+ * @LastEditTime: 2025-05-06 17:17:52
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -119,8 +119,8 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
         m_currentHandle = -1;
         m_trackingMouse = true;
         emit editorClicked(event->pos());
-        QPoint pressPosViewport = event->pos();
-        qDebug() << "MousePressEvent: Viewport Pos =" << pressPosViewport;
+        const QPoint pressPosViewport = event->pos();
+        //qDebug() << "MousePressEvent: Viewport Pos =" << pressPosViewport;
 
         // 1. 检查是否点击在当前选中图片的手柄上
         int handleIndex = getHandleAtPos(pressPosViewport);
@@ -169,7 +169,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
         
         // 将视口点击坐标转换为文档坐标
         QPointF pressPosDocument = pressPosViewport + QPointF(horizontalScrollBar()->value(), verticalScrollBar()->value());
-        qDebug() << "MousePressEvent: Document Pos =" << pressPosDocument;
+        //qDebug() << "MousePressEvent: Document Pos =" << pressPosDocument;
 
         // 查找点击位置对应的文本块
         // cursorForPosition 仍然可以用来快速定位到可能相关的块
@@ -177,7 +177,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
         QTextBlock currentBlock = approxCursor.block();
         
         if (currentBlock.isValid()) {
-            qDebug() << "MousePressEvent: Checking block" << currentBlock.blockNumber();
+            //qDebug() << "MousePressEvent: Checking block" << currentBlock.blockNumber();
             const QTextLayout *layout = currentBlock.layout();
             // 遍历块中的所有片段
             for (QTextBlock::iterator it = currentBlock.begin(); !it.atEnd(); ++it) {
@@ -207,7 +207,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
                     qWarning() << "MousePressEvent: Could not find line for image fragment at pos" << frag.position();
                     continue; // 无法确定位置，跳过此片段
                 }
-                qDebug() << "MousePressEvent: Checking image fragment at" << frag.position() << "DocRect=" << fragDocRect;
+                //qDebug() << "MousePressEvent: Checking image fragment at" << frag.position() << "DocRect=" << fragDocRect;
 
                 // 检查文档坐标点击点是否在图片文档矩形内
                 if (fragDocRect.contains(pressPosDocument)) {
@@ -221,7 +221,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
                 }
             }
         } else {
-             qDebug() << "MousePressEvent: Could not find valid block for click position.";
+             //qDebug() << "MousePressEvent: Could not find valid block for click position.";
         }
 
         // 3. 根据命中结果处理
@@ -251,7 +251,7 @@ void NoteTextEdit::mousePressEvent(QMouseEvent *event)
              return;
         } else {
             // 没有点击任何图片 (或手柄)
-            qDebug() << "MousePressEvent: Click did not hit any image geometry or handle.";
+            //qDebug() << "MousePressEvent: Click did not hit any image geometry or handle.";
             // 如果当前有图片选中，则取消选中
             if (!m_selectedImageCursor.isNull()) {
                 qDebug() << "MousePressEvent: Deselecting image by clicking outside.";
@@ -426,7 +426,7 @@ void NoteTextEdit::mouseReleaseEvent(QMouseEvent *event)
 
         // 如果事件未被拖拽或调整大小处理，则调用基类实现
         QTextEdit::mouseReleaseEvent(event);
-        qDebug() << "mouseReleaseEvent: Base class called.";
+        //qDebug() << "mouseReleaseEvent: Base class called.";
 
         // 处理常规文本选择后的浮动工具栏显示
         QTextCursor cursor = textCursor();
@@ -435,10 +435,10 @@ void NoteTextEdit::mouseReleaseEvent(QMouseEvent *event)
             // 调整位置，使其出现在选区下方
             QPoint toolbarPos = mapToGlobal(selectionRect.bottomLeft() + QPoint(0, 5)); 
             emit selectionChanged(toolbarPos, true);
-            qDebug() << "mouseReleaseEvent: Emitted selectionChanged for text selection.";
+            //qDebug() << "mouseReleaseEvent: Emitted selectionChanged for text selection.";
         } else {
             emit selectionChanged(QPoint(), false); // 隐藏工具栏
-            qDebug() << "mouseReleaseEvent: Emitted selectionChanged to hide toolbar.";
+            //qDebug() << "mouseReleaseEvent: Emitted selectionChanged to hide toolbar.";
             emit editorClicked(mapToGlobal(event->pos()));
         }
     } else {
@@ -1241,8 +1241,8 @@ FloatingToolBar::FloatingToolBar(QWidget *parent)
     qApp->installEventFilter(this);
     
     // 连接字体、字号和标题选择的信号
-    connect(m_fontComboBox, &QComboBox::currentTextChanged, this, [this](const QString &text) {
-        emit fontFamilyChanged(text);
+    connect(m_fontComboBox, &QFontComboBox::currentFontChanged, this, [this](const QFont &font) {
+        emit fontFamilyChanged(font.family());
     });
     
     connect(m_fontSizeComboBox, &QComboBox::currentTextChanged, this, [this](const QString &text) {
@@ -1442,13 +1442,13 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
     m_fontSizeComboBox->setStyleSheet("");
     m_headingComboBox->setStyleSheet("");
     
-    // 仅设置必要的文本对齐样式
-    if (m_headingComboBox->lineEdit()) {
-        m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
-    }
-    if (m_fontSizeComboBox->lineEdit()) {
-        m_fontSizeComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
-    }
+    // 仅设置必要的文本对齐样式 - 这些可以通过 C++ 的 setAlignment 实现，无需 QSS
+    // if (m_headingComboBox->lineEdit()) {
+    //     m_headingComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Already set in setupUI or elsewhere if needed
+    // }
+    // if (m_fontSizeComboBox->lineEdit()) {
+    //     m_fontSizeComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Already set in setupUI or elsewhere if needed
+    // }
 }
 
 void FloatingToolBar::updatePosition(const QPoint &)
@@ -1683,7 +1683,7 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     , m_hasUnsavedChanges(false)  // 初始化m_hasUnsavedChanges
     , m_currentNotePath("")       // 初始化路径为空字符串
     , m_currentFilePath("")       // 初始化路径为空字符串
-    , m_aiAssistantDialog(nullptr) // 初始化AI助手对话框为nullptr
+    // , m_aiAssistantDialog(nullptr) // 移除此行
     , m_showAiAssistantAction(nullptr) // 初始化显示AI助手的动作为nullptr
 {
     // 创建编辑器容器
@@ -1816,7 +1816,8 @@ void TextEditorManager::setupTopToolBar()
     m_fontSizeComboBox->setToolTip("选择字号");
     m_fontSizeComboBox->setEditable(true);
     m_fontSizeComboBox->lineEdit()->setReadOnly(true);
-    m_fontSizeComboBox->lineEdit()->setAlignment(Qt::AlignCenter);
+    m_fontSizeComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Use C++ API for alignment
+    // m_fontSizeComboBox->setStyleSheet(""); // Remove stylesheet setting for alignment
     
     // 添加字号选项
     QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
@@ -1844,7 +1845,7 @@ void TextEditorManager::setupTopToolBar()
     // 恢复原来的设置方式
     m_headingComboBox->setEditable(true);
     m_headingComboBox->lineEdit()->setReadOnly(true);
-    m_headingComboBox->lineEdit()->setAlignment(Qt::AlignCenter);
+    m_headingComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Use C++ API for alignment
     
     // 清除直接设置的样式表
     m_headingComboBox->setStyleSheet("");
@@ -1912,32 +1913,18 @@ void TextEditorManager::setTheme(bool isDarkTheme)
 {
     m_isDarkTheme = isDarkTheme;
     
-    // 设置浮动工具栏主题
     m_floatingToolBar->setTheme(isDarkTheme);
-    
-    // 设置文本编辑器主题 
     m_textEdit->setStyleSheet("");
-    
-    // 更新按钮图标颜色
     updateActionIcons();
     
-    // 清除直接设置的样式，使用全局样式表
     m_fontComboBox->setStyleSheet("");
     m_fontSizeComboBox->setStyleSheet("");  
     m_headingComboBox->setStyleSheet("");
     
-    // 仅设置必要的文本对齐样式
-    if (m_fontSizeComboBox->lineEdit()) {
-        m_fontSizeComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
-    }
-    if (m_headingComboBox->lineEdit()) {
-        m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
-    }
-    
-    // 更新AI助手对话框的主题
-    if (m_aiAssistantDialog) {
-        m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
-    }
+    // // 更新AI助手对话框的主题 (移除此段落)
+    // if (m_aiAssistantDialog) { 
+    //     m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
+    // }
 }
 
 void TextEditorManager::updateActionIcons()
@@ -2511,32 +2498,18 @@ void TextEditorManager::setDarkTheme(bool dark)
 {
     m_isDarkTheme = dark;
     
-    // 设置浮动工具栏主题
     m_floatingToolBar->setTheme(dark);
-    
-    // 设置文本编辑器主题 
     m_textEdit->setStyleSheet("");
-    
-    // 更新按钮图标颜色
     updateActionIcons();
     
-    // 清除直接设置的样式，使用全局样式表
     m_fontComboBox->setStyleSheet("");
     m_fontSizeComboBox->setStyleSheet("");  
     m_headingComboBox->setStyleSheet("");
     
-    // 仅设置必要的文本对齐样式
-    if (m_fontSizeComboBox->lineEdit()) {
-        m_fontSizeComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
-    }
-    if (m_headingComboBox->lineEdit()) {
-        m_headingComboBox->lineEdit()->setStyleSheet("QLineEdit { text-align: center; qproperty-alignment: AlignCenter; }");
-    }
-    
-    // 更新AI助手对话框的主题
-    if (m_aiAssistantDialog) {
-        m_aiAssistantDialog->setDarkTheme(dark);
-    }
+    // // 更新AI助手对话框的主题 (移除此段落)
+    // if (m_aiAssistantDialog) { 
+    //     m_aiAssistantDialog->setDarkTheme(dark);
+    // }
 }
 
 void TextEditorManager::onFontFamilyChanged(const QString &family)
@@ -2679,24 +2652,24 @@ void TextEditorManager::setupFontComboBoxes()
     });
     
     // 处理字体名称显示
-    connect(m_fontComboBox, &QFontComboBox::currentTextChanged, this, [this, topToolbarMaxLength, topToolbarKeepLength, floatToolbarMaxLength, floatToolbarKeepLength](const QString &text) {
+    connect(m_fontComboBox, &QFontComboBox::currentFontChanged, this, [this, topToolbarMaxLength, topToolbarKeepLength, floatToolbarMaxLength, floatToolbarKeepLength](const QFont &font) {
         // 仅当不是从代码设置时触发，避免信号循环
         if (m_fontComboBox->signalsBlocked())
             return;
             
         // 应用字体，但不更改显示文本
         QTextCharFormat fmt;
-        fmt.setFontFamilies({text});
+        fmt.setFontFamilies({font.family()});
         mergeFormatOnWordOrSelection(fmt);
         
         // 设置主工具栏省略显示文本
-        setEllipsisDisplayText(m_fontComboBox, text, topToolbarMaxLength, topToolbarKeepLength);
+        setEllipsisDisplayText(m_fontComboBox, font.family(), topToolbarMaxLength, topToolbarKeepLength);
         
         // 同步浮动工具栏的字体和显示文本
         if (m_floatingToolBar && m_floatingToolBar->fontComboBox()) {
              QSignalBlocker ftblocker(m_floatingToolBar->fontComboBox());
-             m_floatingToolBar->fontComboBox()->setCurrentText(text); // 设置完整字体名称
-             setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), text, floatToolbarMaxLength, floatToolbarKeepLength); // 设置省略显示
+             m_floatingToolBar->fontComboBox()->setCurrentText(font.family()); // 设置完整字体名称
+             setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), font.family(), floatToolbarMaxLength, floatToolbarKeepLength); // 设置省略显示
         }
     });
     
@@ -2719,23 +2692,23 @@ void TextEditorManager::setupFontComboBoxes()
         });
         
         // 处理浮动工具栏字体名称显示
-        connect(m_floatingToolBar->fontComboBox(), &QFontComboBox::currentTextChanged, this, [this, topToolbarMaxLength, topToolbarKeepLength, floatToolbarMaxLength, floatToolbarKeepLength](const QString &text) {
+        connect(m_floatingToolBar->fontComboBox(), &QFontComboBox::currentFontChanged, this, [this, topToolbarMaxLength, topToolbarKeepLength, floatToolbarMaxLength, floatToolbarKeepLength](const QFont &font) {
             // 仅当不是从代码设置时触发，避免信号循环
             if (m_floatingToolBar->fontComboBox()->signalsBlocked())
                 return;
                 
             // 应用字体，但不更改显示文本
             QTextCharFormat fmt;
-            fmt.setFontFamilies({text});
+            fmt.setFontFamilies({font.family()});
             mergeFormatOnWordOrSelection(fmt);
             
             // 设置浮动工具栏省略显示文本
-            setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), text, floatToolbarMaxLength, floatToolbarKeepLength);
+            setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), font.family(), floatToolbarMaxLength, floatToolbarKeepLength);
             
             // 同步主工具栏的字体和显示文本
              QSignalBlocker mblocker(m_fontComboBox);
-             m_fontComboBox->setCurrentText(text); // 设置完整字体名称
-             setEllipsisDisplayText(m_fontComboBox, text, topToolbarMaxLength, topToolbarKeepLength); // 设置省略显示
+             m_fontComboBox->setCurrentText(font.family()); // 设置完整字体名称
+             setEllipsisDisplayText(m_fontComboBox, font.family(), topToolbarMaxLength, topToolbarKeepLength); // 设置省略显示
         });
         
         // 处理初始状态
@@ -2761,98 +2734,15 @@ void TextEditorManager::setEllipsisDisplayText(QComboBox *comboBox, const QStrin
 // AI助手相关方法实现
 //=======================================================================================
 
-// 显示AI助手对话框
-void TextEditorManager::showAiAssistantDialog()
-{
-    // 获取编辑器中选中的文本
-    QString selectedText = m_textEdit->textCursor().selectedText();
-    
-    // 如果选中的文本为空，直接返回，不显示对话框
-    if (selectedText.isEmpty()) {
-        return;
-    }
-    
-    // 隐藏悬浮工具栏，避免遮挡
-    if (m_floatingToolBar && m_floatingToolBar->isVisible()) {
-        m_floatingToolBar->hide();
-    }
-    
-    // 如果对话框不存在，创建一个
-    if (!m_aiAssistantDialog) {
-        m_aiAssistantDialog = new AiAssistantDialog(m_editorContainer);
-        m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
-        
-        // 连接信号和槽
-        connect(m_aiAssistantDialog, &AiAssistantDialog::insertContentToDocument,
-                this, &TextEditorManager::onInsertAiGeneratedContent);
-    }
-    
-    // 更新对话框主题以确保与当前编辑器主题一致
-    m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
-    
-    // 设置选中的文本
-    m_aiAssistantDialog->setSelectedText(selectedText);
-    
-    // 计算对话框的位置，使其在选中文本下方紧贴显示
-    QTextCursor cursor = m_textEdit->textCursor();
-    QRect cursorRect = m_textEdit->cursorRect(cursor);
-    QPoint dialogPos = m_textEdit->viewport()->mapToGlobal(cursorRect.bottomLeft());
-    
-    // 确保对话框不会超出屏幕边界
-    QScreen *screen = QGuiApplication::screenAt(dialogPos);
-    if (!screen) screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->availableGeometry();
-    
-    int dialogWidth = m_aiAssistantDialog->width();
-    int dialogHeight = m_aiAssistantDialog->height();
-    
-    // 确保对话框不会超出屏幕右侧边界
-    if (dialogPos.x() + dialogWidth > screenGeometry.right()) {
-        dialogPos.setX(screenGeometry.right() - dialogWidth);
-    }
-    
-    // 确保对话框不会超出屏幕底部边界
-    if (dialogPos.y() + dialogHeight > screenGeometry.bottom()) {
-        // 如果超出，则在选中文本上方显示
-        dialogPos.setY(m_textEdit->viewport()->mapToGlobal(cursorRect.topLeft()).y() - dialogHeight);
-    }
-    
-    // 设置对话框位置
-    m_aiAssistantDialog->move(dialogPos);
-    
-    // 显示对话框
-    m_aiAssistantDialog->exec();
-}
-
 // 处理显示AI助手的动作触发
 void TextEditorManager::onShowAiAssistantActionTriggered()
 {
     // 检查是否有选中内容
-    QString selectedText = m_textEdit->textCursor().selectedText();
+    QString selectedText = getSelectedText();
     if (!selectedText.isEmpty()) {
-        showAiAssistantDialog();
+        triggerAiAssistant(); // 调用 triggerAiAssistant 发射信号
     }
-    // 如果没有选中内容，什么也不做，不弹出提示窗口
-}
-
-// 处理插入AI生成的内容
-void TextEditorManager::onInsertAiGeneratedContent(const QString &content)
-{
-    if (!content.isEmpty()) {
-        // 获取当前光标
-        QTextCursor cursor = m_textEdit->textCursor();
-        
-        // 如果有选中文本，先删除它
-        if (cursor.hasSelection()) {
-            cursor.removeSelectedText();
-        }
-        
-        // 插入AI生成的内容
-        cursor.insertText(content);
-        
-        // 标记文档为已修改
-        documentModified();
-    }
+    // 如果没有选中内容，什么也不做
 }
 
 // ... existing code ...
@@ -2863,7 +2753,6 @@ QString TextEditorManager::getSelectedText() const
     if (!m_textEdit) {
         return QString();
     }
-    
     return m_textEdit->textCursor().selectedText();
 }
 
@@ -2873,25 +2762,28 @@ void TextEditorManager::insertText(const QString& text)
     if (!m_textEdit || text.isEmpty()) {
         return;
     }
-    
-    // 获取当前光标
     QTextCursor cursor = m_textEdit->textCursor();
-    
-    // 如果有选中的文本，先删除它
     if (cursor.hasSelection()) {
         cursor.removeSelectedText();
     }
-    
-    // 插入新文本
     cursor.insertText(text);
-    
-    // 将修改后的光标设置回编辑器
     m_textEdit->setTextCursor(cursor);
-    
-    // 标记文档已修改
     m_hasUnsavedChanges = true;
     emit contentModified();
 }
 
-// ... existing code ...
+// 修改触发 AI 助手的逻辑，改为发射信号给 MainWindow
+void TextEditorManager::triggerAiAssistant()
+{
+    QString selectedText = getSelectedText();
+    emit requestShowAiAssistant(selectedText); 
+}
+
+// 插入AI内容（这个槽函数由MainWindow的AI对话框触发，通过信号连接到MainWindow，MainWindow再调用这里的insertText）
+void TextEditorManager::insertAiContent(const QString &content)
+{
+    if (m_textEdit) { // 使用 m_textEdit
+        m_textEdit->insertPlainText(content); 
+    }
+}
 

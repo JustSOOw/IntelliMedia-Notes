@@ -37,9 +37,14 @@ int main(int argc, char *argv[])
     // 创建DeepSeek AI服务
     DeepSeekService *aiService = new DeepSeekService();
     
+    // 显式验证API端点URL - 使用不含 /v1/ 的版本
+    QString correctApiEndpoint = "https://api.deepseek.com/chat/completions";
+    aiService->setApiEndpoint(correctApiEndpoint);
+    qDebug() << "主程序确认API端点:" << correctApiEndpoint;
+    
     // 如果有需要，这里可以从配置文件或环境变量中读取API密钥
     // 目前使用的是DeepSeekService中默认硬编码的密钥
-    
+
     MainWindow w;
     
     // 将AI服务传递给主窗口

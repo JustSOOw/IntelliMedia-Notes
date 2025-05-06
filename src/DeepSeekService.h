@@ -16,6 +16,7 @@
 #include <QNetworkReply>
 #include <QJsonObject>
 #include <QTimer>
+#include <QMap>
 
 /**
  * @brief DeepSeek API服务实现类
@@ -42,6 +43,12 @@ public:
      * @param apiKey DeepSeek API密钥
      */
     void setApiKey(const QString& apiKey) override;
+
+    /**
+     * @brief 设置API端点URL
+     * @param apiEndpoint DeepSeek API端点URL
+     */
+    void setApiEndpoint(const QString& apiEndpoint);
 
     /**
      * @brief 润色文本
@@ -109,6 +116,7 @@ private:
     QString m_apiKey;                       // DeepSeek API密钥
     QString m_apiEndpoint;                  // API端点URL
     QString m_modelName;                    // 模型名称
+    QMap<QNetworkReply*, QString> m_activeReplies; // 声明 activeReplies
 };
 
 #endif // DEEPSEEKSERVICE_H 

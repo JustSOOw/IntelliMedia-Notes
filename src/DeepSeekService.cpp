@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2025-05-13 09:40:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-05 22:34:27
+ * @LastEditTime: 2025-05-06 15:24:13
  * @FilePath: \IntelliMedia_Notes\src\DeepSeekService.cpp
  * @Description: DeepSeek API服务实现
  * 
@@ -16,7 +16,7 @@
 #include <QDebug>
 
 // DeepSeek API 常量
-const QString API_ENDPOINT = "https://api.deepseek.com/v1/chat/completions";
+const QString API_ENDPOINT = "https://api.deepseek.com/chat/completions";
 const QString MODEL_NAME = "deepseek-chat"; // DeepSeek-V3 模型
 const QString DEFAULT_API_KEY = "sk-99853683dd524fda89a8fda9f0447e09"; // 请替换为实际的DeepSeek API密钥
 
@@ -36,39 +36,7 @@ DeepSeekService::DeepSeekService(QObject *parent)
     connect(m_networkManager, &QNetworkAccessManager::finished,
             this, &DeepSeekService::handleNetworkReply);
     
-    // 测试API连接
-    QUrl testUrl{API_ENDPOINT};
-    QNetworkRequest testRequest{testUrl};
-    testRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    testRequest.setRawHeader("Authorization", QString("Bearer %1").arg(m_apiKey).toUtf8());
-    
-    // 发送简单的HEAD请求来测试连接
-    QNetworkReply *testReply = m_networkManager->head(testRequest);
-    
-    // 设置连接超时
-    QTimer::singleShot(5000, [testReply]() {
-        if (testReply && testReply->isRunning()) {
-            testReply->abort();
-        }
-    });
-    
-    // 连接测试请求结果信号
-    connect(testReply, &QNetworkReply::finished, this, [this, testReply]() {
-        testReply->deleteLater();
-        if (testReply->error() == QNetworkReply::NoError) {
-            qDebug() << "DeepSeek API连接测试成功";
-        } else {
-            qWarning() << "DeepSeek API连接测试失败:" << testReply->errorString();
-            if (testReply->error() == QNetworkReply::AuthenticationRequiredError) {
-                qWarning() << "API密钥可能无效或过期";
-            } else if (testReply->error() == QNetworkReply::ConnectionRefusedError || 
-                     testReply->error() == QNetworkReply::TimeoutError) {
-                qWarning() << "无法连接到DeepSeek服务器，可能是网络问题或服务器不可用";
-            }
-        }
-    });
-    
-    qDebug() << "DeepSeekService初始化完成";
+    qDebug() << "DeepSeekService初始化完成 (已移除启动时API测试)";
 }
 
 // 析构函数
@@ -81,6 +49,18 @@ DeepSeekService::~DeepSeekService()
 void DeepSeekService::setApiKey(const QString& apiKey)
 {
     m_apiKey = apiKey;
+}
+
+// 设置API端点URL
+void DeepSeekService::setApiEndpoint(const QString& apiEndpoint)
+{
+    // 验证API端点URL格式
+    if (!apiEndpoint.isEmpty()) {
+        m_apiEndpoint = apiEndpoint;
+        qDebug() << "成功设置API端点URL:" << m_apiEndpoint;
+    } else {
+        qWarning() << "尝试设置空的API端点URL，将继续使用当前端点:" << m_apiEndpoint;
+    }
 }
 
 // 润色文本
@@ -180,80 +160,90 @@ void DeepSeekService::sendRequest(const QString& operation, const QString& origi
         return;
     }
 
-    // 构建请求体
-    QJsonObject payload = buildRequestPayload(systemPrompt, originalText);
+    // 创建请求URL
+    QUrl url(m_apiEndpoint);
+    QNetworkRequest request(url);
+
+    // 设置请求头
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", QString("Bearer %1").arg(m_apiKey).toUtf8());
+
+    // 创建请求体 (Payload)
+    QJsonObject payload;
+    payload["model"] = m_modelName;
+
+    QJsonArray messages;
+    // 添加系统提示
+    QJsonObject systemMessage;
+    systemMessage["role"] = "system";
+    systemMessage["content"] = systemPrompt;
+    messages.append(systemMessage);
+
+    // 添加用户请求
+    QJsonObject userMessage;
+    userMessage["role"] = "user";
+    userMessage["content"] = originalText;
+    messages.append(userMessage);
+
+    payload["messages"] = messages;
+    
+    // 根据需要设置其他参数 (例如 max_tokens, temperature)
+    // payload["max_tokens"] = 4096; // 示例：可以根据需要调整最大令牌数
+    // payload["temperature"] = 0.7; // 示例：可以调整创造性
+
     QJsonDocument doc(payload);
     QByteArray data = doc.toJson();
 
-    // 创建请求
-    QUrl url(m_apiEndpoint);
-    QNetworkRequest request{url};
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    request.setRawHeader("Authorization", QString("Bearer %1").arg(m_apiKey).toUtf8());
-    
-    // 设置请求超时
-    const int TIMEOUT_MS = 30000; // 30秒
-    QTimer *timeoutTimer = new QTimer(this);
-    timeoutTimer->setSingleShot(true);
-    
-    // 保存请求上下文信息，将在响应处理中使用
-    QVariantMap context;
-    context["operation"] = operation;
-    context["originalText"] = originalText;
-    
-    // 使用QObject属性来存储上下文信息
-    QObject* contextObj = new QObject(this);
-    contextObj->setProperty("context", QVariant::fromValue(context));
-    
+    qDebug() << "请求URL:" << url.toString();
+    qDebug() << "请求负载:" << QString::fromUtf8(data).left(200) << "..."; // 打印部分负载用于调试
+
     // 发送POST请求
     QNetworkReply *reply = m_networkManager->post(request, data);
     
-    // 将上下文对象关联到reply
-    reply->setProperty("contextObj", QVariant::fromValue(contextObj));
-    
-    // 设置请求超时处理
-    connect(timeoutTimer, &QTimer::timeout, [reply, this, operation]() {
+    // **增加超时设置**
+    // 设置一个较长的超时时间，例如 120 秒 (120000 毫秒)
+    QTimer::singleShot(120000, reply, [this, reply, operation]() { 
         if (reply && reply->isRunning()) {
-            qWarning() << "请求超时，取消请求";
-            reply->abort();
-            emit aiError(operationToDescription(operation), "请求超时，DeepSeek服务器可能繁忙或无法访问");
+             qWarning() << operationToDescription(operation) << "请求超时 (120s)，中止请求";
+             reply->abort(); // 中止请求
         }
     });
-    
-    // 启动超时计时器
-    timeoutTimer->start(TIMEOUT_MS);
-    
-    // 当请求完成时，清理超时计时器
-    connect(reply, &QNetworkReply::finished, [timeoutTimer]() {
-        timeoutTimer->stop();
-        timeoutTimer->deleteLater();
-    });
-    
+
+    // 存储操作类型，用于后续处理响应
+    m_activeReplies.insert(reply, operation);
     qDebug() << "请求已发送到DeepSeek API";
 }
 
 // 处理网络响应
 void DeepSeekService::handleNetworkReply(QNetworkReply *reply)
 {
-    // 确保智能指针自动释放reply
-    reply->deleteLater();
-
-    // 获取请求上下文信息
-    QObject *contextObj = reply->property("contextObj").value<QObject*>();
-    QVariantMap context;
+    // 确保reply被删除
+    reply->deleteLater(); 
     
-    if (contextObj) {
-        context = contextObj->property("context").toMap();
-        contextObj->deleteLater(); // 清理上下文对象
+    // 从 m_activeReplies 中获取操作类型并移除该条目
+    if (!m_activeReplies.contains(reply)) {
+        qWarning() << "收到未追踪的网络响应，忽略。URL:" << (reply ? reply->url().toString() : "N/A");
+        return;
     }
-    
-    QString operation = context.value("operation").toString();
-    QString originalText = context.value("originalText").toString();
+    QString operation = m_activeReplies.take(reply);
     QString operationDesc = operationToDescription(operation);
+    QString requestUrl = reply->url().toString();
+
+    // 记录响应信息
+    qDebug() << "收到API响应，操作:" << operationDesc 
+             << "请求URL:" << requestUrl
+             << "HTTP状态码:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
     // 检查网络错误
     if (reply->error() != QNetworkReply::NoError) {
         QString errorMsg;
+        
+        // 记录详细错误信息
+        qWarning() << "API请求错误:" 
+                  << "请求URL:" << requestUrl
+                  << "错误代码:" << reply->error()
+                  << "错误字符串:" << reply->errorString()
+                  << "HTTP状态码:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         
         // 根据错误类型提供更具体的错误信息
         switch (reply->error()) {
@@ -270,7 +260,13 @@ void DeepSeekService::handleNetworkReply(QNetworkReply *reply)
                 errorMsg = "请求超时，DeepSeek服务器可能繁忙或无法访问";
                 break;
             case QNetworkReply::OperationCanceledError:
-                errorMsg = "请求被取消，可能是网络连接超时";
+                // 区分是用户取消还是超时取消
+                if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).isNull()) {
+                    // 如果没有HTTP状态码，很可能是定时器触发的abort
+                    errorMsg = "请求超时 (120s)"; 
+                } else {
+                    errorMsg = "请求被取消"; // 其他原因的取消
+                }
                 break;
             case QNetworkReply::SslHandshakeFailedError:
                 errorMsg = "SSL握手失败，可能是网络安全问题";
@@ -321,7 +317,7 @@ void DeepSeekService::handleNetworkReply(QNetworkReply *reply)
                 break;
         }
         
-        qWarning() << "AI请求错误:" << errorMsg;
+        qWarning() << "AI请求错误(" << operationDesc << ") :" << errorMsg;
         qWarning() << "HTTP状态码:" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         qWarning() << "错误字符串:" << reply->errorString();
         
@@ -340,7 +336,7 @@ void DeepSeekService::handleNetworkReply(QNetworkReply *reply)
     }
 
     try {
-        qDebug() << "收到API响应，开始解析...";
+        qDebug() << "收到API响应，开始解析... (" << operationDesc << ")";
         
         // 输出响应头信息，帮助调试
         QList<QByteArray> headerList = reply->rawHeaderList();
@@ -350,21 +346,27 @@ void DeepSeekService::handleNetworkReply(QNetworkReply *reply)
         
         // 解析响应数据并提取生成的文本
         QString generatedText = parseResponse(responseData);
-        qDebug() << "解析成功，生成文本长度:" << generatedText.length();
+        qDebug() << "解析成功，生成文本长度:" << generatedText.length() << "(" << operationDesc << ")";
 
         // 根据操作类型发出对应的完成信号
         if (operation == "rewrite") {
-            emit rewriteFinished(originalText, generatedText);
+            // emit rewriteFinished(originalText, generatedText); // 需要 originalText
+            emit genericTextFinished("", generatedText); // 暂时用通用信号替代，或者修改信号
         } else if (operation == "summarize") {
-            emit summaryFinished(originalText, generatedText);
+            // emit summaryFinished(originalText, generatedText); // 需要 originalText
+            emit genericTextFinished("", generatedText); // 暂时用通用信号替代
         } else if (operation == "fix") {
-            emit fixFinished(originalText, generatedText);
+            // emit fixFinished(originalText, generatedText); // 需要 originalText
+            emit genericTextFinished("", generatedText); // 暂时用通用信号替代
         } else if (operation == "generic") {
-            emit genericTextFinished(originalText, generatedText);
+            // emit genericTextFinished(originalText, generatedText); // 需要 originalText
+            emit genericTextFinished("", generatedText); // 暂时用通用信号替代，第二个参数是生成的文本
+        } else {
+             qWarning() << "未知的操作类型，无法发出完成信号:" << operation;
         }
     } catch (const std::exception& e) {
         // 捕获解析过程中的异常
-        QString errorMessage = QString("处理API响应时出错: %1").arg(e.what());
+        QString errorMessage = QString("处理API响应时出错 (%1): %2").arg(operationDesc).arg(e.what());
         qWarning() << errorMessage;
         qWarning() << "原始响应:" << responseData;
         emit aiError(operationDesc, errorMessage);

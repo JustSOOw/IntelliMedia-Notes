@@ -57,5 +57,6 @@
         <file>icons/editor/simplify-content.svg</file>
         <file>icons/editor/grammar-check.svg</file>
         <file>icons/editor/change-tone.svg</file>
+        <file>icons/editor/free-chat.svg</file>
     </qresource>
 </RCC>

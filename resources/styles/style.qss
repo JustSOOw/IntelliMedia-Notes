@@ -219,7 +219,8 @@ QComboBox#topHeadingComboBox QAbstractItemView {
     max-width: 200px;
 }
 
-/* 字号和标题下拉框中的文本居中 */
+/* 字号和标题下拉框中的文本居中 - 改为通过 C++ API 设置 QLineEdit 的对齐方式 */
+/*
 QComboBox#floatingFontSizeComboBox,
 QComboBox#topFontSizeComboBox {
     qproperty-alignment: AlignCenter;
@@ -229,6 +230,7 @@ QComboBox#floatingHeadingComboBox,
 QComboBox#topHeadingComboBox {
     qproperty-alignment: AlignCenter;
 }
+*/
 
 /* 让下拉箭头使用系统主题色并调整尺寸 */
 QComboBox::down-arrow,

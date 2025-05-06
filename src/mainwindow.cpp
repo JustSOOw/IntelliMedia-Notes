@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-13 12:00:00
+ * @LastEditTime: 2025-05-06 16:03:24
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -646,32 +646,25 @@ void MainWindow::saveCurrentNote()
 void MainWindow::handleContentModified()
 {
     // 可以在这里实现自动保存功能，或者更新UI显示修改状态
-    qDebug() << "笔记内容已修改";
+    // qDebug() << "笔记内容已修改";
 }
 
 // 初始化文本编辑器
 void MainWindow::setupTextEditor()
 {
-    // 创建文本编辑器管理器
     m_textEditorManager = new TextEditorManager(this);
-    
-    // 连接内容修改信号
     connect(m_textEditorManager, SIGNAL(contentModified()), this, SLOT(handleContentModified()));
     
-    // 创建主内容区布局
+    // 连接 AI 助手请求信号到新的带参数的槽
+    connect(m_textEditorManager, &TextEditorManager::requestShowAiAssistant, 
+            this, &MainWindow::showAiAssistantWithText); // <--- 修改这里的连接
+
     QVBoxLayout *mainLayout = new QVBoxLayout(ui->mainContentContainer);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
-    
-    // 添加文本编辑器部件到布局
     mainLayout->addWidget(m_textEditorManager->getEditorWidget());
-    
-    // 设置编辑器主题
     m_textEditorManager->setDarkTheme(m_isDarkTheme);
-    
-    // 加载默认内容，由于没有实际笔记，使用一个占位路径
-    // QString defaultContent = "<html><body><p>欢迎使用IntelliMedia Notes！</p><p>请从侧边栏选择一个笔记或创建新笔记开始。</p></body></html>";
-    m_textEditorManager->loadNote(""); // 空路径表示加载默认内容
+    m_textEditorManager->loadNote("");
 }
 
 // 处理搜索对话框关闭
@@ -686,62 +679,117 @@ void MainWindow::onSearchClosed()
 void MainWindow::setAiService(IAiService *service)
 {
     m_aiService = service;
+    qDebug() << "MainWindow::setAiService called with service:" << service;
     
-    // 初始化AI助手对话框
-    setupAiAssistant();
+    // 确保在设置了有效的服务后才初始化AI助手
+    if (m_aiService) {
+        setupAiAssistant();
+    } else {
+        qWarning() << "AI Service provided to MainWindow is null!";
+    }
 }
 
 // 初始化AI助手
 void MainWindow::setupAiAssistant()
 {
+    qDebug() << "MainWindow::setupAiAssistant called.";
+    // 检查服务是否有效
     if (!m_aiService) {
-        qWarning() << "无法初始化AI助手：AI服务未设置";
+        qWarning() << "setupAiAssistant called but m_aiService is null!";
         return;
     }
     
-    // 创建AI助手对话框
-    m_aiAssistantDialog = new AiAssistantDialog(this);
-    
-    // 设置AI服务
-    m_aiAssistantDialog->setAiService(m_aiService);
-    
-    // 设置对话框主题与应用程序一致
-    m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
-    
-    // 连接插入内容信号
-    connect(m_aiAssistantDialog, &AiAssistantDialog::insertContentToDocument,
-            this, &MainWindow::insertAiContent);
+    // 只在对话框未创建时创建它
+    if (!m_aiAssistantDialog) {
+        m_aiAssistantDialog = new AiAssistantDialog(this);
+        m_aiAssistantDialog->setDarkTheme(m_isDarkTheme); // 应用当前主题
+        m_aiAssistantDialog->setAiService(m_aiService);
+        qDebug() << "AI Service passed to AiAssistantDialog (" << m_aiAssistantDialog << ") :" << m_aiService;
+        
+        // 连接插入内容的信号
+        connect(m_aiAssistantDialog, &AiAssistantDialog::insertContentToDocument, 
+                this, &MainWindow::insertAiContent);
+                
+        // 其他连接...
+    } else {
+         // 如果对话框已存在，理论上服务应该已经被设置，但可以再次确认
+         qDebug() << "AiAssistantDialog (" << m_aiAssistantDialog << ") already exists, ensuring service is set.";
+         m_aiAssistantDialog->setAiService(m_aiService);
+    }
 }
 
-// 显示AI助手对话框
+// 显示AI助手对话框 (无参版本，由快捷键等直接调用)
 void MainWindow::showAiAssistant()
 {
+    showAiAssistantWithText("");
+}
+
+// 新增辅助函数，处理来自编辑器的请求和直接请求
+void MainWindow::showAiAssistantWithText(const QString &selectedTextFromEditor)
+{
+    qDebug() << "MainWindow::showAiAssistantWithText called. Selected text from editor:" << selectedTextFromEditor.left(50) << "...";
+    qDebug() << "MainWindow::showAiAssistantWithText - Current m_aiAssistantDialog instance:" << m_aiAssistantDialog;
+    qDebug() << "MainWindow::showAiAssistantWithText - MainWindow's m_aiService:" << m_aiService;
+
     if (!m_aiAssistantDialog) {
-        setupAiAssistant();
+        qWarning() << "CRITICAL ERROR: Attempting to show AI Assistant but m_aiAssistantDialog is null!";
+        if (m_aiService) {
+            qInfo() << "Attempting to re-initialize AiAssistantDialog as it was null.";
+            setupAiAssistant(); 
+            if (!m_aiAssistantDialog) { 
+                 qCritical() << "CRITICAL ERROR: Failed to re-initialize AiAssistantDialog. Aborting show.";
+                 return;
+            }
+        } else {
+            qCritical() << "CRITICAL ERROR: m_aiService in MainWindow is also null. Cannot initialize AiAssistantDialog. Aborting show.";
+            return;
+        }
+    }
+
+    if (!m_aiService) {
+         qWarning() << "CRITICAL ERROR: AI Service pointer (m_aiService) in MainWindow is null when trying to show AI Assistant!";
+         return;
     }
     
-    if (m_aiAssistantDialog) {
-        // 获取当前编辑器选中的文本
-        QString selectedText = m_textEditorManager->getSelectedText();
-        
-        // 设置选中的文本到对话框
-        m_aiAssistantDialog->setSelectedText(selectedText);
-        
-        // 计算对话框位置（居中显示）
-        QRect mainWindowGeometry = geometry();
-        QRect dialogGeometry = m_aiAssistantDialog->geometry();
-        int x = mainWindowGeometry.center().x() - dialogGeometry.width() / 2;
-        int y = mainWindowGeometry.center().y() - dialogGeometry.height() / 2;
-        m_aiAssistantDialog->move(x, y);
-        
-        // 显示对话框
-        m_aiAssistantDialog->exec();
+    m_aiAssistantDialog->setAiService(m_aiService); 
+    qDebug() << "MainWindow::showAiAssistantWithText - Re-ensured service for dialog instance:" << m_aiAssistantDialog << "MainWindow's m_aiService is:" << m_aiService;
+
+    QString selectedTextToShow;
+    if (!selectedTextFromEditor.isEmpty()) {
+        selectedTextToShow = selectedTextFromEditor;
+    } else if (m_textEditorManager) {
+        selectedTextToShow = m_textEditorManager->getSelectedText();
+    } else {
+         selectedTextToShow = "";
+         qWarning() << "TextEditorManager is null, cannot get selected text.";
     }
+    m_aiAssistantDialog->setSelectedText(selectedTextToShow);
+    m_aiAssistantDialog->setDarkTheme(m_isDarkTheme);
+    m_aiAssistantDialog->setFloatingToolBar(m_textEditorManager->getFloatingToolBar());
+    
+    qDebug() << "MainWindow::showAiAssistantWithText - Showing dialog instance:" << m_aiAssistantDialog;
+
+    if (this->isVisible()) {
+        QRect parentGeometry = this->geometry();
+        QPoint centerPos = parentGeometry.center() - m_aiAssistantDialog->rect().center();
+        m_aiAssistantDialog->move(centerPos);
+    } else {
+         QScreen *screen = QGuiApplication::primaryScreen();
+         if (screen) {
+             QRect screenGeometry = screen->availableGeometry();
+             m_aiAssistantDialog->move(screenGeometry.center() - m_aiAssistantDialog->rect().center());
+         }
+    }
+    
+    m_aiAssistantDialog->show();
+    m_aiAssistantDialog->raise();
+    m_aiAssistantDialog->activateWindow();
 }
 
 // 插入AI生成的内容到编辑器
 void MainWindow::insertAiContent(const QString &content)
 {
+    // 这个函数现在由 AiAssistantDialog 的 insertContentToDocument 信号触发
     if (m_textEditorManager) {
         m_textEditorManager->insertText(content);
     }

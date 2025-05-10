@@ -251,6 +251,39 @@ QList<NoteInfo> DatabaseManager::getNotesInFolder(int folder_id)
     return notes;
 }
 
+NoteInfo DatabaseManager::getNoteById(int note_id)
+{
+    NoteInfo note;
+    QSqlQuery query;
+    
+    // 查询指定ID的笔记
+    QString sql = "SELECT note_id, title, created_at, updated_at, folder_id, tags, is_trashed "
+                 "FROM Notes WHERE note_id = :note_id";
+    
+    query.prepare(sql);
+    query.bindValue(":note_id", note_id);
+    
+    if (!query.exec()) {
+        qCritical() << "获取笔记信息失败:" << query.lastError().text();
+        return note;
+    }
+    
+    // 获取查询结果
+    if (query.next()) {
+        note.id = query.value(0).toInt();
+        note.title = query.value(1).toString();
+        note.created_at = query.value(2).toString();
+        note.updated_at = query.value(3).toString();
+        note.folder_id = query.value(4).toInt();
+        note.tags = query.value(5).toString();
+        note.is_trashed = query.value(6).toBool();
+    } else {
+        qWarning() << "未找到ID为" << note_id << "的笔记";
+    }
+    
+    return note;
+}
+
 int DatabaseManager::createFolder(const QString &name, int parent_id)
 {
     if (name.isEmpty()) {

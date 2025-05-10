@@ -107,6 +107,13 @@ public:
     QList<NoteInfo> getNotesInFolder(int folder_id);
 
     /**
+     * @brief 根据ID获取笔记信息
+     * @param note_id 笔记ID
+     * @return NoteInfo 笔记信息
+     */
+    NoteInfo getNoteById(int note_id);
+
+    /**
      * @brief 创建新文件夹
      * @param name 文件夹名称
      * @param parent_id 父文件夹ID，0表示根目录

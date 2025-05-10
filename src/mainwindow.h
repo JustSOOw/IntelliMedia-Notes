@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-13 11:45:00
+ * @LastEditTime: 2025-05-10 18:30:40
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.h
  * @Description: 
  * 
@@ -45,6 +45,7 @@ class SearchManager;
 class TextEditorManager; // 添加文本编辑器管理器前向声明
 class AiAssistantDialog; // 添加AI助手对话框前向声明
 class IAiService; // 添加AI服务接口前向声明
+class SettingsDialog; // 添加设置对话框前向声明
 
 class MainWindow : public QMainWindow
 {
@@ -97,8 +98,18 @@ private slots:
     void showAiAssistant();      // 显示AI助手对话框（无参数版本）
     void showAiAssistantWithText(const QString &selectedTextFromEditor); // 处理带文本的请求
     void insertAiContent(const QString &content); // 插入AI生成的内容到编辑器
+    
+    // 设置相关槽函数
+    void onSettingsClosed();     // 处理设置对话框关闭事件
+    void applySettings();        // 应用设置
+    void applyThemeFromSettings(); // 从设置应用主题
+    void applyTheme(const QString &theme); // 直接应用指定的主题
+    void applyLanguage(const QString &language);
+    void restartApplication(); // 重启应用程序
+    void restoreLastSession(); // 恢复上次会话状态
 
 private:
+    void showSettingsDialog();   // 新增：声明用于显示和管理设置对话框的函数
     Ui::MainWindow *ui;
     
     // 窗口控制按钮
@@ -153,6 +164,10 @@ private:
     AiAssistantDialog *m_aiAssistantDialog = nullptr; // AI助手对话框
     IAiService *m_aiService = nullptr;  // AI服务接口
     
+    // 设置相关
+    SettingsDialog *m_settingsDialog = nullptr; // 设置对话框
+    QTimer *m_autoSaveTimer = nullptr;         // 自动保存定时器
+    
     // 初始化侧边栏
     void setupSidebar();
     
@@ -164,6 +179,9 @@ private:
     
     // 初始化AI助手
     void setupAiAssistant();
+    
+    // 初始化设置
+    void setupSettings();
     
     // 保存当前笔记
     void saveCurrentNote();

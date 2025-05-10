@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2025-05-12 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-06 18:42:04
+ * @LastEditTime: 2025-05-06 21:31:55
  * @FilePath: \IntelliMedia_Notes\src\aiassistantdialog.cpp
  * @Description: AI助手对话框实现
  * 

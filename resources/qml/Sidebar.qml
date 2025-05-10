@@ -178,4 +178,18 @@ Rectangle {
         stackLayout.currentIndex = 0
         actionButtons.activeButton = "file" // 确保ActionButtons也更新
     }
+    
+    // QML函数：根据路径选中笔记
+    function selectNoteByPath(path) {
+        console.log("选中笔记路径:", path)
+        // 切换到文件视图
+        currentView = "file"
+        stackLayout.currentIndex = 0
+        actionButtons.activeButton = "file"
+        
+        // 调用NoteTree的选中方法
+        if (noteTree) {
+            noteTree.selectItemByPath(path)
+        }
+    }
 }

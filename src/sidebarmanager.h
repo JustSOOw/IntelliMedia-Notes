@@ -54,6 +54,9 @@ public:
     // 获取文件夹内容（供QML模型使用）
     Q_INVOKABLE QVariantList getFolderContents(int folder_id, int parentLevel);
     
+    // 获取文件夹下所有笔记（包括子文件夹）
+    Q_INVOKABLE QVariantList getAllNotes(int folder_id);
+    
     // 供QML直接调用的方法
     Q_INVOKABLE bool deleteItem(const QString &path);
     Q_INVOKABLE bool renameItem(const QString &path, const QString &newName);
@@ -68,6 +71,9 @@ public:
     
     // 更新主题设置
     void updateTheme(bool isDarkTheme);
+    
+    // 通过路径打开笔记（用于重启后恢复打开的笔记）
+    void openNoteByPath(const QString &path);
     
 public slots:
     // 处理QML中的信号

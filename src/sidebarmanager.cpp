@@ -133,6 +133,33 @@ QVariantList SidebarManager::getFolderContents(int folder_id, int parentLevel)
     return result;
 }
 
+// 获取文件夹下所有笔记（包括子文件夹）
+QVariantList SidebarManager::getAllNotes(int folder_id)
+{
+    QVariantList result;
+    qDebug() << "--- [SidebarManager] getAllNotes() CALLED for ID:" << folder_id;
+    
+    // 获取指定文件夹下的笔记
+    QList<NoteInfo> notes = m_dbManager->getNotesInFolder(folder_id);
+    for (const NoteInfo &note : notes) {
+        result.append(noteToQML(note, 0)); // 使用0作为级别，因为我们只关心笔记本身
+    }
+    
+    // 递归获取所有子文件夹中的笔记
+    QList<FolderInfo> subFolders = m_dbManager->getAllFolders();
+    for (const FolderInfo &folder : subFolders) {
+        if (folder.parent_id == folder_id) {
+            // 递归调用获取子文件夹的笔记
+            QVariantList subNotes = getAllNotes(folder.id);
+            for (const QVariant &subNote : subNotes) {
+                result.append(subNote);
+            }
+        }
+    }
+    
+    return result;
+}
+
 // 笔记被选中
 void SidebarManager::onNoteSelected(const QString &path, const QString &type)
 {
@@ -610,6 +637,42 @@ void SidebarManager::resetToDefaultView()
 {
     if (m_rootObject) {
         QMetaObject::invokeMethod(m_rootObject, "resetView");
+    }
+}
+
+// 通过路径打开笔记（用于重启后恢复打开的笔记）
+void SidebarManager::openNoteByPath(const QString &path)
+{
+    qDebug() << "--- [SidebarManager] openNoteByPath() CALLED for Path:" << path;
+    
+    if (path.isEmpty()) {
+        qWarning() << "路径为空，无法打开笔记";
+        return;
+    }
+    
+    // 判断路径类型和提取ID
+    if (path.contains("note_")) {
+        int noteId = extractIdFromPath(path);
+        if (noteId > 0) {
+            // 通过ID获取笔记信息
+            NoteInfo noteInfo = m_dbManager->getNoteById(noteId);
+            if (noteInfo.id > 0) {
+                // 发送笔记打开信号
+                emit noteOpened(path, "note");
+                
+                // 如果需要在QML中显示选中状态，可以调用QML方法
+                if (m_rootObject) {
+                    QMetaObject::invokeMethod(m_rootObject, "selectNoteByPath", 
+                                            Q_ARG(QVariant, path));
+                }
+            } else {
+                qWarning() << "找不到ID为" << noteId << "的笔记";
+            }
+        } else {
+            qWarning() << "无效的笔记ID:" << noteId;
+        }
+    } else {
+        qWarning() << "不支持的路径类型:" << path;
     }
 }
 

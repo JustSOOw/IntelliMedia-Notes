@@ -1060,5 +1060,145 @@ Item {
             console.log("NoteTree: Theme changed to", sidebarManager.isDarkTheme ? "dark" : "light")
         }
     }
+    
+    // 编辑控件（仅用于编辑模式）
+    TextField {
+        id: inlineEditField
+        visible: false
+        // 其余属性在显示编辑框时动态设置
+        font.pixelSize: 14
+        selectByMouse: true
+        
+        onEditingFinished: {
+            if (visible) {
+                // 处理编辑完成逻辑
+                if (text.trim() !== "") {
+                    var targetPath = editingItemPath
+                    var newName = text.trim()
+                    // console.log("提交重命名:", targetPath, "--> 新名称:", newName)
+                    noteTree.renameItem(targetPath, newName) // 触发重命名信号
+                }
+                visible = false // 隐藏编辑框
+            }
+        }
+        
+        // 使用Keys而不是Key (QML 2.15+)
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Escape) {
+                visible = false // 取消编辑
+                event.accepted = true
+            }
+        }
+        
+        property string editingItemPath: ""
+    }
+    
+    // 函数：根据路径选中项目
+    function selectItemByPath(path) {
+        console.log("尝试选中项目，路径:", path)
+        
+        // 遍历模型查找匹配项
+        for (var i = 0; i < folderListModel.count; i++) {
+            var item = folderListModel.get(i)
+            if (item.path === path) {
+                // 找到匹配项
+                console.log("找到匹配项，索引:", i, "名称:", item.name, "类型:", item.type)
+                
+                // 设置选中状态
+                selectedNotePath = path
+                selectedNoteType = item.type
+                selectedNoteName = item.name
+                
+                // 确保文件夹路径展开以显示此项
+                ensurePathExpanded(path)
+                
+                // 滚动到选中项
+                Qt.callLater(function() {
+                    listView.positionViewAtIndex(i, ListView.Center)
+                    
+                    // 触发选中信号
+                    noteSelected(path, item.type)
+                })
+                
+                return true
+            }
+        }
+        
+        console.log("未找到匹配路径:", path)
+        return false
+    }
+    
+    // 函数：确保路径展开（用于显示某个深层次的项目）
+    function ensurePathExpanded(path) {
+        // 对于笔记，需要找到其所在的文件夹
+        var folderPath = path
+        if (path.indexOf("/note_") !== -1) {
+            // 尝试找到此笔记的父文件夹
+            for (var i = 0; i < folderListModel.count; i++) {
+                var item = folderListModel.get(i)
+                if (item.path === path) {
+                    // 找到笔记所在的级别
+                    var noteLevel = item.level
+                    
+                    // 向上查找一个级别的文件夹
+                    for (var j = i - 1; j >= 0; j--) {
+                        var potentialParent = folderListModel.get(j)
+                        if (potentialParent.level < noteLevel && potentialParent.type === "folder") {
+                            folderPath = potentialParent.path
+                            break
+                        }
+                    }
+                    break
+                }
+            }
+        }
+        
+        // 现在展开从根到所需文件夹的所有文件夹
+        if (folderPath.indexOf("/folder_") !== -1) {
+            // 获取文件夹ID
+            var folderId = parseInt(folderPath.split("_")[1])
+            
+            // 获取所有父文件夹ID的列表
+            var parentIds = []
+            var currentFolderId = folderId
+            
+            while (currentFolderId > 0) {
+                // 遍历查找当前文件夹
+                for (var i = 0; i < folderListModel.count; i++) {
+                    var folder = folderListModel.get(i)
+                    if (folder.type === "folder" && folder.id === currentFolderId) {
+                        // 确保这个文件夹是展开的
+                        if (!folder.expanded) {
+                            toggleFolderExpanded(i) // 展开文件夹
+                        }
+                        
+                        // 寻找父文件夹
+                        if (folder.level > 0) {
+                            // 向上查找一个级别的文件夹
+                            for (var j = i - 1; j >= 0; j--) {
+                                var potentialParent = folderListModel.get(j)
+                                if (potentialParent.level < folder.level && potentialParent.type === "folder") {
+                                    currentFolderId = potentialParent.id
+                                    break
+                                }
+                            }
+                            // 如果找不到父文件夹，结束循环
+                            if (j < 0) {
+                                currentFolderId = 0
+                            }
+                        } else {
+                            // 如果是顶级文件夹，结束循环
+                            currentFolderId = 0
+                        }
+                        break
+                    }
+                }
+                // 如果遍历完未找到当前文件夹，结束循环
+                if (i >= folderListModel.count) {
+                    break
+                }
+            }
+        }
+    }
 }
 

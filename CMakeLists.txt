@@ -11,10 +11,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required Qt components (Adjust if you added more modules like QuickWidgets, Sql)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg QuickControls2)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg Core5Compat QuickControls2)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets QuickWidgets Sql Svg Core5Compat QuickControls2 LinguistTools)
 
 # Tell AutoUic where to find UI files
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/forms)
+
+# 设置翻译文件
+set(TS_FILES
+    resources/translations/intellimedia_notes_en_US.ts
+)
+
+# 创建翻译目标
+qt_add_translation(QM_FILES ${TS_FILES})
 
 # Define project sources using the new structure
 set(PROJECT_SOURCES
@@ -35,6 +43,8 @@ set(PROJECT_SOURCES
         src/IAiService.h
         src/DeepSeekService.h
         src/DeepSeekService.cpp
+        src/settingsdialog.h
+        src/settingsdialog.cpp
         forms/mainwindow.ui   # UI file is now in forms/
 )
 
@@ -43,6 +53,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         resources/resources.qrc # Resource file is now in resources/
+        ${QM_FILES}
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET IntelliMedia_Notes APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -54,6 +65,7 @@ else()
         add_library(IntelliMedia_Notes SHARED
             ${PROJECT_SOURCES}
              resources/resources.qrc # Add resource file here too for Qt 5 library
+            ${QM_FILES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
@@ -61,6 +73,7 @@ else()
         add_executable(IntelliMedia_Notes
             ${PROJECT_SOURCES}
             resources/resources.qrc # Add resource file here too for Qt 5 executable
+            ${QM_FILES}
         )
     endif()
 endif()
@@ -96,6 +109,9 @@ install(TARGETS IntelliMedia_Notes
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# 安装翻译文件
+install(FILES ${QM_FILES} DESTINATION translations)
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(IntelliMedia_Notes)

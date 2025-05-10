@@ -36,6 +36,24 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     // 设置对话框属性
     setWindowTitle(tr("设置"));
     setMinimumSize(700, 500);
+    setObjectName("settingsDialog");
+    
+    // 应用当前主题样式
+    QString currentTheme = m_settings.value("General/Theme", "Light").toString();
+    QString styleSheetPath;
+    if (currentTheme == "Dark") {
+        styleSheetPath = ":/resources/styles/dark_theme.qss";
+    } else {
+        styleSheetPath = ":/resources/styles/light_theme.qss";
+    }
+    
+    // 加载样式表
+    QFile styleFile(styleSheetPath);
+    if (styleFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString styleSheet = QLatin1String(styleFile.readAll());
+        setStyleSheet(styleSheet);
+        styleFile.close();
+    }
     
     // 初始化UI
     setupUI();
@@ -214,6 +232,29 @@ void SettingsDialog::onThemeChanged(QAbstractButton *button)
     // 验证设置是否已正确保存
     QSettings verifySettings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
     verifySettings.sync(); // 强制从磁盘重新读取
+    
+    // 立即应用主题样式到设置对话框
+    QString styleSheetPath;
+    if (theme == "Dark") {
+        styleSheetPath = ":/resources/styles/dark_theme.qss";
+    } else if (theme == "Light") {
+        styleSheetPath = ":/resources/styles/light_theme.qss";
+    } else {
+        // 根据系统主题选择
+        QSettings settings;
+        bool isDarkMode = settings.value("System/IsDarkMode", false).toBool();
+        styleSheetPath = isDarkMode ? 
+            ":/resources/styles/dark_theme.qss" : 
+            ":/resources/styles/light_theme.qss";
+    }
+    
+    // 加载样式表
+    QFile styleFile(styleSheetPath);
+    if (styleFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString styleSheet = QLatin1String(styleFile.readAll());
+        setStyleSheet(styleSheet);
+        styleFile.close();
+    }
     
     // 通知父窗口应用新的主题设置，直接传递主题值
     emit themeChanged(theme);
@@ -718,13 +759,6 @@ void SettingsDialog::setupUI()
     // 创建标签控件
     m_tabWidget = new QTabWidget(this);
     m_tabWidget->setTabPosition(QTabWidget::West); // 标签放在左侧
-    
-    // 设置标签控件样式
-    m_tabWidget->setStyleSheet(
-        "QTabWidget::pane { border: 1px solid #cccccc; }"
-        "QTabBar::tab { padding: 10px 20px; margin: 5px 0; }"
-        "QTabBar::tab:selected { background: #e0e0e0; }"
-    );
     
     // 初始化各个标签页
     setupGeneralTab();

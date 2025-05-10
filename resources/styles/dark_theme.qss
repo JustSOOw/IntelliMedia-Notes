@@ -277,3 +277,247 @@ QFrame[frameShape="4"], QFrame[frameShape="HLine"] {
     color: #4a4a4a;
     height: 1px;
 }
+
+/* 设置对话框样式 - 深色主题 */
+SettingsDialog {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+}
+
+/* 设置对话框标签页样式 */
+SettingsDialog QTabWidget {
+    background-color: #2d2d2d;
+    border: none;
+}
+
+SettingsDialog QTabWidget::pane {
+    background-color: #2d2d2d;
+    border: 1px solid #505050;
+    border-top: none;
+    border-radius: 0px 0px 4px 4px;
+}
+
+SettingsDialog QTabBar::tab {
+    background-color: #353535;
+    color: #d0d0d0;
+    border: 1px solid #505050;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    padding: 8px 16px;
+    margin-right: 2px;
+}
+
+SettingsDialog QTabBar::tab:selected {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border-bottom: none;
+}
+
+SettingsDialog QTabBar::tab:hover:!selected {
+    background-color: #454545;
+}
+
+/* 设置对话框标签和输入框样式 */
+SettingsDialog QLabel {
+    color: #f0f0f0;
+}
+
+SettingsDialog QLineEdit {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+SettingsDialog QLineEdit:hover {
+    border: 1px solid #666666;
+    background-color: #404040;
+}
+
+SettingsDialog QLineEdit:focus {
+    border: 1px solid #777777;
+}
+
+/* 设置对话框按钮样式 */
+SettingsDialog QPushButton {
+    background-color: #404040;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 6px 12px;
+    min-width: 80px;
+}
+
+SettingsDialog QPushButton:hover {
+    background-color: #505050;
+    border: 1px solid #666666;
+}
+
+SettingsDialog QPushButton:pressed {
+    background-color: #606060;
+}
+
+SettingsDialog QPushButton:disabled {
+    background-color: #333333;
+    color: #707070;
+    border: 1px solid #444444;
+}
+
+/* 设置对话框复选框样式 */
+SettingsDialog QCheckBox {
+    color: #f0f0f0;
+    spacing: 5px;
+}
+
+SettingsDialog QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #555555;
+    border-radius: 3px;
+}
+
+SettingsDialog QCheckBox::indicator:unchecked {
+    background-color: #353535;
+}
+
+SettingsDialog QCheckBox::indicator:checked {
+    background-color: #2c7fb8;
+    border-color: #2c7fb8;
+    image: url(:/icons/sidebar/check.svg);
+}
+
+/* 设置对话框单选按钮样式 */
+SettingsDialog QRadioButton {
+    color: #f0f0f0;
+    spacing: 5px;
+}
+
+SettingsDialog QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #555555;
+    border-radius: 9px;
+}
+
+SettingsDialog QRadioButton::indicator:unchecked {
+    background-color: #353535;
+}
+
+SettingsDialog QRadioButton::indicator:checked {
+    background-color: #353535;
+    border: 2px solid #2c7fb8;
+    image: url(:/icons/sidebar/radio_checked.svg);
+}
+
+/* 设置对话框分组框样式 */
+SettingsDialog QGroupBox {
+    border: 1px solid #505050;
+    border-radius: 4px;
+    margin-top: 20px;
+    color: #f0f0f0;
+    font-weight: bold;
+}
+
+SettingsDialog QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+}
+
+/* 设置对话框进度条样式 */
+SettingsDialog QProgressBar {
+    border: 1px solid #555555;
+    border-radius: 4px;
+    text-align: center;
+    background-color: #353535;
+    color: #f0f0f0;
+}
+
+SettingsDialog QProgressBar::chunk {
+    background-color: #2c7fb8;
+    width: 20px;
+}
+
+/* 设置对话框文本浏览器样式 */
+SettingsDialog QTextBrowser {
+    background-color: #282828;
+    color: #f0f0f0;
+    border: 1px solid #505050;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+/* 设置对话框滑块样式 */
+SettingsDialog QSlider::groove:horizontal {
+    border: 1px solid #555555;
+    height: 5px;
+    background: #353535;
+    margin: 2px 0;
+    border-radius: 2px;
+}
+
+SettingsDialog QSlider::handle:horizontal {
+    background: #2c7fb8;
+    border: 1px solid #2c7fb8;
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+
+SettingsDialog QSlider::handle:horizontal:hover {
+    background: #3c8fc8;
+    border: 1px solid #3c8fc8;
+}
+
+/* 设置对话框下拉菜单样式 */
+SettingsDialog QComboBox {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 5px;
+    min-width: 100px;
+}
+
+SettingsDialog QComboBox:hover {
+    background-color: #404040;
+    border: 1px solid #666666;
+}
+
+SettingsDialog QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left-width: 1px;
+    border-left-color: #555555;
+    border-left-style: solid;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: #404040;
+}
+
+SettingsDialog QComboBox::down-arrow {
+    image: url(:/icons/editor/dropdown.svg);
+    width: 12px;
+    height: 12px;
+}
+
+SettingsDialog QComboBox QAbstractItemView {
+    border: 1px solid #555555;
+    selection-background-color: #454545;
+    border-radius: 0px;
+    background-color: #353535;
+    color: #f0f0f0;
+}
+
+/* 设置对话框框架样式 */
+SettingsDialog QFrame {
+    border: 1px solid #505050;
+    border-radius: 4px;
+}

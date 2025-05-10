@@ -89,3 +89,5 @@ CMakeLists.txt.user*
 # 但不忽略CMakeLists.txt
 !CMakeLists.txt
 
+.cache/*
+

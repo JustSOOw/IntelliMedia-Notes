@@ -318,9 +318,16 @@ SettingsDialog QTabBar::tab:hover:!selected {
     background-color: #454545;
 }
 
-/* 设置对话框标签和输入框样式 */
+/* 设置对话框标签样式 */
 SettingsDialog QLabel {
     color: #f0f0f0;
+    border: none; /* 确保标签没有边框 */
+}
+
+/* 设置对话框分组框内标签样式 */
+SettingsDialog QGroupBox QLabel {
+    border: none;
+    background: transparent;
 }
 
 SettingsDialog QLineEdit {
@@ -518,6 +525,11 @@ SettingsDialog QComboBox QAbstractItemView {
 
 /* 设置对话框框架样式 */
 SettingsDialog QFrame {
-    border: 1px solid #505050;
+    border: 1px solid #444444;
     border-radius: 4px;
+}
+
+/* 设置对话框分组框内框架样式 - 没有边框 */
+SettingsDialog QGroupBox QFrame {
+    border: none;
 }

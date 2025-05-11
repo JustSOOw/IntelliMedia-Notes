@@ -25,6 +25,62 @@
 #include <QInputDialog>
 #include <QSqlQuery>
 #include <QMainWindow>
+#include <QTabBar>
+#include <QTabWidget>
+#include <QStyle>
+#include <QPaintEvent>
+#include <QStyleOptionTab>
+#include <QPainter>
+#include <QPalette>
+#include <QFontMetrics>
+
+// 自定义垂直标签栏，文字保持水平显示
+class VerticalTabBar : public QTabBar
+{
+public:
+    explicit VerticalTabBar(QWidget* parent = nullptr) : QTabBar(parent) {}
+
+    QSize tabSizeHint(int index) const override
+    {
+        QSize s = QTabBar::tabSizeHint(index);
+        return QSize(s.height(), s.width());
+    }
+
+protected:
+    void paintEvent(QPaintEvent* event) override
+    {
+        Q_UNUSED(event);
+        QPainter painter(this);
+        QStyleOptionTab opt;
+        for (int i = 0; i < count(); ++i) {
+            initStyleOption(&opt, i);
+            QRect rect = tabRect(i);
+            opt.rect = rect;
+            // 绘制标签形状，使用样式处理 West 方向
+            style()->drawControl(QStyle::CE_TabBarTabShape, &opt, &painter, this);
+            // 绘制标签文本，保持水平居中
+            painter.save();
+            painter.setFont(font());
+            QColor textColor = (opt.state & QStyle::State_Selected)
+                ? opt.palette.color(QPalette::HighlightedText)
+                : opt.palette.color(QPalette::ButtonText);
+            painter.setPen(textColor);
+            painter.drawText(rect, Qt::AlignCenter, opt.text);
+            painter.restore();
+        }
+    }
+};
+
+// 自定义垂直标签页控件，使用 VerticalTabBar
+class VerticalTabWidget : public QTabWidget
+{
+public:
+    explicit VerticalTabWidget(QWidget* parent = nullptr) : QTabWidget(parent)
+    {
+        setTabBar(new VerticalTabBar(this));
+        setElideMode(Qt::ElideNone);
+    }
+};
 
 // 构造函数
 SettingsDialog::SettingsDialog(QWidget *parent)
@@ -37,6 +93,9 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     setWindowTitle(tr("设置"));
     setMinimumSize(700, 500);
     setObjectName("settingsDialog");
+    
+    // 设置全局样式，禁用所有QLabel的边框
+    setStyleSheet("QLabel { border: none; background: transparent; }");
     
     // 应用当前主题样式
     QString currentTheme = m_settings.value("General/Theme", "Light").toString();
@@ -756,27 +815,27 @@ void SettingsDialog::setupUI()
     // 创建主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     
-    // 创建标签控件
-    m_tabWidget = new QTabWidget(this);
+    // 创建标签控件，使用自定义垂直 TabWidget
+    m_tabWidget = new VerticalTabWidget(this);
     m_tabWidget->setTabPosition(QTabWidget::West); // 标签放在左侧
-    
+
     // 初始化各个标签页
     setupGeneralTab();
     setupEditorTab();
     setupAiServiceTab();
     setupDataStorageTab();
     setupAboutTab();
-    
+
     // 添加标签页到标签控件
     m_tabWidget->addTab(m_generalTab, tr("常规"));
     m_tabWidget->addTab(m_editorTab, tr("编辑器"));
     m_tabWidget->addTab(m_aiServiceTab, tr("AI服务"));
     m_tabWidget->addTab(m_dataStorageTab, tr("数据与存储"));
     m_tabWidget->addTab(m_aboutTab, tr("关于"));
-    
+
     // 将标签控件添加到主布局
     mainLayout->addWidget(m_tabWidget);
-    
+
     // 设置主布局
     setLayout(mainLayout);
 }
@@ -789,6 +848,7 @@ void SettingsDialog::setupGeneralTab()
     
     // 主题设置组
     QGroupBox *themeGroup = new QGroupBox(tr("主题"));
+    themeGroup->setStyleSheet("QGroupBox { border: 1px solid #d0d0d0; } QLabel { border: none; background: transparent; }");
     QVBoxLayout *themeLayout = new QVBoxLayout(themeGroup);
     
     m_themeGroup = new QButtonGroup(this);

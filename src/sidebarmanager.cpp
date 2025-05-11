@@ -93,7 +93,7 @@ QString SidebarManager::getUserName() const
 // 获取用户状态
 QString SidebarManager::getUserStatus() const
 {
-    return "在线"; // 固定状态
+    return tr("在线"); // 固定状态
 }
 
 // 获取根目录路径
@@ -220,7 +220,7 @@ void SidebarManager::onCreateNote(const QString &parentPath, const QString &note
     
     // 使用传入的笔记名称
     if (noteName.isEmpty()) {
-        QMessageBox::warning(nullptr, "错误", "笔记名称不能为空!");
+        QMessageBox::warning(nullptr, tr("错误"), tr("笔记名称不能为空!"));
         return;
     }
     
@@ -235,7 +235,7 @@ void SidebarManager::onCreateNote(const QString &parentPath, const QString &note
         block.id = 0; // 新块ID由数据库分配
         block.note_id = noteId;
         block.block_type = "text";
-        block.content_text = "开始编写你的笔记...";
+        block.content_text = tr("开始编写你的笔记...");
         block.position = 0;
         
         blocks.append(block);
@@ -246,7 +246,7 @@ void SidebarManager::onCreateNote(const QString &parentPath, const QString &note
         // 刷新列表
         refreshNotesList();
     } else {
-        QMessageBox::warning(nullptr, "错误", "创建笔记失败!");
+        QMessageBox::warning(nullptr, tr("错误"), tr("创建笔记失败!"));
     }
 }
 
@@ -260,7 +260,7 @@ void SidebarManager::onCreateFolder(const QString &parentPath, const QString &fo
     
     // 使用传入的文件夹名称
     if (folderName.isEmpty()) {
-        QMessageBox::warning(nullptr, "错误", "文件夹名称不能为空!");
+        QMessageBox::warning(nullptr, tr("错误"), tr("文件夹名称不能为空!"));
         return;
     }
     
@@ -269,7 +269,7 @@ void SidebarManager::onCreateFolder(const QString &parentPath, const QString &fo
         // 刷新列表
         refreshNotesList();
     } else {
-        QMessageBox::warning(nullptr, "错误", "创建文件夹失败!");
+        QMessageBox::warning(nullptr, tr("错误"), tr("创建文件夹失败!"));
     }
 }
 
@@ -290,14 +290,14 @@ void SidebarManager::onRenameItem(const QString &path, const QString &newName)
         if (m_dbManager->renameFolder(itemId, newName)) {
             refreshNotesList();
         } else {
-            QMessageBox::warning(nullptr, "错误", "重命名文件夹失败!");
+            QMessageBox::warning(nullptr, tr("错误"), tr("重命名文件夹失败!"));
         }
     } else if (path.contains("note_")) {
         // 重命名笔记
         if (m_dbManager->renameNote(itemId, newName)) {
             refreshNotesList();
         } else {
-            QMessageBox::warning(nullptr, "错误", "重命名笔记失败!");
+            QMessageBox::warning(nullptr, tr("错误"), tr("重命名笔记失败!"));
         }
     }
 }
@@ -324,7 +324,7 @@ void SidebarManager::onDeleteItem(const QString &path)
     if (success) {
         refreshNotesList();
     } else {
-        QMessageBox::warning(nullptr, "错误", "删除操作失败!");
+        QMessageBox::warning(nullptr, tr("错误"), tr("删除操作失败!"));
     }
 }
 
@@ -452,7 +452,7 @@ int SidebarManager::createNote(const QString &parentPath, const QString &noteNam
         block.id = 0; // 新块ID由数据库分配
         block.note_id = noteId;
         block.block_type = "text";
-        block.content_text = "开始编写你的笔记...";
+        block.content_text = tr("开始编写你的笔记...");
         block.position = 0;
         
         blocks.append(block);

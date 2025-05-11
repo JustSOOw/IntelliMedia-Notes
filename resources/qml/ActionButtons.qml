@@ -162,7 +162,7 @@ Rectangle {
                 }
                 
                 Text {
-                    text: "新建"
+                    text: qsTr("新建")
                     font.pixelSize: 14
                     font.bold: true
                     color: "white"
@@ -293,24 +293,21 @@ Rectangle {
                         spacing: 5
                         
                         Image {
-                            id: fileIcon // 添加 id
+                            id: fileIcon
                             source: "qrc:/icons/sidebar/file.svg"
                             width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
-                            // ColorOverlay 用于控制图标颜色
                             ColorOverlay {
-                                id: fileIconOverlay // 添加 id
-                                anchors.fill: parent;
-                                source: parent;
-                                // 颜色由 _updateButtonColors 控制
-                                color: "#666666" // 初始默认灰色
+                                id: fileIconOverlay
+                                anchors.fill: parent
+                                source: parent
+                                color: activeButton === "file" ? "#ffffff" : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
                         Text {
-                            id: fileText // 添加 id
-                            text: "文件"
-                            font.pixelSize: 12
-                            // 颜色由 _updateButtonColors 控制
-                            color: "#666666" // 初始默认灰色
+                            id: fileText
+                            text: qsTr("文件")
+                            font.pixelSize: 13
+                            color: activeButton === "file" ? activeTextColor : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                         }
                     }
                 }
@@ -356,21 +353,21 @@ Rectangle {
                         spacing: 5
                         
                         Image {
-                            id: aiIcon // 添加 id
+                            id: aiIcon
                             source: "qrc:/icons/sidebar/ai.svg"
                             width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
                             ColorOverlay {
-                                id: aiIconOverlay // 添加 id
-                                anchors.fill: parent;
-                                source: parent;
-                                color: "#666666" // 初始默认灰色
+                                id: aiIconOverlay
+                                anchors.fill: parent
+                                source: parent
+                                color: activeButton === "ai" ? "#ffffff" : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
                         Text {
-                            id: aiText // 添加 id
-                            text: "AI"
-                            font.pixelSize: 12
-                            color: "#666666" // 初始默认灰色
+                            id: aiText
+                            text: qsTr("AI")
+                            font.pixelSize: 13
+                            color: activeButton === "ai" ? activeTextColor : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                         }
                     }
                 }
@@ -414,21 +411,21 @@ Rectangle {
                         spacing: 5
                         
                         Image {
-                            id: searchIcon // 添加 id
+                            id: searchIcon
                             source: "qrc:/icons/sidebar/search.svg"
                             width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
                             ColorOverlay {
-                                id: searchIconOverlay // 添加 id
-                                anchors.fill: parent;
-                                source: parent;
-                                color: "#666666" // 初始默认灰色
+                                id: searchIconOverlay
+                                anchors.fill: parent
+                                source: parent
+                                color: activeButton === "search" ? "#ffffff" : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
                         Text {
-                            id: searchText // 添加 id
-                            text: "搜索"
-                            font.pixelSize: 12
-                            color: "#666666" // 初始默认灰色
+                            id: searchText
+                            text: qsTr("搜索")
+                            font.pixelSize: 13
+                            color: activeButton === "search" ? activeTextColor : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                         }
                     }
                 }

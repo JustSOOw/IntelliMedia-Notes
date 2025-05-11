@@ -12,7 +12,7 @@ Rectangle {
     transformOrigin: Item.Center
     
     property string username: "15039630768"
-    property string userStatus: "在线"
+    property string userStatus: qsTr("在线")
     property string userAvatar: ""
     
     // 主题相关颜色属性

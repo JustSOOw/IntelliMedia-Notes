@@ -460,7 +460,7 @@ Item {
             // 标题文本
             Text {
                 id: headerText
-                text: "全部笔记"
+                text: qsTr("全部笔记")
                 font.pixelSize: 16
                 font.bold: true
                 anchors.verticalCenter: parent.verticalCenter

@@ -314,9 +314,7 @@ SettingsDialog QTabBar::tab:selected {
     border-bottom: none;
 }
 
-SettingsDialog QTabBar::tab:hover:!selected {
-    background-color: #f0f0f0;
-}
+
 
 /* 设置对话框标签样式 */
 SettingsDialog QLabel {

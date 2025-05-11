@@ -374,10 +374,10 @@ void SettingsDialog::onToggleApiKeyVisibilityClicked()
     
     if (m_apiKeyVisible) {
         m_apiKeyEdit->setEchoMode(QLineEdit::Normal);
-        m_toggleApiKeyVisibilityBtn->setText(tr("隐藏"));
+        m_toggleApiKeyVisibilityBtn->setText(tr("显示/隐藏"));
     } else {
         m_apiKeyEdit->setEchoMode(QLineEdit::Password);
-        m_toggleApiKeyVisibilityBtn->setText(tr("显示"));
+        m_toggleApiKeyVisibilityBtn->setText(tr("显示/隐藏"));
     }
 }
 
@@ -933,7 +933,7 @@ void SettingsDialog::setupEditorTab()
     layout->setSpacing(15);
     
     // 1. 默认字体设置
-    QGroupBox *fontGroup = new QGroupBox(tr("默认字体 (Default Font)"));
+    QGroupBox *fontGroup = new QGroupBox(tr("字体设置"));
     QVBoxLayout *fontLayout = new QVBoxLayout(fontGroup);
     
     QHBoxLayout *fontDisplayLayout = new QHBoxLayout();
@@ -958,7 +958,7 @@ void SettingsDialog::setupEditorTab()
     fontGroup->setLayout(fontLayout);
     
     // 2. 制表符宽度设置
-    QGroupBox *tabGroup = new QGroupBox(tr("制表符宽度 (Tab Width)"));
+    QGroupBox *tabGroup = new QGroupBox(tr("制表符宽度"));
     QHBoxLayout *tabLayout = new QHBoxLayout(tabGroup);
     
     QLabel *tabWidthLabel = new QLabel(tr("制表符宽度:"));
@@ -974,10 +974,10 @@ void SettingsDialog::setupEditorTab()
     tabGroup->setLayout(tabLayout);
     
     // 3. 自动配对括号/引号设置
-    QGroupBox *pairGroup = new QGroupBox(tr("自动配对 (Auto-pair)"));
+    QGroupBox *pairGroup = new QGroupBox(tr("编辑器行为"));
     QVBoxLayout *pairLayout = new QVBoxLayout(pairGroup);
     
-    m_autoPairCheck = new QCheckBox(tr("启用自动配对括号/引号"));
+    m_autoPairCheck = new QCheckBox(tr("自动配对括号和引号"));
     QLabel *pairDescLabel = new QLabel(tr("启用后，当输入 (, [, {, \", ' 等字符时，将自动添加对应的右括号或引号"));
     pairDescLabel->setWordWrap(true);
     
@@ -1005,7 +1005,7 @@ void SettingsDialog::setupAiServiceTab()
     layout->setSpacing(15);
     
     // 1. 服务提供商设置
-    QGroupBox *providerGroup = new QGroupBox(tr("服务提供商 (Provider)"));
+    QGroupBox *providerGroup = new QGroupBox(tr("服务提供商"));
     QVBoxLayout *providerLayout = new QVBoxLayout(providerGroup);
     
     QLabel *providerLabel = new QLabel(tr("当前服务提供商: DeepSeek"));
@@ -1018,7 +1018,7 @@ void SettingsDialog::setupAiServiceTab()
     providerGroup->setLayout(providerLayout);
     
     // 2. API密钥设置
-    QGroupBox *apiKeyGroup = new QGroupBox(tr("API密钥 (API Key)"));
+    QGroupBox *apiKeyGroup = new QGroupBox(tr("API设置"));
     QVBoxLayout *apiKeyLayout = new QVBoxLayout(apiKeyGroup);
     
     QLabel *apiKeyDescLabel = new QLabel(tr("请输入您的DeepSeek API密钥，用于访问AI服务"));
@@ -1029,8 +1029,8 @@ void SettingsDialog::setupAiServiceTab()
     m_apiKeyEdit = new QLineEdit();
     m_apiKeyEdit->setEchoMode(QLineEdit::Password);
     m_apiKeyEdit->setPlaceholderText(tr("输入您的DeepSeek API密钥"));
-    m_toggleApiKeyVisibilityBtn = new QPushButton(tr("显示"));
-    m_toggleApiKeyVisibilityBtn->setFixedWidth(60);
+    m_toggleApiKeyVisibilityBtn = new QPushButton(tr("显示/隐藏"));
+    m_toggleApiKeyVisibilityBtn->setFixedWidth(80);
     
     apiKeyInputLayout->addWidget(apiKeyLabel);
     apiKeyInputLayout->addWidget(m_apiKeyEdit);
@@ -1042,14 +1042,14 @@ void SettingsDialog::setupAiServiceTab()
     apiKeyGroup->setLayout(apiKeyLayout);
     
     // 3. API端点设置
-    QGroupBox *endpointGroup = new QGroupBox(tr("API端点 (API Endpoint)"));
+    QGroupBox *endpointGroup = new QGroupBox(tr("API端点"));
     QVBoxLayout *endpointLayout = new QVBoxLayout(endpointGroup);
     
     QLabel *endpointDescLabel = new QLabel(tr("API端点URL，一般无需修改"));
     endpointDescLabel->setWordWrap(true);
     
     QHBoxLayout *endpointInputLayout = new QHBoxLayout();
-    QLabel *endpointLabel = new QLabel(tr("端点URL:"));
+    QLabel *endpointLabel = new QLabel(tr("服务提供商:"));
     m_apiEndpointEdit = new QLineEdit();
     m_apiEndpointEdit->setPlaceholderText(tr("https://api.deepseek.com/chat/completions"));
     
@@ -1065,7 +1065,7 @@ void SettingsDialog::setupAiServiceTab()
     QGroupBox *testGroup = new QGroupBox(tr("连接测试"));
     QVBoxLayout *testLayout = new QVBoxLayout(testGroup);
     
-    m_testApiConnectionBtn = new QPushButton(tr("测试API连接"));
+    m_testApiConnectionBtn = new QPushButton(tr("测试连接"));
     m_apiStatusLabel = new QLabel(tr("未测试"));
     
     testLayout->addWidget(m_testApiConnectionBtn);
@@ -1092,15 +1092,15 @@ void SettingsDialog::setupDataStorageTab()
     mainLayout->setSpacing(15);
     
     // 笔记库位置设置
-    QGroupBox *locationGroup = new QGroupBox(tr("笔记库位置"));
+    QGroupBox *locationGroup = new QGroupBox(tr("存储位置"));
     QVBoxLayout *locationLayout = new QVBoxLayout(locationGroup);
     
-    QLabel *locationLabel = new QLabel(tr("当前位置:"));
+    QLabel *locationLabel = new QLabel(tr("笔记库位置:"));
     m_notebookLocationLabel = new QLabel();
     m_notebookLocationLabel->setWordWrap(true);
     m_notebookLocationLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     
-    m_selectNotebookLocationBtn = new QPushButton(tr("更改位置..."));
+    m_selectNotebookLocationBtn = new QPushButton(tr("选择位置..."));
     
     locationLayout->addWidget(locationLabel);
     locationLayout->addWidget(m_notebookLocationLabel);
@@ -1156,7 +1156,7 @@ void SettingsDialog::setupDataStorageTab()
     exportLayout->addLayout(exportButtonsLayout);
     
     // 操作状态
-    QGroupBox *statusGroup = new QGroupBox(tr("操作状态"));
+    QGroupBox *statusGroup = new QGroupBox(tr("操作进度"));
     QVBoxLayout *statusLayout = new QVBoxLayout(statusGroup);
     
     m_operationProgressBar = new QProgressBar();
@@ -1212,7 +1212,7 @@ void SettingsDialog::setupAboutTab()
     nameFont.setBold(true);
     appNameLabel->setFont(nameFont);
     
-    m_versionLabel = new QLabel(tr("版本: 0.1.0"));
+    m_versionLabel = new QLabel(tr("版本:") + " 0.1.0");
     
     appNameLayout->addWidget(appNameLabel);
     appNameLayout->addWidget(m_versionLabel);
@@ -1246,10 +1246,14 @@ void SettingsDialog::setupAboutTab()
     
     // 4. 链接
     QHBoxLayout *linksLayout = new QHBoxLayout();
-    m_websiteBtn = new QPushButton(tr("访问项目网站"));
+    m_websiteBtn = new QPushButton(tr("查看网站"));
+    QPushButton *docsBtn = new QPushButton(tr("查看文档"));
+    QPushButton *updateBtn = new QPushButton(tr("检查更新"));
     
     linksLayout->addStretch();
     linksLayout->addWidget(m_websiteBtn);
+    linksLayout->addWidget(docsBtn);
+    linksLayout->addWidget(updateBtn);
     linksLayout->addStretch();
     
     // 5. 致谢
@@ -1280,6 +1284,19 @@ void SettingsDialog::setupAboutTab()
     
     // 设置关于标签页的布局
     m_aboutTab->setLayout(layout);
+    
+    // 连接新增按钮的信号和槽
+    if (docsBtn) {
+        connect(docsBtn, &QPushButton::clicked, this, [this]() {
+            QDesktopServices::openUrl(QUrl("https://github.com/yourusername/IntelliMedia_Notes/docs"));
+        });
+    }
+    
+    if (updateBtn) {
+        connect(updateBtn, &QPushButton::clicked, this, [this]() {
+            QMessageBox::information(this, tr("检查更新"), tr("当前已是最新版本。"));
+        });
+    }
 }
 
 // 混淆API密钥
@@ -1315,10 +1332,14 @@ void SettingsDialog::loadSettings()
         m_systemThemeRadio->setChecked(true);
     }
     
+    // 修改此处，根据实际语言代码设置下拉框
     QString language = m_settings.value("General/Language", "System").toString();
-    int languageIndex = m_languageCombo->findData(language);
-    if (languageIndex != -1) {
-        m_languageCombo->setCurrentIndex(languageIndex);
+    if (language == "zh_CN") {
+        m_languageCombo->setCurrentIndex(0);
+    } else if (language == "en_US") {
+        m_languageCombo->setCurrentIndex(1);
+    } else {
+        m_languageCombo->setCurrentIndex(2); // System
     }
     
     bool startMinimized = m_settings.value("General/StartMinimized", false).toBool();
@@ -1348,7 +1369,7 @@ void SettingsDialog::loadSettings()
     }
     m_apiKeyEdit->setText(apiKey);
     
-    QString apiEndpoint = m_settings.value("AIService/APIEndpoint", "https://api.openai.com/v1").toString();
+    QString apiEndpoint = m_settings.value("AIService/APIEndpoint", "https://api.deepseek.com/chat/completions").toString();
     m_apiEndpointEdit->setText(apiEndpoint);
     
     // 加载数据与存储设置

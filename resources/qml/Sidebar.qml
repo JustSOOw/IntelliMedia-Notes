@@ -46,6 +46,8 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
+        username: sidebarManager.getUserName()
+        userStatus: sidebarManager.getUserStatus()
     }
     
     // 操作按钮区域 (使用 anchors)

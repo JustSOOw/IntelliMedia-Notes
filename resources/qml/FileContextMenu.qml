@@ -86,7 +86,7 @@ Menu {
     // 创建笔记按钮
     Action {
         id: createNoteAction
-        text: "创建笔记"
+        text: qsTr("创建笔记")
         icon.source: "qrc:/icons/sidebar/note.svg"
         enabled: isFolder
         onTriggered: {
@@ -99,7 +99,7 @@ Menu {
     // 创建文件夹按钮
     Action {
         id: createFolderAction
-        text: "创建文件夹"
+        text: qsTr("创建文件夹")
         icon.source: "qrc:/icons/sidebar/folder.svg"
         enabled: isFolder
         onTriggered: {
@@ -122,7 +122,7 @@ Menu {
     // 重命名按钮
     Action {
         id: renameAction
-        text: "重命名"
+        text: qsTr("重命名")
         icon.source: "qrc:/icons/sidebar/note.svg"
         onTriggered: {
             console.log("[ContextMenu] Rename Requested for:", itemPath, "Name:", itemName)
@@ -134,7 +134,7 @@ Menu {
     // 删除按钮
     Action {
         id: deleteAction
-        text: "删除"
+        text: qsTr("删除")
         icon.source: "qrc:/icons/round_close_fill.svg"
         onTriggered: {
             console.log("[ContextMenu] Delete Requested for:", itemPath)

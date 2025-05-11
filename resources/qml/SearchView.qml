@@ -168,7 +168,7 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     height: parent.height // 填充高度
                     
-                    placeholderText: "搜索笔记..."
+                    placeholderText: qsTr("搜索笔记...")
                     background: Item {} // 移除默认背景
                     selectByMouse: true
                     font.pixelSize: 14
@@ -235,7 +235,7 @@ Rectangle {
                 
                 Text {
                     anchors.centerIn: parent
-                    text: "搜索"
+                    text: qsTr("搜索")
                     font.pixelSize: 14
                     color: "#ffffff"
                 }
@@ -268,7 +268,7 @@ Rectangle {
             spacing: 10
             
             Text {
-                text: "排序:"
+                text: qsTr("排序:")
                 font.pixelSize: 13
                 color: secondaryTextColor
             }
@@ -276,7 +276,7 @@ Rectangle {
             // 排序方式 (自定义样式)
             ComboBox {
                 id: sortOrder
-                model: ["最近修改", "创建时间", "按名称排序"]
+                model: [qsTr("最近修改"), qsTr("创建时间"), qsTr("按名称排序")]
                 currentIndex: 0
                 font.pixelSize: 13
                 implicitWidth: 130
@@ -409,7 +409,7 @@ Rectangle {
                 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: searchField.text.trim().length > 0 ? "未找到匹配的笔记" : "没有笔记，快去创建吧！" // 修改空状态文本
+                    text: searchField.text.trim().length > 0 ? qsTr("未找到匹配的笔记") : qsTr("没有笔记，快去创建吧！") // 修改空状态文本
                     font.pixelSize: 16
                     color: secondaryTextColor
                 }
@@ -503,7 +503,7 @@ Rectangle {
                         Text {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 70
-                            text: modelData.previewText || "无内容预览"
+                            text: modelData.previewText || qsTr("无内容预览")
                             font.pixelSize: 13
                             color: secondaryTextColor
                             wrapMode: Text.WordWrap
@@ -517,7 +517,7 @@ Rectangle {
                             spacing: 5
                             
                             Text {
-                                text: modelData.updatedAt ? "修改: " + modelData.updatedAt : ""
+                                text: modelData.updatedAt ? qsTr("修改: ") + modelData.updatedAt : ""
                                 font.pixelSize: 11
                                 color: sidebarManager.isDarkTheme ? "#909090" : "#909090"
                             }
@@ -528,7 +528,7 @@ Rectangle {
                             }
                             
                             Text {
-                                text: modelData.createdAt ? "创建: " + modelData.createdAt : ""
+                                text: modelData.createdAt ? qsTr("创建: ") + modelData.createdAt : ""
                                 font.pixelSize: 11
                                 color: sidebarManager.isDarkTheme ? "#909090" : "#909090"
                             }

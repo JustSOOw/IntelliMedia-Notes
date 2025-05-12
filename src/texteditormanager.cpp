@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-06 17:17:52
+ * @LastEditTime: 2025-05-12 13:07:53
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -641,29 +641,29 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
     QMenu *menu = new QMenu(this);
     
     // 添加基本编辑操作（中文版本）
-    QAction *undoAction = menu->addAction("撤销");
+    QAction *undoAction = menu->addAction(tr("撤销"));
     undoAction->setShortcut(QKeySequence::Undo);
     undoAction->setEnabled(document()->isUndoAvailable());
     connect(undoAction, &QAction::triggered, this, &QTextEdit::undo);
     
-    QAction *redoAction = menu->addAction("重做");
+    QAction *redoAction = menu->addAction(tr("重做"));
     redoAction->setShortcut(QKeySequence::Redo);
     redoAction->setEnabled(document()->isRedoAvailable());
     connect(redoAction, &QAction::triggered, this, &QTextEdit::redo);
     
     menu->addSeparator();
     
-    QAction *cutAction = menu->addAction("剪切");
+    QAction *cutAction = menu->addAction(tr("剪切"));
     cutAction->setShortcut(QKeySequence::Cut);
     cutAction->setEnabled(textCursor().hasSelection());
     connect(cutAction, &QAction::triggered, this, &QTextEdit::cut);
     
-    QAction *copyAction = menu->addAction("复制");
+    QAction *copyAction = menu->addAction(tr("复制"));
     copyAction->setShortcut(QKeySequence::Copy);
     copyAction->setEnabled(textCursor().hasSelection());
     connect(copyAction, &QAction::triggered, this, &QTextEdit::copy);
     
-    QAction *pasteAction = menu->addAction("粘贴");
+    QAction *pasteAction = menu->addAction(tr("粘贴"));
     pasteAction->setShortcut(QKeySequence::Paste);
     pasteAction->setEnabled(canPaste());
     connect(pasteAction, &QAction::triggered, this, &QTextEdit::paste);
@@ -671,7 +671,7 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
     menu->addSeparator();
     
     // 添加"纯文本粘贴"操作 (Ctrl+Shift+V)
-    QAction *plainTextPasteAction = menu->addAction("纯文本粘贴");
+    QAction *plainTextPasteAction = menu->addAction(tr("纯文本粘贴"));
     plainTextPasteAction->setShortcut(QKeySequence("Ctrl+Shift+V"));
     connect(plainTextPasteAction, &QAction::triggered, [this]() {
         // 获取剪贴板内容作为纯文本
@@ -684,12 +684,12 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
     });
     
     // 添加"全选"操作 (Ctrl+A)
-    QAction *selectAllAction = menu->addAction("全选");
+    QAction *selectAllAction = menu->addAction(tr("全选"));
     selectAllAction->setShortcut(QKeySequence("Ctrl+A"));
     connect(selectAllAction, &QAction::triggered, this, &QTextEdit::selectAll);
     
     // 添加"插入当前时间"操作 (Alt+Shift+D)
-    QAction *insertTimeAction = menu->addAction("插入当前时间");
+    QAction *insertTimeAction = menu->addAction(tr("插入当前时间"));
     insertTimeAction->setShortcut(QKeySequence("Alt+Shift+D"));
     connect(insertTimeAction, &QAction::triggered, [this]() {
         // 获取当前时间并格式化
@@ -699,7 +699,7 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
     });
     
     // 添加"字数统计"操作
-    QAction *wordCountAction = menu->addAction("字数统计");
+    QAction *wordCountAction = menu->addAction(tr("字数统计"));
     connect(wordCountAction, &QAction::triggered, [this]() {
         QString text = toPlainText();
         // 移除所有HTML标签和特殊字符
@@ -709,18 +709,18 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
         // 简单的中文字数统计方式（按空格分割）
         int wordCount = text.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts).count();
         
-        QMessageBox::information(this, "字数统计",
+        QMessageBox::information(this, tr("字数统计"),
                                 QString("字符数：%1\n单词数：%2").arg(charCount).arg(wordCount));
     });
     
     // 添加插入图片操作
     menu->addSeparator();
-    QAction *insertImageAction = menu->addAction("插入图片");
+    QAction *insertImageAction = menu->addAction(tr("插入图片"));
     connect(insertImageAction, &QAction::triggered, [this]() {
         QString filePath = QFileDialog::getOpenFileName(this, 
-            "选择图片", 
+            tr("选择图片"), 
             QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
-            "图片文件 (*.png *.jpg *.jpeg *.bmp *.gif)");
+            tr("图片文件 (*.png *.jpg *.jpeg *.bmp *.gif)"));
             
         if (!filePath.isEmpty()) {
             insertImageFromFile(filePath);
@@ -732,7 +732,7 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
     if (!imagePath.isEmpty()) {
         menu->addSeparator();
         
-        QAction *copyImageAction = menu->addAction("复制图片");
+        QAction *copyImageAction = menu->addAction(tr("复制图片"));
         connect(copyImageAction, &QAction::triggered, [this, imagePath]() {
             QClipboard *clipboard = QApplication::clipboard();
             QImage image(imagePath);
@@ -741,12 +741,12 @@ void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
             }
         });
         
-        QAction *saveImageAsAction = menu->addAction("图片另存为...");
+        QAction *saveImageAsAction = menu->addAction(tr("图片另存为..."));
         connect(saveImageAsAction, &QAction::triggered, [this, imagePath]() {
             QString saveFilePath = QFileDialog::getSaveFileName(this,
-                "保存图片",
+                tr("保存图片"),
                 QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
-                "图片文件 (*.png *.jpg *.jpeg *.bmp)");
+                tr("图片文件 (*.png *.jpg *.jpeg *.bmp)"));
                 
             if (!saveFilePath.isEmpty()) {
                 QImage image(imagePath);
@@ -1279,7 +1279,7 @@ void FloatingToolBar::setupUI()
     m_fontComboBox->setObjectName("floatingFontComboBox");
     m_fontComboBox->setMenuWidth(250); // 设置固定下拉菜单宽度
     m_fontComboBox->setFixedWidth(80); // 固定按钮宽度
-    m_fontComboBox->setToolTip("选择字体");
+    m_fontComboBox->setToolTip(tr("选择字体"));
     m_fontComboBox->view()->setSizeAdjustPolicy(QAbstractItemView::AdjustToContents);
     
     // 设置下拉视图的固定宽度
@@ -1291,7 +1291,7 @@ void FloatingToolBar::setupUI()
     m_fontSizeComboBox->setObjectName("floatingFontSizeComboBox");
     m_fontSizeComboBox->setFixedWidth(50);
     m_fontSizeComboBox->view()->setMinimumWidth(60);
-    m_fontSizeComboBox->setToolTip("选择字号");
+    m_fontSizeComboBox->setToolTip(tr("选择字号"));
     
     QStringList fontSizes = {"8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"};
     m_fontSizeComboBox->addItems(fontSizes);
@@ -1305,7 +1305,7 @@ void FloatingToolBar::setupUI()
         m_headingComboBox->setFixedWidth(80);
     }
     m_headingComboBox->view()->setMinimumWidth(80); // 下拉列表较宽
-    m_headingComboBox->setToolTip("选择标题级别");
+    m_headingComboBox->setToolTip(tr("选择标题级别"));
     
     // 设置图标
     m_boldButton->setIcon(QIcon(":/icons/editor/bold.svg"));
@@ -1393,26 +1393,26 @@ void FloatingToolBar::setupUI()
     setLayout(layout);
     
     // 添加标题级别下拉框的选项
-    m_headingComboBox->addItem("正文");
-    m_headingComboBox->addItem("一级标题");
-    m_headingComboBox->addItem("二级标题");
-    m_headingComboBox->addItem("三级标题");
-    m_headingComboBox->addItem("四级标题");
-    m_headingComboBox->addItem("五级标题");
-    m_headingComboBox->addItem("六级标题");
+    m_headingComboBox->addItem(tr("正文"));
+    m_headingComboBox->addItem(tr("一级标题"));
+    m_headingComboBox->addItem(tr("二级标题"));
+    m_headingComboBox->addItem(tr("三级标题"));
+    m_headingComboBox->addItem(tr("四级标题"));
+    m_headingComboBox->addItem(tr("五级标题"));
+    m_headingComboBox->addItem(tr("六级标题"));
     
     // 设置工具提示
-    m_boldButton->setToolTip("粗体");
-    m_italicButton->setToolTip("斜体");
-    m_underlineButton->setToolTip("下划线");
-    m_strikeOutButton->setToolTip("删除线");
-    m_textColorButton->setToolTip("文本颜色");
-    m_highlightButton->setToolTip("文本高亮");
-    m_alignLeftButton->setToolTip("左对齐");
-    m_alignCenterButton->setToolTip("居中对齐");
-    m_alignRightButton->setToolTip("右对齐");
-    m_alignJustifyButton->setToolTip("两端对齐");
-    m_aiAssistantButton->setToolTip("AI助手"); // 设置AI助手按钮提示
+    m_boldButton->setToolTip(tr("粗体"));
+    m_italicButton->setToolTip(tr("斜体"));
+    m_underlineButton->setToolTip(tr("下划线"));
+    m_strikeOutButton->setToolTip(tr("删除线"));
+    m_textColorButton->setToolTip(tr("文本颜色"));
+    m_highlightButton->setToolTip(tr("文本高亮"));
+    m_alignLeftButton->setToolTip(tr("左对齐"));
+    m_alignCenterButton->setToolTip(tr("居中对齐"));
+    m_alignRightButton->setToolTip(tr("右对齐"));
+    m_alignJustifyButton->setToolTip(tr("两端对齐"));
+    m_aiAssistantButton->setToolTip(tr("AI助手")); // 设置AI助手按钮提示
 }
 
 void FloatingToolBar::setTheme(bool isDarkTheme)
@@ -1442,13 +1442,6 @@ void FloatingToolBar::setTheme(bool isDarkTheme)
     m_fontSizeComboBox->setStyleSheet("");
     m_headingComboBox->setStyleSheet("");
     
-    // 仅设置必要的文本对齐样式 - 这些可以通过 C++ 的 setAlignment 实现，无需 QSS
-    // if (m_headingComboBox->lineEdit()) {
-    //     m_headingComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Already set in setupUI or elsewhere if needed
-    // }
-    // if (m_fontSizeComboBox->lineEdit()) {
-    //     m_fontSizeComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Already set in setupUI or elsewhere if needed
-    // }
 }
 
 void FloatingToolBar::updatePosition(const QPoint &)
@@ -1766,16 +1759,16 @@ void TextEditorManager::setupTopToolBar()
     m_topToolBar->setIconSize(QSize(20, 20));
     
     // 创建操作，使用自定义图标
-    m_saveAction = m_topToolBar->addAction(QIcon(":/icons/editor/save.svg"), "保存");
+    m_saveAction = m_topToolBar->addAction(QIcon(":/icons/editor/save.svg"), tr("保存"));
     m_topToolBar->addSeparator();
     
-    m_undoAction = m_topToolBar->addAction(QIcon(":/icons/editor/undo.svg"), "撤销");
-    m_redoAction = m_topToolBar->addAction(QIcon(":/icons/editor/redo.svg"), "重做");
+    m_undoAction = m_topToolBar->addAction(QIcon(":/icons/editor/undo.svg"), tr("撤销"));
+    m_redoAction = m_topToolBar->addAction(QIcon(":/icons/editor/redo.svg"), tr("重做"));
     m_topToolBar->addSeparator();
     
-    m_cutAction = m_topToolBar->addAction(QIcon(":/icons/editor/cut.svg"), "剪切");
-    m_copyAction = m_topToolBar->addAction(QIcon(":/icons/editor/copy.svg"), "复制");
-    m_pasteAction = m_topToolBar->addAction(QIcon(":/icons/editor/paste.svg"), "粘贴");
+    m_cutAction = m_topToolBar->addAction(QIcon(":/icons/editor/cut.svg"), tr("剪切"));
+    m_copyAction = m_topToolBar->addAction(QIcon(":/icons/editor/copy.svg"), tr("复制"));
+    m_pasteAction = m_topToolBar->addAction(QIcon(":/icons/editor/paste.svg"), tr("粘贴"));
     m_topToolBar->addSeparator();
     
     // 添加字体、字号和标题选择控件
@@ -1813,7 +1806,7 @@ void TextEditorManager::setupTopToolBar()
         m_fontSizeComboBox->setMinimumWidth(40);
         m_fontSizeComboBox->setMaximumWidth(60);
     }
-    m_fontSizeComboBox->setToolTip("选择字号");
+    m_fontSizeComboBox->setToolTip(tr("选择字号"));
     m_fontSizeComboBox->setEditable(true);
     m_fontSizeComboBox->lineEdit()->setReadOnly(true);
     m_fontSizeComboBox->lineEdit()->setAlignment(Qt::AlignCenter); // Use C++ API for alignment
@@ -1840,7 +1833,7 @@ void TextEditorManager::setupTopToolBar()
         m_headingComboBox->setFixedWidth(80);
     }
     m_headingComboBox->view()->setMinimumWidth(80); // 下拉列表较宽
-    m_headingComboBox->setToolTip("选择标题级别");
+    m_headingComboBox->setToolTip(tr("选择标题级别"));
     
     // 恢复原来的设置方式
     m_headingComboBox->setEditable(true);
@@ -1851,35 +1844,35 @@ void TextEditorManager::setupTopToolBar()
     m_headingComboBox->setStyleSheet("");
     
     // 设置图标
-    m_headingComboBox->addItem("正文");
-    m_headingComboBox->addItem("一级标题");
-    m_headingComboBox->addItem("二级标题");
-    m_headingComboBox->addItem("三级标题");
-    m_headingComboBox->addItem("四级标题");
-    m_headingComboBox->addItem("五级标题");
-    m_headingComboBox->addItem("六级标题");
+    m_headingComboBox->addItem(tr("正文"));
+    m_headingComboBox->addItem(tr("一级标题"));
+    m_headingComboBox->addItem(tr("二级标题"));
+    m_headingComboBox->addItem(tr("三级标题"));
+    m_headingComboBox->addItem(tr("四级标题"));
+    m_headingComboBox->addItem(tr("五级标题"));
+    m_headingComboBox->addItem(tr("六级标题"));
     headingLayout->addWidget(m_headingComboBox);
     m_topToolBar->addWidget(headingWidget);
     m_topToolBar->addSeparator();
     
-    m_insertImageAction = m_topToolBar->addAction(QIcon(":/icons/editor/image.svg"), "插入图片");
+    m_insertImageAction = m_topToolBar->addAction(QIcon(":/icons/editor/image.svg"), tr("插入图片"));
     
     // 添加分隔符
     m_topToolBar->addSeparator();
     
     // 添加AI助手按钮
-    m_showAiAssistantAction = m_topToolBar->addAction(QIcon(":/icons/editor/ai.svg"), "AI助手");
-    m_showAiAssistantAction->setToolTip("使用AI助手处理选中文本");
+    m_showAiAssistantAction = m_topToolBar->addAction(QIcon(":/icons/editor/ai.svg"), tr("AI助手"));
+    m_showAiAssistantAction->setToolTip(tr("使用AI助手处理选中文本"));
     connect(m_showAiAssistantAction, &QAction::triggered, this, &TextEditorManager::onShowAiAssistantActionTriggered);
     
     // 设置工具提示
-    m_saveAction->setToolTip("保存笔记 (Ctrl+S)");
-    m_undoAction->setToolTip("撤销上一步操作 (Ctrl+Z)");
-    m_redoAction->setToolTip("重做上一步操作 (Ctrl+Y)");
-    m_cutAction->setToolTip("剪切选中文本 (Ctrl+X)");
-    m_copyAction->setToolTip("复制选中文本 (Ctrl+C)");
-    m_pasteAction->setToolTip("粘贴文本 (Ctrl+V)");
-    m_insertImageAction->setToolTip("从文件插入图片");
+    m_saveAction->setToolTip(tr("保存笔记 (Ctrl+S)"));
+    m_undoAction->setToolTip(tr("撤销上一步操作 (Ctrl+Z)"));
+    m_redoAction->setToolTip(tr("重做上一步操作 (Ctrl+Y)"));
+    m_cutAction->setToolTip(tr("剪切选中文本 (Ctrl+X)"));
+    m_copyAction->setToolTip(tr("复制选中文本 (Ctrl+C)"));
+    m_pasteAction->setToolTip(tr("粘贴文本 (Ctrl+V)"));
+    m_insertImageAction->setToolTip(tr("从文件插入图片"));
     
     // 连接信号
     connect(m_saveAction, &QAction::triggered, this, &TextEditorManager::onSaveTriggered);
@@ -2318,7 +2311,7 @@ void TextEditorManager::onStrikeOutTriggered()
 
 void TextEditorManager::onTextColorTriggered()
 {
-    QColor color = QColorDialog::getColor(m_textColor, m_textEdit, "选择文本颜色");
+    QColor color = QColorDialog::getColor(m_textColor, m_textEdit, tr("选择文本颜色"));
     if (color.isValid()) {
         setTextColor(color);
     }
@@ -2326,7 +2319,7 @@ void TextEditorManager::onTextColorTriggered()
 
 void TextEditorManager::onHighlightTriggered()
 {
-    QColor color = QColorDialog::getColor(m_highlightColor, m_textEdit, "选择高亮颜色");
+    QColor color = QColorDialog::getColor(m_highlightColor, m_textEdit, tr("选择高亮颜色"));
     if (color.isValid()) {
         setHighlightColor(color);
     }
@@ -2416,8 +2409,8 @@ void TextEditorManager::onPasteTriggered()
 void TextEditorManager::onInsertImageTriggered()
 {
     QString filePath = QFileDialog::getOpenFileName(
-        m_textEdit, "选择图片",
-        QString(), "图像文件 (*.png *.jpg *.jpeg *.bmp *.gif)");
+        m_textEdit, tr("选择图片"),
+        QString(), tr("图像文件 (*.png *.jpg *.jpeg *.bmp *.gif)"));
     
     if (!filePath.isEmpty()) {
         m_textEdit->insertImageFromFile(filePath);
@@ -2441,11 +2434,11 @@ void TextEditorManager::loadNote(const QString &notePath)
     
     // 如果路径为空，加载默认内容
     if (notePath.isEmpty()) {
-        m_textEdit->setHtml("<html><body><p>欢迎使用IntelliMedia Notes！</p><p>请从侧边栏选择一个笔记或创建新笔记开始。</p></body></html>");
+        m_textEdit->setHtml("<html><body><p>" + tr("欢迎使用IntelliMedia Notes！") + "</p><p>" + tr("请从侧边栏选择一个笔记或创建新笔记开始。") + "</p></body></html>");
         return;
     }
     
-    m_textEdit->setHtml("<html><body><h1>笔记：" + notePath + "</h1><p>这是来自路径" + notePath + "的笔记内容</p></body></html>");
+    m_textEdit->setHtml("<html><body><h1>" + tr("笔记：") + notePath + "</h1><p>" + tr("这是来自路径") + notePath + tr("的笔记内容") + "</p></body></html>");
     
     // 重置修改状态
     m_textEdit->document()->setModified(false);

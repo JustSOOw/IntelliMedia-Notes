@@ -2,42 +2,168 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>FileContextMenu</name>
+    <message>
+        <source>创建笔记</source>
+        <translation>Create Note</translation>
+    </message>
+    <message>
+        <source>创建文件夹</source>
+        <translation>Create Folder</translation>
+    </message>
+    <message>
+        <source>重命名</source>
+        <translation>Rename</translation>
+    </message>
+    <message>
+        <source>删除</source>
+        <translation>Delete</translation>
+    </message>
+    <message>
+        <source>确认删除</source>
+        <translation>Confirm Delete</translation>
+    </message>
+    <message>
+        <source>你确定要删除"%1"吗？此操作无法撤销。</source>
+        <translation>Are you sure you want to delete "%1"? This action cannot be undone.</translation>
+    </message>
+    <message>
+        <source>删除失败</source>
+        <translation>Delete Failed</translation>
+    </message>
+    <message>
+        <source>删除"%1"失败。</source>
+        <translation>Failed to delete "%1".</translation>
+    </message>
+</context>
+<context>
+    <name>FloatingToolBar</name>
+    <message>
+        <source>选择字体</source>
+        <translation>Select Font</translation>
+    </message>
+    <message>
+        <source>选择字号</source>
+        <translation>Select Font Size</translation>
+    </message>
+    <message>
+        <source>选择标题级别</source>
+        <translation>Select Heading Level</translation>
+    </message>
+    <message>
+        <source>正文</source>
+        <translation>Body</translation>
+    </message>
+    <message>
+        <source>一级标题</source>
+        <translation>Heading 1</translation>
+    </message>
+    <message>
+        <source>二级标题</source>
+        <translation>Heading 2</translation>
+    </message>
+    <message>
+        <source>三级标题</source>
+        <translation>Heading 3</translation>
+    </message>
+    <message>
+        <source>四级标题</source>
+        <translation>Heading 4</translation>
+    </message>
+    <message>
+        <source>五级标题</source>
+        <translation>Heading 5</translation>
+    </message>
+    <message>
+        <source>六级标题</source>
+        <translation>Heading 6</translation>
+    </message>
+    <message>
+        <source>粗体</source>
+        <translation>Bold</translation>
+    </message>
+    <message>
+        <source>斜体</source>
+        <translation>Italic</translation>
+    </message>
+    <message>
+        <source>下划线</source>
+        <translation>Underline</translation>
+    </message>
+    <message>
+        <source>删除线</source>
+        <translation>Strikethrough</translation>
+    </message>
+    <message>
+        <source>文本颜色</source>
+        <translation>Text Color</translation>
+    </message>
+    <message>
+        <source>文本高亮</source>
+        <translation>Text Highlight</translation>
+    </message>
+    <message>
+        <source>左对齐</source>
+        <translation>Align Left</translation>
+    </message>
+    <message>
+        <source>居中对齐</source>
+        <translation>Align Center</translation>
+    </message>
+    <message>
+        <source>右对齐</source>
+        <translation>Align Right</translation>
+    </message>
+    <message>
+        <source>两端对齐</source>
+        <translation>Align Justify</translation>
+    </message>
+    <message>
+        <source>AI助手</source>
+        <translation>AI Assistant</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <source>切换到浅色主题</source>
-        <translation type="vanished">Switch to Light Theme</translation>
+        <translation>Switch to Light Theme</translation>
     </message>
     <message>
         <source>切换到深色主题</source>
-        <translation type="vanished">Switch to Dark Theme</translation>
+        <translation>Switch to Dark Theme</translation>
     </message>
     <message>
         <source>设置</source>
-        <translation type="vanished">Settings</translation>
+        <translation>Settings</translation>
     </message>
     <message>
         <source>最小化</source>
-        <translation type="vanished">Minimize</translation>
+        <translation>Minimize</translation>
     </message>
     <message>
         <source>最大化</source>
-        <translation type="vanished">Maximize</translation>
+        <translation>Maximize</translation>
     </message>
     <message>
         <source>还原</source>
-        <translation type="vanished">Restore</translation>
+        <translation>Restore</translation>
     </message>
     <message>
         <source>关闭</source>
-        <translation type="vanished">Close</translation>
+        <translation>Close</translation>
     </message>
     <message>
         <source>隐藏侧边栏</source>
-        <translation type="vanished">Hide Sidebar</translation>
+        <translation>Hide Sidebar</translation>
     </message>
     <message>
         <source>显示侧边栏</source>
-        <translation type="vanished">Show Sidebar</translation>
+        <translation>Show Sidebar</translation>
+    </message>
+    <message>
+        <source>切换主题</source>
+        <translation>Toggle Theme</translation>
     </message>
     <message>
         <location filename="../../forms/mainwindow.ui" line="17"/>
@@ -82,6 +208,73 @@ You need to restart the application to apply the new language settings.</transla
         <location filename="../../src/mainwindow.cpp" line="1000"/>
         <source>应用程序重启失败。请手动关闭并重新启动应用程序。</source>
         <translation>Application restart failed. Please close and restart the application manually.</translation>
+    </message>
+</context>
+<context>
+    <name>NoteTextEdit</name>
+    <message>
+        <source>撤销</source>
+        <translation>Undo</translation>
+    </message>
+    <message>
+        <source>重做</source>
+        <translation>Redo</translation>
+    </message>
+    <message>
+        <source>剪切</source>
+        <translation>Cut</translation>
+    </message>
+    <message>
+        <source>复制</source>
+        <translation>Copy</translation>
+    </message>
+    <message>
+        <source>粘贴</source>
+        <translation>Paste</translation>
+    </message>
+    <message>
+        <source>纯文本粘贴</source>
+        <translation>Paste as Plain Text</translation>
+    </message>
+    <message>
+        <source>全选</source>
+        <translation>Select All</translation>
+    </message>
+    <message>
+        <source>插入当前时间</source>
+        <translation>Insert Current Time</translation>
+    </message>
+    <message>
+        <source>字数统计</source>
+        <translation>Word Count</translation>
+    </message>
+    <message>
+        <source>插入图片</source>
+        <translation>Insert Image</translation>
+    </message>
+    <message>
+        <source>选择图片</source>
+        <translation>Select Image</translation>
+    </message>
+    <message>
+        <source>图片文件 (*.png *.jpg *.jpeg *.bmp *.gif)</source>
+        <translation>Image Files (*.png *.jpg *.jpeg *.bmp *.gif)</translation>
+    </message>
+    <message>
+        <source>复制图片</source>
+        <translation>Copy Image</translation>
+    </message>
+    <message>
+        <source>图片另存为...</source>
+        <translation>Save Image As...</translation>
+    </message>
+    <message>
+        <source>保存图片</source>
+        <translation>Save Image</translation>
+    </message>
+    <message>
+        <source>图片文件 (*.png *.jpg *.jpeg *.bmp)</source>
+        <translation>Image Files (*.png *.jpg *.jpeg *.bmp)</translation>
     </message>
 </context>
 <context>
@@ -232,7 +425,7 @@ Are you sure you want to change it?</translation>
         <source>恢复备份将会覆盖当前的所有笔记数据。此操作无法撤销。
 
 确定要继续吗？</source>
-        <translation>Restoring the backup will overwrite all note data. This operation cannot be undone.
+        <translation>Restoring the backup will overwrite all current note data. This operation cannot be undone.
 
 Are you sure you want to continue?</translation>
     </message>
@@ -926,6 +1119,7 @@ Are you sure you want to continue?</translation>
         <translation>Search</translation>
     </message>
 </context>
+
 <context>
     <name>NoteTree</name>
     <message>
@@ -980,4 +1174,109 @@ Are you sure you want to continue?</translation>
         <translation>Sort by Name</translation>
     </message>
 </context>
+
+<context>
+    <name>TextEditorManager</name>
+    <message>
+        <source>保存</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <source>撤销</source>
+        <translation>Undo</translation>
+    </message>
+    <message>
+        <source>重做</source>
+        <translation>Redo</translation>
+    </message>
+    <message>
+        <source>剪切</source>
+        <translation>Cut</translation>
+    </message>
+    <message>
+        <source>复制</source>
+        <translation>Copy</translation>
+    </message>
+    <message>
+        <source>粘贴</source>
+        <translation>Paste</translation>
+    </message>
+    <message>
+        <source>插入图片</source>
+        <translation>Insert Image</translation>
+    </message>
+    <message>
+        <source>AI助手</source>
+        <translation>AI Assistant</translation>
+    </message>
+    <message>
+        <source>选择字号</source>
+        <translation>Select Font Size</translation>
+    </message>
+    <message>
+        <source>选择标题级别</source>
+        <translation>Select Heading Level</translation>
+    </message>
+    <message>
+        <source>使用AI助手处理选中文本</source>
+        <translation>Use AI Assistant to process selected text</translation>
+    </message>
+    <message>
+        <source>正文</source>
+        <translation>Body</translation>
+    </message>
+    <message>
+        <source>一级标题</source>
+        <translation>Heading 1</translation>
+    </message>
+    <message>
+        <source>二级标题</source>
+        <translation>Heading 2</translation>
+    </message>
+    <message>
+        <source>三级标题</source>
+        <translation>Heading 3</translation>
+    </message>
+    <message>
+        <source>四级标题</source>
+        <translation>Heading 4</translation>
+    </message>
+    <message>
+        <source>五级标题</source>
+        <translation>Heading 5</translation>
+    </message>
+    <message>
+        <source>六级标题</source>
+        <translation>Heading 6</translation>
+    </message>
+    <message>
+        <source>保存笔记 (Ctrl+S)</source>
+        <translation>Save Note (Ctrl+S)</translation>
+    </message>
+    <message>
+        <source>撤销上一步操作 (Ctrl+Z)</source>
+        <translation>Undo previous action (Ctrl+Z)</translation>
+    </message>
+    <message>
+        <source>重做上一步操作 (Ctrl+Y)</source>
+        <translation>Redo previous action (Ctrl+Y)</translation>
+    </message>
+    <message>
+        <source>剪切选中文本 (Ctrl+X)</source>
+        <translation>Cut selected text (Ctrl+X)</translation>
+    </message>
+    <message>
+        <source>复制选中文本 (Ctrl+C)</source>
+        <translation>Copy selected text (Ctrl+C)</translation>
+    </message>
+    <message>
+        <source>粘贴文本 (Ctrl+V)</source>
+        <translation>Paste text (Ctrl+V)</translation>
+    </message>
+    <message>
+        <source>从文件插入图片</source>
+        <translation>Insert image from file</translation>
+    </message>
+</context>
+
 </TS>

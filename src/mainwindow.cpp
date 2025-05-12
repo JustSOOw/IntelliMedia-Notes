@@ -119,7 +119,7 @@ MainWindow::MainWindow(QWidget *parent)
     toggleSidebarButton->setIcon(QIcon("://icons/round_left_fill.svg")); 
     toggleSidebarButton->setIconSize(QSize(20, 20)); 
     toggleSidebarButton->setFixedSize(28, 28); 
-    toggleSidebarButton->setToolTip(ui->sidebarContainer->isVisible() ? "隐藏侧边栏" : "显示侧边栏"); 
+    toggleSidebarButton->setToolTip(ui->sidebarContainer->isVisible() ? tr("隐藏侧边栏") : tr("显示侧边栏")); 
     toggleSidebarButton->setCursor(Qt::PointingHandCursor);
     toggleSidebarButton->setStyleSheet("QToolButton { border: none; background-color: transparent; border-radius: 4px; } QToolButton:hover { background-color: #555; }");
     connect(toggleSidebarButton, &QToolButton::clicked, this, &MainWindow::toggleSidebar);
@@ -128,21 +128,21 @@ MainWindow::MainWindow(QWidget *parent)
     minimizeButton = new QToolButton(this);
     minimizeButton->setIcon(QIcon("://icons/minis.svg"));
     minimizeButton->setFixedSize(28, 28);
-    minimizeButton->setToolTip("最小化");
+    minimizeButton->setToolTip(tr("最小化"));
     minimizeButton->setStyleSheet("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: #555; border-radius: 4px; }");
     connect(minimizeButton, &QToolButton::clicked, this, &MainWindow::showMinimized);
 
     maximizeButton = new QToolButton(this);
     maximizeButton->setIcon(QIcon("://icons/Maximize-filled.svg"));
     maximizeButton->setFixedSize(28, 28);
-    maximizeButton->setToolTip("最大化");
+    maximizeButton->setToolTip(tr("最大化"));
     maximizeButton->setStyleSheet("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: #555; border-radius: 4px; }");
     connect(maximizeButton, &QToolButton::clicked, this, &MainWindow::toggleMaximizeRestore);
 
     closeButton = new QToolButton(this);
     closeButton->setIcon(QIcon("://icons/round_close_fill.svg"));
     closeButton->setFixedSize(28, 28);
-    closeButton->setToolTip("关闭");
+    closeButton->setToolTip(tr("关闭"));
     closeButton->setStyleSheet("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: #E81123; border-radius: 4px; } QToolButton:pressed { background-color: #F1707A; }");
     connect(closeButton, &QToolButton::clicked, this, &MainWindow::close);
 
@@ -151,14 +151,14 @@ MainWindow::MainWindow(QWidget *parent)
     // 以浅色主题开始，显示月亮图标
     themeToggleButton->setIcon(QIcon("://icons/month.svg")); 
     themeToggleButton->setFixedSize(28, 28);
-    themeToggleButton->setToolTip("切换主题");
+    themeToggleButton->setToolTip(tr("切换主题"));
     themeToggleButton->setStyleSheet("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: #555; border-radius: 4px; }");
     connect(themeToggleButton, &QToolButton::clicked, this, &MainWindow::toggleTheme);
 
     settingsButton = new QToolButton(this);
     settingsButton->setIcon(QIcon("://icons/setting.svg")); 
     settingsButton->setFixedSize(28, 28);
-    settingsButton->setToolTip("设置");
+    settingsButton->setToolTip(tr("设置"));
     settingsButton->setStyleSheet("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: #555; border-radius: 4px; }");
     connect(settingsButton, &QToolButton::clicked, this, &MainWindow::openSettings);
     
@@ -201,7 +201,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 根据默认浅色主题设置初始按钮图标颜色
     updateButtonIcons(); 
-    themeToggleButton->setToolTip(m_isDarkTheme ? "切换到浅色主题" : "切换到深色主题");
+    themeToggleButton->setToolTip(m_isDarkTheme ? tr("切换到浅色主题") : tr("切换到深色主题"));
 
     // --- 8. 安装事件过滤器处理窗口边缘和角落拖动事件 ---
     installEventFilter(this);
@@ -360,7 +360,7 @@ void MainWindow::toggleTheme()
     loadAndApplyStyleSheet(styleSheet);
     
     // 更新工具提示
-    themeToggleButton->setToolTip(m_isDarkTheme ? "切换到浅色主题" : "切换到深色主题");
+    themeToggleButton->setToolTip(m_isDarkTheme ? tr("切换到浅色主题") : tr("切换到深色主题"));
 
     // 更新侧边栏管理器的主题状态
     if (m_sidebarManager) {
@@ -628,11 +628,11 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     QMainWindow::resizeEvent(event);
     
     // 如果窗口状态改变，更新最大化/还原按钮图标
-    if (isMaximized() != (maximizeButton->toolTip() == "还原")) {
+    if (isMaximized() != (maximizeButton->toolTip() == tr("还原"))) {
         if (isMaximized()) {
-            maximizeButton->setToolTip("还原");
+            maximizeButton->setToolTip(tr("还原"));
         } else {
-            maximizeButton->setToolTip("最大化");
+            maximizeButton->setToolTip(tr("最大化"));
         }
         updateButtonIcons();
     }
@@ -1043,7 +1043,7 @@ void MainWindow::applyTheme(const QString &theme)
     }
 
     updateButtonIcons(); // 更新所有按钮图标
-    themeToggleButton->setToolTip(m_isDarkTheme ? "切换到浅色主题" : "切换到深色主题");
+    themeToggleButton->setToolTip(m_isDarkTheme ? tr("切换到浅色主题") : tr("切换到深色主题"));
 
     if (m_sidebarManager) {
         m_sidebarManager->updateTheme(m_isDarkTheme);

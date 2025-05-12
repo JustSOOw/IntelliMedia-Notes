@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-10 18:30:40
+ * @LastEditTime: 2025-05-12 12:40:59
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.h
  * @Description: 
  * 

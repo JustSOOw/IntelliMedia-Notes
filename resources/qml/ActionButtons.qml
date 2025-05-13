@@ -6,6 +6,7 @@ import Qt5Compat.GraphicalEffects
 // 功能按钮组件
 Rectangle {
     id: actionButtons
+    objectName: "actionButtons" // 添加objectName以便C++代码查找
     width: parent.width
     height: 120
     color: "transparent"
@@ -45,7 +46,13 @@ Rectangle {
         else return fileButton ? fileButton.x : 0;
     }
     function _calculateTargetWidth() {
-        if (!fileButton || !aiButton || !searchButton) return 0;
+        if (!fileButton || !aiButton || !searchButton || !buttonRowLayout) {
+            // console.log("ActionButtons._calculateTargetWidth: Buttons or buttonRowLayout not ready.");
+            return 0;
+        }
+        // console.log("ActionButtons._calculateTargetWidth: buttonRowLayout.width=" + buttonRowLayout.width + ", spacing=" + buttonRowLayout.spacing);
+        // console.log("ActionButtons._calculateTargetWidth: fileBtn.w=" + fileButton.width + " (x:"+fileButton.x+"), aiBtn.w=" + aiButton.width + " (x:"+aiButton.x+"), searchBtn.w=" + searchButton.width + " (x:"+searchButton.x+")");
+
         if (activeButton === "file") return fileButton.width;
         else if (activeButton === "ai") return aiButton.width;
         else if (activeButton === "search") return searchButton.width;
@@ -63,11 +70,17 @@ Rectangle {
     function _updateIndicatorGeometry() {
         var calcX = _calculateTargetX();
         var calcWidth = _calculateTargetWidth();
-        if (calcWidth > 0) {
+
+        if (calcWidth > 0 && actionButtons.width > 0 && actionButtons.height > 0 && actionButtons.visible) {
             targetX = calcX;
             targetWidth = calcWidth;
+            if (!activeIndicator.visible) activeIndicator.visible = true;
         } else {
-            Qt.callLater(_updateIndicatorGeometry);
+            // console.log("ActionButtons._updateIndicatorGeometry: Invalid conditions (calcWidth=" + calcWidth + 
+            //             ", actionButtons.width=" + actionButtons.width + 
+            //             ", actionButtons.height=" + actionButtons.height + 
+            //             ", actionButtons.visible=" + actionButtons.visible + "). Hiding indicator.");
+            if (activeIndicator.visible) activeIndicator.visible = false;
         }
     }
     
@@ -94,6 +107,83 @@ Rectangle {
         if (searchIconOverlay) searchIconOverlay.color = (activeButton === "search" ? "#ffffff" : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor));
     }
     
+    // --- 添加重置布局和状态的函数 ---
+    property bool isResetting: false
+    
+    function reset() {
+        if (isResetting) {
+            // console.log("ActionButtons.reset: Already resetting, ignoring.");
+            return;
+        }
+        isResetting = true;
+        console.log("ActionButtons.reset: Initiated by onVisibleChanged or C++ call.");
+
+        // Phase 1: Initial width setting for actionButtons and color update
+        Qt.callLater(function() {
+            // console.log("ActionButtons.reset (Phase 1 entry - outer callLater): parent.width = " + (parent ? parent.width : "N/A"));
+            if (parent) {
+                actionButtons.width = parent.width;
+            }
+            _updateButtonColors();
+            // console.log("ActionButtons.reset (Phase 1 exit): actionButtons.width = " + actionButtons.width);
+
+            // Phase 2: Timer to allow layout propagation, then reset scales and prepare for button width calculation
+            var phase2Timer = Qt.createQmlObject('import QtQuick 2.15; Timer { interval: 150; repeat: false; running: true; }', actionButtons);
+            phase2Timer.triggered.connect(function() {
+                // console.log("ActionButtons.reset (Phase 2 entry - timer @150ms): actionButtons.width = " + actionButtons.width + 
+                //             ", rootColumnLayout.width = " + (rootColumnLayout ? rootColumnLayout.width : "N/A") + 
+                //             ", initial buttonRowLayout.width = " + (buttonRowLayout ? buttonRowLayout.width : "N/A"));
+                
+                if (rootColumnLayout && rootColumnLayout.width > 100 && buttonRowLayout && buttonRowLayout.width < rootColumnLayout.width * 0.8) {
+                    console.warn("ActionButtons.reset (Phase 2): buttonRowLayout.width (" + buttonRowLayout.width + ") was too small. Forcing to rootColumnLayout.width (" + rootColumnLayout.width + ").");
+                    buttonRowLayout.width = rootColumnLayout.width;
+                }
+
+                var allButtonsExist = fileButton && aiButton && searchButton;
+                if (allButtonsExist) {
+                    fileButton.scale = 1.0;
+                    aiButton.scale = 1.0;
+                    searchButton.scale = 1.0;
+                }
+
+                // Phase 3: Inner Qt.callLater to allow RowLayout to process children with Layout.fillWidth
+                Qt.callLater(function() {
+                    // console.log("ActionButtons.reset (Phase 3 entry - inner callLater): actionButtons.width = " + actionButtons.width + 
+                    //             ", rootColumnLayout.width = " + (rootColumnLayout ? rootColumnLayout.width : "N/A") + 
+                    //             ", buttonRowLayout.width = " + (buttonRowLayout ? buttonRowLayout.width : "N/A") + ", spacing = " + (buttonRowLayout ? buttonRowLayout.spacing : "N/A"));
+                    
+                    // console.log("ActionButtons.reset (Phase 3): Relying on RowLayout. Buttons current widths: file=" + (fileButton?fileButton.width:"N/A") + 
+                    //             ", ai=" + (aiButton?aiButton.width:"N/A") + ", search=" + (searchButton?searchButton.width:"N/A"));
+                    
+                    Qt.callLater(function() {
+                        // console.log("ActionButtons.reset (Phase 3.5 entry - innerMost callLater): Yielding before Phase 4 timer.");
+                        // console.log("ActionButtons.reset (Phase 3.5): Current state before indicator update - buttonRowLayout.width=" + (buttonRowLayout?buttonRowLayout.width:"N/A") + 
+                        //             ", fileBtn.w=" + (fileButton?fileButton.width:"N/A") + ", aiBtn.w=" + (aiButton?aiButton.width:"N/A") + ", searchBtn.w=" + (searchButton?searchButton.width:"N/A"));
+
+                        var phase4Timer = Qt.createQmlObject('import QtQuick 2.15; Timer { interval: 50; repeat: false; running: true; }', actionButtons);
+                        phase4Timer.triggered.connect(function() {
+                            // console.log("ActionButtons.reset (Phase 4 entry - timer @50ms): Calling _updateIndicatorGeometry.");
+                            if(actionButtons.visible) {
+                                _updateIndicatorGeometry();
+                            }
+                            phase4Timer.destroy();
+                            isResetting = false;
+                        });
+                    });
+                });
+                phase2Timer.destroy();
+            });
+        });
+    }
+    
+    // 监听可见性变化
+    onVisibleChanged: {
+        if (visible) {
+            // 当组件变为可见时，重置布局
+            reset();
+        }
+    }
+    
     // 监听主题变化
     Connections {
         target: sidebarManager
@@ -104,6 +194,7 @@ Rectangle {
     // --------------------------------------------
     
     ColumnLayout {
+        id: rootColumnLayout
         anchors.fill: parent
         anchors.margins: 10
         spacing: 15
@@ -220,9 +311,8 @@ Rectangle {
         // 功能切换按钮组
         RowLayout {
             id: buttonRowLayout
-            Layout.fillWidth: true
             Layout.preferredHeight: 40
-            spacing: 0 // 减小间距以尝试增大按钮宽度
+            spacing: 20 // 将间距从0修改为20
             
             // --- 流动的背景指示器 (定义在按钮之前，使其位于下方) ---
             Rectangle {
@@ -255,17 +345,8 @@ Rectangle {
                 Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                 Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                 Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
-                
-                // --- 移除 Timer --- 
-                // Timer {
-                //     id: layoutTimer
-                //     interval: 20
-                //     repeat: false
-                //     onTriggered: { ... }
-                // }
 
                 Component.onCompleted: {
-                    // layoutTimer.start(); // 移除启动 Timer
                     _updateIndicatorGeometry(); // 初始化指示器位置
                     _updateButtonColors();      // 初始化按钮颜色
                 }
@@ -274,7 +355,7 @@ Rectangle {
             // --- 文件按钮 (移除 z 属性) ---
             Rectangle {
                 id: fileButton
-                Layout.fillWidth: true // 参与布局
+                Layout.fillWidth: true
                 Layout.preferredHeight: 36
                 radius: 18
                 color: "transparent"
@@ -335,7 +416,7 @@ Rectangle {
             // --- AI按钮 (移除 z 属性) ---
             Rectangle {
                 id: aiButton
-                Layout.fillWidth: true // 参与布局
+                Layout.fillWidth: true
                 Layout.preferredHeight: 36
                 radius: 18
                 color: "transparent" 
@@ -393,7 +474,7 @@ Rectangle {
             // --- 搜索按钮 (移除 z 属性) ---
             Rectangle {
                 id: searchButton
-                Layout.fillWidth: true // 参与布局
+                Layout.fillWidth: true
                 Layout.preferredHeight: 36
                 radius: 18
                 color: "transparent"

@@ -90,6 +90,9 @@ public slots:
     // 恢复侧边栏到默认视图
     void resetToDefaultView();
     
+    // 重置ActionButtons组件的布局
+    bool resetActionButtons();
+    
 signals:
     // 向QML发送信号
     void noteOpened(const QString &path, const QString &content);

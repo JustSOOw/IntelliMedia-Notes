@@ -166,6 +166,22 @@
         <translation>Toggle Theme</translation>
     </message>
     <message>
+        <source>显示/隐藏窗口</source>
+        <translation>Show/Hide Window</translation>
+    </message>
+    <message>
+        <source>退出应用程序</source>
+        <translation>Exit Application</translation>
+    </message>
+    <message>
+        <source>应用程序已在系统托盘中运行</source>
+        <translation>Application is running in the system tray</translation>
+    </message>
+    <message>
+        <source>应用程序已最小化到系统托盘</source>
+        <translation>Application has been minimized to the system tray</translation>
+    </message>
+    <message>
         <location filename="../../forms/mainwindow.ui" line="17"/>
         <location filename="../../build/Desktop_Qt_6_5_3_MinGW_64_bit-Debug/IntelliMedia_Notes_autogen/include/ui_mainwindow.h" line="97"/>
         <location filename="../../build/IntelliMedia_Notes_autogen/include/ui_mainwindow.h" line="97"/>
@@ -1439,6 +1455,38 @@ Are you sure you want to continue?</translation>
         <source>取消</source>
         <translation>Cancel</translation>
     </message>
+</context>
+
+<context>
+    <name>NoteTextEdit</name>
+</context>
+
+<context>
+    <name>SettingsDialog</name>
+</context>
+
+<context>
+    <name>SidebarManager</name>
+</context>
+
+<context>
+    <name>ActionButtons</name>
+</context>
+
+<context>
+    <name>NoteTree</name>
+</context>
+
+<context>
+    <name>SearchView</name>
+</context>
+
+<context>
+    <name>TextEditorManager</name>
+</context>
+
+<context>
+    <name>CustomDialog</name>
 </context>
 
 </TS>

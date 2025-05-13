@@ -179,6 +179,7 @@ Rectangle {
         currentView = "file"
         stackLayout.currentIndex = 0
         actionButtons.activeButton = "file" // 确保ActionButtons也更新
+        actionButtons.reset() // 明确调用ActionButtons的reset方法
     }
     
     // QML函数：根据路径选中笔记
@@ -193,5 +194,13 @@ Rectangle {
         if (noteTree) {
             noteTree.selectItemByPath(path)
         }
+    }
+    
+    // QML函数：查找子组件（供C++调用）
+    function findChild(name) {
+        if (name === "actionButtons") {
+            return actionButtons;
+        }
+        return null;
     }
 }

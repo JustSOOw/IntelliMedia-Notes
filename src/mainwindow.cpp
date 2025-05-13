@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-13 16:39:16
+ * @LastEditTime: 2025-05-13 22:06:18
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -42,6 +42,10 @@
 #include <QMessageBox> // 添加消息框头文件
 #include <QPushButton> // 引入QPushButton
 #include <QProcess> // 引入QProcess
+#include <QCloseEvent> // 添加关闭事件头文件
+#include <QSystemTrayIcon> // 添加系统托盘图标
+#include <QMenu> // 添加菜单
+#include <QResizeEvent> // 添加大小改变事件头文件
 
 // 定义窗口大小调整敏感区域的大小（像素）
 #define RESIZE_BORDER_SIZE 8 // 调整区域大小
@@ -107,10 +111,33 @@ MainWindow::MainWindow(QWidget *parent)
     // 初始化设置
     setupSettings();
     
+    // 初始化系统托盘
+    bool trayIconCreated = setupTrayIcon();
+    
     // 检查是否需要恢复上次会话状态
     if (isRestarted) {
         // 延迟执行恢复操作，确保UI完全初始化
         QTimer::singleShot(100, this, &MainWindow::restoreLastSession);
+    }
+    
+    // 检查是否需要启动时最小化到系统托盘
+    bool startMinimized = settings.value("General/StartMinimized", false).toBool();
+    if (startMinimized) {
+        if (trayIconCreated && m_trayIcon && m_trayIcon->isVisible()) {
+            // 只有在托盘图标成功创建并可见的情况下才隐藏窗口
+            QTimer::singleShot(500, this, [this]() {
+                hide();
+                m_trayIcon->showMessage(tr("IntelliMedia Notes"), tr("应用程序已在系统托盘中运行"), QIcon(":/icons/app_tray_icon.svg"), 3000);
+            });
+        } else {
+            // 托盘图标未创建成功，禁用最小化到托盘功能并提示用户
+            qWarning() << "无法启用启动时最小化到系统托盘功能，因为托盘图标创建失败";
+            settings.setValue("General/StartMinimized", false);
+            settings.sync();
+            
+            // 也许可以显示一个警告对话框，但我们不希望在每次启动时都显示
+            // 这里只是记录日志，让用户知道设置已被禁用
+        }
     }
     
     // --- 4. 创建并配置按钮 ---
@@ -1202,6 +1229,168 @@ void MainWindow::applyAutoSaveInterval(int interval)
             // 即时保存模式 (interval=0)，不使用定时器
             qDebug() << "应用新设置：自动保存已设置为即时保存模式";
         }
+    }
+}
+
+// 系统托盘图标初始化，返回是否成功创建托盘图标
+bool MainWindow::setupTrayIcon()
+{
+    // 检查系统是否支持系统托盘
+    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+        qWarning() << "系统不支持系统托盘功能！";
+        return false;
+    }
+    
+    // 创建系统托盘图标
+    m_trayIcon = new QSystemTrayIcon(this);
+    
+    // 使用专用的托盘图标
+    QIcon trayIcon(":/icons/app_tray_icon.svg");
+    if (trayIcon.isNull()) {
+        qWarning() << "找不到托盘图标，使用系统默认图标";
+        // 如果托盘图标不存在，使用一个默认图标
+        m_trayIcon->setIcon(QApplication::style()->standardIcon(QStyle::SP_ComputerIcon));
+    } else {
+        m_trayIcon->setIcon(trayIcon);
+    }
+    
+    // 设置托盘图标工具提示
+    m_trayIcon->setToolTip(tr("IntelliMedia Notes"));
+    
+    // 创建托盘菜单
+    m_trayMenu = new QMenu(this);
+    
+    // 添加菜单项
+    QAction *showHideAction = m_trayMenu->addAction(tr("显示/隐藏窗口"));
+    connect(showHideAction, &QAction::triggered, this, &MainWindow::showHideWindow);
+    
+    m_trayMenu->addSeparator();
+    
+    QAction *settingsAction = m_trayMenu->addAction(tr("设置"));
+    connect(settingsAction, &QAction::triggered, this, &MainWindow::openSettings);
+    
+    m_trayMenu->addSeparator();
+    
+    QAction *quitAction = m_trayMenu->addAction(tr("退出"));
+    connect(quitAction, &QAction::triggered, this, &MainWindow::quitApplication);
+    
+    // 设置托盘图标的上下文菜单
+    m_trayIcon->setContextMenu(m_trayMenu);
+    
+    // 连接托盘图标的激活信号
+    connect(m_trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::trayIconActivated);
+    
+    // 显示托盘图标
+    m_trayIcon->show();
+    
+    // 验证托盘图标是否显示成功
+    if (!m_trayIcon->isVisible()) {
+        qWarning() << "系统托盘图标创建失败或无法显示";
+        delete m_trayIcon;
+        m_trayIcon = nullptr;
+        return false;
+    }
+    
+    qDebug() << "系统托盘图标创建成功";
+    return true;
+}
+
+// 处理托盘图标激活事件
+void MainWindow::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
+{
+    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick) {
+        // 单击或双击托盘图标时显示/隐藏窗口
+        showHideWindow();
+    }
+}
+
+// 显示/隐藏窗口
+void MainWindow::showHideWindow()
+{
+    if (isVisible()) {
+        // 如果窗口已显示，则隐藏
+        hide();
+    } else {
+        // 如果窗口已隐藏，则显示并激活
+        show();
+        activateWindow();
+        
+        // 如果之前是最大化状态，则恢复最大化
+        if (windowState() & Qt::WindowMaximized) {
+            showMaximized();
+        }
+        
+        // 从系统托盘恢复窗口后，修复UI布局
+        // 使用两阶段延迟确保布局完全恢复
+        QTimer::singleShot(50, this, [this]() {
+            // 强制全局重绘
+            if (centralWidget()) {
+                centralWidget()->update();
+            }
+            
+            // 使用SidebarManager的方法重置ActionButtons组件
+            if (m_sidebarManager) {
+                bool success = m_sidebarManager->resetActionButtons();
+                if (success) {
+                    qDebug() << "从托盘恢复窗口后成功初始化重置ActionButtons布局";
+                } else {
+                    qWarning() << "从托盘恢复窗口后重置ActionButtons布局失败";
+                }
+            }
+            
+            // 延迟更长时间进行第二次更新，仅用于更新窗口
+            QTimer::singleShot(150, this, [this]() {
+                // 强制重绘和刷新整个界面，但不再重置ActionButtons
+                repaint();
+                
+                // 触发侧边栏容器重新布局
+                if (ui && ui->sidebarContainer) {
+                    QResizeEvent* resizeEvent = new QResizeEvent(
+                        ui->sidebarContainer->size(),
+                        ui->sidebarContainer->size()
+                    );
+                    QApplication::sendEvent(ui->sidebarContainer, resizeEvent);
+                    ui->sidebarContainer->update();
+                }
+                
+                qDebug() << "从托盘恢复窗口后UI更新完成";
+            });
+        });
+    }
+}
+
+// 退出应用程序
+void MainWindow::quitApplication()
+{
+    // 执行一些清理工作，比如保存当前状态等
+    saveCurrentNote();
+    
+    // 退出应用程序
+    QApplication::quit();
+}
+
+// 重写关闭事件
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // 检查关闭行为设置
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope,
+                     QApplication::organizationName(), QApplication::applicationName());
+    bool startMinimized = settings.value("General/StartMinimized", false).toBool();
+    
+    // 检查托盘图标是否存在且可见
+    bool trayAvailable = (m_trayIcon != nullptr && m_trayIcon->isVisible());
+    
+    if (startMinimized && trayAvailable) {
+        // 如果已启用"启动时最小化到系统托盘"设置，且托盘图标可用，则最小化到托盘
+        hide();
+        event->ignore(); // 忽略关闭事件，不关闭应用
+        
+        // 显示通知
+        m_trayIcon->showMessage(tr("IntelliMedia Notes"), tr("应用程序已最小化到系统托盘"), QIcon(":/icons/app_tray_icon.svg"), 2000);
+    } else {
+        // 如果未启用最小化到托盘，或托盘图标不可用，则正常关闭程序
+        saveCurrentNote();
+        event->accept(); // 接受关闭事件，关闭应用
     }
 }
 

@@ -636,7 +636,58 @@ bool SidebarManager::renameItem(const QString &path, const QString &newName)
 void SidebarManager::resetToDefaultView()
 {
     if (m_rootObject) {
+        // 调用QML的resetView方法
         QMetaObject::invokeMethod(m_rootObject, "resetView");
+    }
+}
+
+// 重置ActionButtons组件的布局
+bool SidebarManager::resetActionButtons()
+{
+    if (!m_rootObject) {
+        qWarning() << "无法重置ActionButtons：根对象为空";
+        return false;
+    }
+    
+    // 使用QML对象的objectName找到ActionButtons组件
+    QList<QObject*> children = m_rootObject->findChildren<QObject*>("actionButtons", Qt::FindChildrenRecursively);
+    if (!children.isEmpty()) {
+        QObject* actionButtons = children.first();
+        qDebug() << "找到ActionButtons组件，调用reset方法";
+        return QMetaObject::invokeMethod(actionButtons, "reset");
+    } else {
+        // 如果找不到通过objectName，尝试直接找
+        QObject* actionButtons = m_rootObject->findChild<QObject*>("actionButtons");
+        if (actionButtons) {
+            qDebug() << "通过直接查找找到ActionButtons组件";
+            return QMetaObject::invokeMethod(actionButtons, "reset");
+        }
+        
+        qWarning() << "在侧边栏中找不到ActionButtons组件";
+        
+        // 最后尝试用QML对象名称直接访问
+        QObject* rootItem = qobject_cast<QObject*>(m_rootObject);
+        if (rootItem) {
+            QVariant returnedValue;
+            QVariant nameValue = "actionButtons";
+            // 尝试调用QML的findChild方法
+            bool success = QMetaObject::invokeMethod(
+                rootItem,
+                "findChild",
+                Q_RETURN_ARG(QVariant, returnedValue),
+                Q_ARG(QVariant, nameValue)
+            );
+            
+            if (success && !returnedValue.isNull()) {
+                QObject* actionButtonsObj = qvariant_cast<QObject*>(returnedValue);
+                if (actionButtonsObj) {
+                    qDebug() << "通过QML findChild找到ActionButtons组件";
+                    return QMetaObject::invokeMethod(actionButtonsObj, "reset");
+                }
+            }
+        }
+        
+        return false;
     }
 }
 

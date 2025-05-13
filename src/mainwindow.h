@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-12 12:40:59
+ * @LastEditTime: 2025-05-13 17:31:07
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.h
  * @Description: 
  * 
@@ -29,6 +29,8 @@
 #include <QIcon> // 引入QIcon
 #include <QtQuickWidgets/QQuickWidget> // 添加 QQuickWidget
 #include <QTimer>
+#include <QSystemTrayIcon> // 添加系统托盘图标
+#include <QMenu> // 添加菜单
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -83,6 +85,9 @@ protected:
     
     // 重写大小调整事件
     void resizeEvent(QResizeEvent *event) override;
+    
+    // 重写关闭事件，用于实现最小化到托盘而不是直接关闭
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void toggleMaximizeRestore(); // 最大化/还原按钮槽函数
@@ -107,6 +112,11 @@ private slots:
     void applyAutoSaveInterval(int interval); // 应用自动保存间隔设置
     void restartApplication(); // 重启应用程序
     void restoreLastSession(); // 恢复上次会话状态
+    
+    // 系统托盘相关槽函数
+    void trayIconActivated(QSystemTrayIcon::ActivationReason reason); // 处理托盘图标激活
+    void showHideWindow(); // 显示/隐藏主窗口
+    void quitApplication(); // 退出应用程序
 
 private:
     void showSettingsDialog();   // 新增：声明用于显示和管理设置对话框的函数
@@ -167,6 +177,13 @@ private:
     // 设置相关
     SettingsDialog *m_settingsDialog = nullptr; // 设置对话框
     QTimer *m_autoSaveTimer = nullptr;         // 自动保存定时器
+    
+    // 系统托盘相关
+    QSystemTrayIcon *m_trayIcon = nullptr; // 系统托盘图标
+    QMenu *m_trayMenu = nullptr; // 系统托盘菜单
+    
+    // 初始化系统托盘
+    bool setupTrayIcon();
     
     // 初始化侧边栏
     void setupSidebar();

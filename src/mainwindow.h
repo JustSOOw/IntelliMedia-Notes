@@ -91,20 +91,20 @@ private slots:
     void toggleSidebar();         // 侧边栏切换按钮槽函数
     void handleNoteSelected(const QString &path, const QString &type); // 处理笔记选择
     void openSearchDialog();      // 打开搜索对话框
-    void onSearchClosed();        // 处理搜索对话框关闭事件
+    void onSearchClosed();        // 处理搜索对话框关闭
+    void showAiAssistant();       // 显示AI助手对话框
+    void showAiAssistantWithText(const QString &selectedText); // 显示AI助手对话框并设置选中文本
+    void saveCurrentNote();       // 保存当前笔记
     void handleContentModified(); // 处理编辑器内容修改
-    
-    // AI相关槽函数
-    void showAiAssistant();      // 显示AI助手对话框（无参数版本）
-    void showAiAssistantWithText(const QString &selectedTextFromEditor); // 处理带文本的请求
-    void insertAiContent(const QString &content); // 插入AI生成的内容到编辑器
+    void insertAiContent(const QString &content); // 插入AI生成的内容
     
     // 设置相关槽函数
     void onSettingsClosed();     // 处理设置对话框关闭事件
     void applySettings();        // 应用设置
     void applyThemeFromSettings(); // 从设置应用主题
     void applyTheme(const QString &theme); // 直接应用指定的主题
-    void applyLanguage(const QString &language);
+    void applyLanguage(const QString &language); // 应用语言设置
+    void applyAutoSaveInterval(int interval); // 应用自动保存间隔设置
     void restartApplication(); // 重启应用程序
     void restoreLastSession(); // 恢复上次会话状态
 
@@ -182,9 +182,6 @@ private:
     
     // 初始化设置
     void setupSettings();
-    
-    // 保存当前笔记
-    void saveCurrentNote();
     
     // 当前打开的笔记路径
     QString m_currentNotePath;

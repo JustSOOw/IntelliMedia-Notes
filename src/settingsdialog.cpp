@@ -124,6 +124,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(m_themeGroup, &QButtonGroup::buttonClicked, this, &SettingsDialog::onThemeChanged);
     connect(m_languageCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsDialog::onLanguageChanged);
     connect(m_autoSaveCheck, &QCheckBox::stateChanged, this, &SettingsDialog::onAutoSaveChanged);
+    connect(m_autoSaveIntervalCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsDialog::onAutoSaveIntervalChanged);
     connect(m_customBackgroundBtn, &QPushButton::clicked, this, &SettingsDialog::onCustomBackgroundClicked);
     
     // 连接信号和槽 - 编辑器设置
@@ -324,6 +325,30 @@ void SettingsDialog::onAutoSaveChanged(int state)
 {
     // 启用或禁用自动保存间隔选择
     m_autoSaveIntervalCombo->setEnabled(state == Qt::Checked);
+}
+
+// 自动保存间隔改变时的槽函数
+void SettingsDialog::onAutoSaveIntervalChanged(int index)
+{
+    // 根据选择的间隔值设置自动保存间隔
+    int autoSaveInterval = m_autoSaveIntervalCombo->itemData(index).toInt();
+    m_settings.setValue("General/AutoSaveInterval", autoSaveInterval);
+    m_settings.sync();
+    
+    // 判断是否自动保存已启用
+    bool autoSaveEnabled = m_autoSaveCheck->isChecked();
+    if (autoSaveEnabled) {
+        // 立即应用新的设置
+        // 这里我们使用静态方法中的代码作为发出信号的替代
+        QSettings settings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
+        settings.setValue("General/AutoSaveInterval", autoSaveInterval);
+        settings.sync();
+        
+        qDebug() << "自动保存间隔已更改为" << autoSaveInterval << "分钟";
+        
+        // 发送信号通知外部组件自动保存间隔已更改
+        emit autoSaveIntervalChanged(autoSaveInterval);
+    }
 }
 
 // 自定义背景按钮点击时的槽函数
@@ -919,6 +944,7 @@ void SettingsDialog::setupGeneralTab()
     connect(m_themeGroup, &QButtonGroup::buttonClicked, this, &SettingsDialog::onThemeChanged);
     connect(m_customBackgroundBtn, &QPushButton::clicked, this, &SettingsDialog::onCustomBackgroundClicked);
     connect(m_autoSaveCheck, &QCheckBox::stateChanged, this, &SettingsDialog::onAutoSaveChanged);
+    connect(m_autoSaveIntervalCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsDialog::onAutoSaveIntervalChanged);
     
     // 保存对startMinimizedCheck和checkUpdatesCheck的引用
     m_startMinimizedCheck = startMinimizedCheck;

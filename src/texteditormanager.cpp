@@ -1712,6 +1712,8 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     // 将 textChanged 信号连接到 documentModified 槽，以在文本更改时启用保存按钮
     connect(m_textEdit, &QTextEdit::textChanged, this, &TextEditorManager::documentModified);
     connect(m_textEdit, &NoteTextEdit::imageResized, this, &TextEditorManager::documentModified);
+    // 连接 NoteTextEdit 的 contentChangedByInteraction 信号到 TextEditorManager 的同名信号
+    connect(m_textEdit, &NoteTextEdit::contentChangedByInteraction, this, &TextEditorManager::contentChangedByInteraction);
     connect(m_updateToolBarTimer, &QTimer::timeout, this, &TextEditorManager::updateToolBarForCurrentFormat);
     
     // 设置字体下拉框处理

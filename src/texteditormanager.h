@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-02 21:50:23
+ * @LastEditTime: 2025-05-13 16:58:12
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.h
  * @Description: QTextEdit编辑器管理类，实现富文本编辑功能
  * 
@@ -251,16 +251,17 @@ public:
     
     // 工具栏访问
     QToolBar* topToolBar() const { return m_topToolBar; }
+    FloatingToolBar* getFloatingToolBar() const { return m_floatingToolBar; }
     
-    // 获取悬浮工具栏
-    QWidget* getFloatingToolBar() const { return m_floatingToolBar; }
-
+    // AI助手相关方法
+    void triggerAiAssistant(); // 主动触发AI助手对话框
+    
     // 设置数据库管理器
     void setDatabaseManager(DatabaseManager *dbManager);
-
+    
 signals:
-    // 通知笔记内容已修改
-    void contentModified();
+    void contentModified();  // 内容被修改信号（字符级别的修改）
+    void contentChangedByInteraction(); // 内容被用户交互修改信号（如图片拖拽、调整大小等）
     void requestShowAiAssistant(const QString &selectedText); // 请求显示AI助手信号
     
 public slots:
@@ -293,15 +294,14 @@ private slots:
     void onPasteTriggered();
     void onInsertImageTriggered();
     
-    // 新增：字体、字号和标题选择槽函数
+    // 字体、字号和标题选择槽函数
     void onFontFamilyChanged(const QString &family);
     void onFontSizeChanged(const QString &size);
     void onHeadingChanged(int index);
     void applyHeading(int level);
     
-    // AI助手相关槽
+    // AI助手槽函数
     void onShowAiAssistantActionTriggered();
-    void triggerAiAssistant();
     void insertAiContent(const QString &content);
     
 private:

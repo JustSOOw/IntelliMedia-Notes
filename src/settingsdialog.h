@@ -69,6 +69,12 @@ signals:
      * @param language 语言代码
      */
     void languageChanged(const QString &language);
+    
+    /**
+     * 自动保存间隔更改信号
+     * @param interval 自动保存间隔（分钟）
+     */
+    void autoSaveIntervalChanged(int interval);
 
 protected:
     /**
@@ -95,6 +101,12 @@ private slots:
      * @param state 复选框状态
      */
     void onAutoSaveChanged(int state);
+    
+    /**
+     * 自动保存间隔更改处理函数
+     * @param index 当前选中的索引
+     */
+    void onAutoSaveIntervalChanged(int index);
     
     /**
      * 自定义背景按钮点击处理函数

@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-13 16:18:13
+ * @LastEditTime: 2025-05-13 16:39:16
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -416,7 +416,7 @@ void MainWindow::applySettings()
     bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
     int autoSaveInterval = settings.value("General/AutoSaveInterval", 5).toInt();
     
-    // 停止现有的定时器
+    // 先停止现有的定时器
     if (m_autoSaveTimer->isActive()) {
         m_autoSaveTimer->stop();
     }
@@ -427,7 +427,13 @@ void MainWindow::applySettings()
             // 使用定时器进行定时保存
             int msInterval = autoSaveInterval * 60 * 1000; // 转换为毫秒
             m_autoSaveTimer->start(msInterval);
+            qDebug() << "应用新设置：自动保存定时器已启动，间隔=" << msInterval << "毫秒";
+        } else {
+            // 即时保存模式 (interval=0)，不使用定时器
+            qDebug() << "应用新设置：自动保存设置为即时保存模式";
         }
+    } else {
+        qDebug() << "应用新设置：自动保存已禁用";
     }
     
     // 应用自定义背景（如果有）
@@ -939,12 +945,25 @@ void MainWindow::setupSettings()
     bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
     int autoSaveInterval = settings.value("General/AutoSaveInterval", 5).toInt();
     
+    // 确认自动保存设置正确应用
+    qDebug() << "自动保存设置: 启用=" << autoSaveEnabled << "，间隔=" << autoSaveInterval << "分钟";
+    
     // 如果启用了自动保存，则根据间隔设置处理
     if (autoSaveEnabled) {
         if (autoSaveInterval > 0) {
             // 使用定时器进行定时保存
             int msInterval = autoSaveInterval * 60 * 1000; // 转换为毫秒
             m_autoSaveTimer->start(msInterval);
+            qDebug() << "自动保存定时器已启动，间隔=" << msInterval << "毫秒";
+        } else {
+            // 即时保存模式 (interval=0)，不使用定时器，而是在内容变动时立即保存
+            qDebug() << "自动保存设置为即时保存模式";
+        }
+    } else {
+        // 确保定时器未启动
+        if (m_autoSaveTimer->isActive()) {
+            m_autoSaveTimer->stop();
+            qDebug() << "自动保存定时器已停止";
         }
     }
 }
@@ -959,6 +978,8 @@ void MainWindow::showSettingsDialog()
         connect(m_settingsDialog, &SettingsDialog::themeChanged, this, &MainWindow::applyTheme);
         // 连接语言改变信号到应用语言槽
         connect(m_settingsDialog, &SettingsDialog::languageChanged, this, &MainWindow::applyLanguage);
+        // 连接自动保存间隔改变信号到应用自动保存间隔槽
+        connect(m_settingsDialog, &SettingsDialog::autoSaveIntervalChanged, this, &MainWindow::applyAutoSaveInterval);
         // 连接对话框关闭信号
         connect(m_settingsDialog, &QDialog::finished, this, &MainWindow::onSettingsClosed);
     }
@@ -1149,6 +1170,39 @@ void MainWindow::restoreLastSession()
     
     // 更新按钮图标
     updateButtonIcons();
+}
+
+// 应用自动保存间隔设置
+void MainWindow::applyAutoSaveInterval(int interval)
+{
+    qDebug() << "MainWindow::applyAutoSaveInterval - 自动保存间隔已更改为:" << interval << "分钟";
+    
+    // 保存自动保存间隔到配置文件
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
+    settings.setValue("General/AutoSaveInterval", interval);
+    settings.sync();
+    
+    // 获取自动保存是否启用的状态
+    bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
+    
+    // 仅在自动保存已启用的情况下更新定时器
+    if (autoSaveEnabled) {
+        // 先停止现有的定时器
+        if (m_autoSaveTimer->isActive()) {
+            m_autoSaveTimer->stop();
+        }
+        
+        // 根据新的间隔设置更新定时器
+        if (interval > 0) {
+            // 使用定时器进行定时保存
+            int msInterval = interval * 60 * 1000; // 转换为毫秒
+            m_autoSaveTimer->start(msInterval);
+            qDebug() << "应用新设置：自动保存定时器已更新，新间隔=" << msInterval << "毫秒";
+        } else {
+            // 即时保存模式 (interval=0)，不使用定时器
+            qDebug() << "应用新设置：自动保存已设置为即时保存模式";
+        }
+    }
 }
 
 // --- 其他槽函数和方法 ... ---

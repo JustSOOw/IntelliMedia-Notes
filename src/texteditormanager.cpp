@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-12 13:07:53
+ * @LastEditTime: 2025-05-13 14:24:02
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -77,6 +77,7 @@
 #include <QDesktopServices>
 #include <QKeyEvent>
 #include <QSvgRenderer>
+#include "databasemanager.h"
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
@@ -1708,7 +1709,8 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     // 连接信号和槽
     connect(m_textEdit, &NoteTextEdit::selectionChanged, this, &TextEditorManager::handleSelectionChanged);
     connect(m_textEdit, &NoteTextEdit::editorClicked, this, &TextEditorManager::handleTextEditClicked);
-    connect(m_textEdit, &QTextEdit::textChanged, this, &TextEditorManager::contentModified);
+    // 将 textChanged 信号连接到 documentModified 槽，以在文本更改时启用保存按钮
+    connect(m_textEdit, &QTextEdit::textChanged, this, &TextEditorManager::documentModified);
     connect(m_textEdit, &NoteTextEdit::imageResized, this, &TextEditorManager::documentModified);
     connect(m_updateToolBarTimer, &QTimer::timeout, this, &TextEditorManager::updateToolBarForCurrentFormat);
     
@@ -1760,6 +1762,7 @@ void TextEditorManager::setupTopToolBar()
     
     // 创建操作，使用自定义图标
     m_saveAction = m_topToolBar->addAction(QIcon(":/icons/editor/save.svg"), tr("保存"));
+    m_saveAction->setEnabled(false); // 初始化时禁用保存按钮
     m_topToolBar->addSeparator();
     
     m_undoAction = m_topToolBar->addAction(QIcon(":/icons/editor/undo.svg"), tr("撤销"));
@@ -2058,8 +2061,12 @@ void TextEditorManager::loadContent(const QString &content, const QString &path)
     // 加载HTML内容到编辑器
     m_textEdit->setHtml(content);
     
-    // 重置编辑器的修改状态
+    // 重置编辑器的修改状态并禁用保存按钮
     m_textEdit->document()->setModified(false);
+    m_hasUnsavedChanges = false; // 重置未保存更改状态
+    if (m_saveAction) { // 确保 m_saveAction 已被创建
+        m_saveAction->setEnabled(false);
+    }
 }
 
 QString TextEditorManager::saveContent() const
@@ -2352,33 +2359,8 @@ void TextEditorManager::onAlignJustifyTriggered()
 // 顶部工具栏槽函数
 void TextEditorManager::onSaveTriggered()
 {
-    QString content = saveContent();
-    emit contentModified();
-    qDebug() << "保存笔记：" << m_currentFilePath;
-    
-    // 以下是一个简单的文件保存测试，用于开发阶段
-    if (!m_currentFilePath.isEmpty()) {
-        QFile file(m_currentFilePath + ".html");
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream stream(&file);
-            stream << content;
-            file.close();
-            qDebug() << "文件已保存到：" << m_currentFilePath + ".html";
-        } else {
-            qDebug() << "无法保存文件：" << file.errorString();
-        }
-    } else {
-        // 如果没有当前文件路径，创建一个临时文件
-        QString tempPath = QDir::tempPath() + "/temp_note_" + 
-                          QString::number(QDateTime::currentMSecsSinceEpoch()) + ".html";
-        QFile file(tempPath);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream stream(&file);
-            stream << content;
-            file.close();
-            qDebug() << "文件已保存到临时位置：" << tempPath;
-        }
-    }
+    saveNote(); // 调用统一的保存笔记方法
+    // 注意：m_saveAction 的禁用逻辑移至 saveNote 方法内部，在确认保存成功后执行
 }
 
 void TextEditorManager::onUndoTriggered()
@@ -2438,27 +2420,120 @@ void TextEditorManager::loadNote(const QString &notePath)
         return;
     }
     
-    m_textEdit->setHtml("<html><body><h1>" + tr("笔记：") + notePath + "</h1><p>" + tr("这是来自路径") + notePath + tr("的笔记内容") + "</p></body></html>");
+    // 从路径中提取笔记ID（假设路径格式为 "/path/to/note_123"，其中123是note_id）
+    QRegularExpression noteIdPattern("note_(\\d+)$");
+    QRegularExpressionMatch match = noteIdPattern.match(notePath);
     
-    // 重置修改状态
+    if (match.hasMatch()) {
+        int noteId = match.captured(1).toInt();
+        
+        // 检查是否设置了数据库管理器
+        if (m_dbManager) {
+            // 获取笔记信息
+            NoteInfo noteInfo = m_dbManager->getNoteById(noteId);
+            
+            // 获取笔记内容块
+            QList<ContentBlock> blocks = m_dbManager->getNoteContent(noteId);
+            
+            // 如果有内容，则加载
+            if (!blocks.isEmpty()) {
+                // 根据内容块构建HTML
+                QString htmlContent = "<html><body>";
+                
+                for (const ContentBlock &block : blocks) {
+                    if (block.block_type == "text") {
+                        // 文本块直接添加
+                        htmlContent += block.content_text;
+                    } else if (block.block_type == "image") {
+                        // 图片块添加图片标签
+                        QString imgPath = m_dbManager->getMediaAbsolutePath(block.media_path);
+                        htmlContent += QString("<img src=\"%1\" width=\"%2\" height=\"%3\">")
+                                      .arg(imgPath)
+                                      .arg(block.properties.contains("width") ? block.properties.split("width=").at(1).split(",").at(0) : "auto")
+                                      .arg(block.properties.contains("height") ? block.properties.split("height=").at(1).split(",").at(0) : "auto");
+                    }
+                    // 可以添加其他类型的内容块处理
+                }
+                
+                htmlContent += "</body></html>";
+                m_textEdit->setHtml(htmlContent);
+            } else {
+                // 如果笔记没有内容，显示标题和空白内容
+                m_textEdit->setHtml("<html><body><h1>" + noteInfo.title + "</h1></body></html>");
+            }
+        } else {
+            // 无法获取数据库管理器，显示错误信息
+            m_textEdit->setHtml("<html><body><h1>" + tr("无法加载笔记") + "</h1><p>" + tr("数据库管理器未设置") + "</p></body></html>");
+            qWarning() << "数据库管理器未设置，无法加载笔记:" << noteId;
+        }
+    } else {
+        // 路径格式不正确，加载默认内容
+        m_textEdit->setHtml("<html><body><h1>" + tr("笔记：") + notePath + "</h1><p>" + tr("无法识别的笔记路径格式") + "</p></body></html>");
+    }
+    
+    // 重置修改状态并禁用保存按钮
     m_textEdit->document()->setModified(false);
     m_hasUnsavedChanges = false;
+    if (m_saveAction) { // 确保 m_saveAction 已被创建
+        m_saveAction->setEnabled(false);
+    }
 }
 
 void TextEditorManager::saveNote()
 {
     if (m_currentNotePath.isEmpty()) {
+        qWarning() << "无法保存笔记：当前路径为空";
         return;
     }
     
-    QString content = m_textEdit->toHtml();
+    // 从路径中提取笔记ID
+    QRegularExpression noteIdPattern("note_(\\d+)$");
+    QRegularExpressionMatch match = noteIdPattern.match(m_currentNotePath);
     
-    // 打印日志
-    qDebug() << "保存笔记内容:" << m_currentNotePath;
+    if (!match.hasMatch()) {
+        qWarning() << "无法保存笔记：无法从路径中提取笔记ID" << m_currentNotePath;
+        return;
+    }
     
-    // 重置修改状态
-    m_textEdit->document()->setModified(false);
-    m_hasUnsavedChanges = false;
+    int noteId = match.captured(1).toInt();
+    QString content = m_textEdit->toHtml(); // 获取当前编辑器内容
+    
+    // 检查是否设置了数据库管理器
+    if (!m_dbManager) {
+        qWarning() << "无法保存笔记：数据库管理器未设置";
+        return;
+    }
+    
+    // 创建一个内容块保存HTML内容
+    QList<ContentBlock> blocks;
+    ContentBlock block;
+    block.note_id = noteId;
+    block.block_type = "text";
+    block.position = 0;
+    block.content_text = content;
+    blocks.append(block);
+    
+    // 保存内容块到数据库
+    bool success = m_dbManager->saveNoteContent(noteId, blocks);
+    
+    if (success) {
+        qDebug() << "笔记保存成功，ID:" << noteId;
+        
+        // 重置未保存状态
+        m_hasUnsavedChanges = false;
+        
+        // 禁用保存按钮
+        if (m_saveAction) {
+            m_saveAction->setEnabled(false);
+        }
+        
+        // 重置编辑器的修改状态
+        if (m_textEdit && m_textEdit->document()) {
+            m_textEdit->document()->setModified(false);
+        }
+    } else {
+        qWarning() << "保存笔记失败，ID:" << noteId;
+    }
 }
 
 void TextEditorManager::insertImageFromButton()
@@ -2482,6 +2557,7 @@ void TextEditorManager::documentModified()
 {
     // 标记有未保存的更改
     m_hasUnsavedChanges = true;
+    m_saveAction->setEnabled(true); // 内容修改时启用保存按钮
     
     // 发出内容修改信号
     emit contentModified();
@@ -2776,7 +2852,13 @@ void TextEditorManager::triggerAiAssistant()
 void TextEditorManager::insertAiContent(const QString &content)
 {
     if (m_textEdit) { // 使用 m_textEdit
-        m_textEdit->insertPlainText(content); 
+        insertText(content); // 使用我们自己的insertText方法，而不是直接调用insertPlainText
     }
+}
+
+// 添加setDatabaseManager方法实现
+void TextEditorManager::setDatabaseManager(DatabaseManager *dbManager)
+{
+    m_dbManager = dbManager;
 }
 

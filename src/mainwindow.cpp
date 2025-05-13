@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-11 18:01:28
+ * @LastEditTime: 2025-05-13 16:18:13
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -209,8 +209,21 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    // 保存当前打开的笔记
-    saveCurrentNote();
+    // 检查是否需要保存当前笔记
+    if (m_textEditorManager && !m_currentNotePath.isEmpty() && m_textEditorManager->hasUnsavedChanges()) {
+        // 检查自动保存设置
+        QSettings settings(QSettings::IniFormat, QSettings::UserScope,
+                         QApplication::organizationName(), QApplication::applicationName());
+        bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
+        int autoSaveInterval = settings.value("General/AutoSaveInterval", 5).toInt();
+        
+        // 在退出时保存的条件：
+        // 1. 启用了即时保存(interval=0)
+        // 2. 或者用户设置了定时保存但定时器尚未触发
+        if (autoSaveEnabled && (autoSaveInterval == 0 || m_autoSaveTimer->isActive())) {
+            saveCurrentNote();
+        }
+    }
     
     delete ui;
     delete m_sidebarManager; // 释放侧边栏管理器
@@ -408,22 +421,23 @@ void MainWindow::applySettings()
         m_autoSaveTimer->stop();
     }
     
-    // 如果启用了自动保存，则启动定时器
+    // 如果启用了自动保存，则根据间隔设置处理
     if (autoSaveEnabled) {
-        m_autoSaveTimer->start(autoSaveInterval * 60 * 1000); // 转换为毫秒
-        qDebug() << "自动保存已更新，间隔：" << autoSaveInterval << "分钟";
+        if (autoSaveInterval > 0) {
+            // 使用定时器进行定时保存
+            int msInterval = autoSaveInterval * 60 * 1000; // 转换为毫秒
+            m_autoSaveTimer->start(msInterval);
+        }
     }
     
     // 应用自定义背景（如果有）
     QString customBgPath = settings.value("General/CustomBackground", "").toString();
     if (!customBgPath.isEmpty() && QFile::exists(customBgPath)) {
         // 这里可以添加应用自定义背景的代码
-        qDebug() << "应用自定义背景：" << customBgPath;
     }
     
     // 应用语言设置（需要重启应用才能生效）
     QString language = settings.value("General/Language", "zh_CN").toString();
-    qDebug() << "语言设置已更改为：" << language << "（需要重启应用才能生效）";
 }
 
 // 事件过滤器 - 用于处理窗口拖动和调整大小
@@ -697,25 +711,28 @@ void MainWindow::openSearchDialog()
 // 处理笔记选择
 void MainWindow::handleNoteSelected(const QString &path, const QString &type)
 {
-    qDebug() << "选中笔记:" << path << "类型:" << type;
-    
-    // 在加载新笔记前，保存当前笔记
+    // 在加载新笔记前，检查当前笔记是否需要保存
     if (!m_currentNotePath.isEmpty() && m_textEditorManager) {
-        saveCurrentNote();
+        // 检查是否有未保存的更改
+        if (m_textEditorManager->hasUnsavedChanges()) {
+            // 检查是否启用了自动保存和自动保存模式
+            QSettings settings(QSettings::IniFormat, QSettings::UserScope,
+                          QApplication::organizationName(), QApplication::applicationName());
+            bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
+            int autoSaveInterval = settings.value("General/AutoSaveInterval", 5).toInt();
+            
+            // 仅在自动保存已启用且使用即时保存模式(间隔为0)时自动保存
+            if (autoSaveEnabled && autoSaveInterval == 0) {
+                saveCurrentNote();
+            }
+        }
     }
     
     // 更新当前笔记路径
     m_currentNotePath = path;
     
-    // 从数据库加载笔记内容并显示
+    // 加载新的笔记内容
     if (m_textEditorManager) {
-        // 这里只是示例，实际应该从数据库管理器获取内容
-        // QString content = "<html><body><h1>笔记标题</h1><p>这是一个示例笔记内容</p></body></html>";
-        
-        // 如果接入了数据库，应该从数据库获取内容
-        // content = m_databaseManager->getNoteContent(path);
-        
-        // 传递笔记路径，由TextEditorManager内部处理加载具体内容
         m_textEditorManager->loadNote(path);
     }
 }
@@ -724,20 +741,31 @@ void MainWindow::handleNoteSelected(const QString &path, const QString &type)
 void MainWindow::saveCurrentNote()
 {
     if (m_textEditorManager && !m_currentNotePath.isEmpty()) {
-        m_textEditorManager->saveNote();
-        
-        // 这里只是示例，实际应该保存到数据库管理器
-        qDebug() << "保存笔记:" << m_currentNotePath;
-        // 如果接入了数据库，应该保存到数据库
-        // m_databaseManager->saveNoteContent(m_currentNotePath, content);
+        // 检查是否有未保存的更改
+        if (m_textEditorManager->hasUnsavedChanges()) {
+            m_textEditorManager->saveNote();
+        }
     }
 }
 
 // 处理编辑器内容修改
 void MainWindow::handleContentModified()
 {
-    // 可以在这里实现自动保存功能，或者更新UI显示修改状态
-    // qDebug() << "笔记内容已修改";
+    // 检查是否启用自动保存和是否使用即时保存模式
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope,
+                      QApplication::organizationName(), QApplication::applicationName());
+    bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
+    int autoSaveInterval = settings.value("General/AutoSaveInterval", 5).toInt();
+    
+    // 标记笔记已修改，确保定时器触发时会保存
+    if (m_textEditorManager) {
+        m_textEditorManager->markContentModified();
+    }
+    
+    // 如果启用了自动保存且是即时保存模式(间隔为0)
+    if (autoSaveEnabled && autoSaveInterval == 0 && !m_currentNotePath.isEmpty()) {
+        saveCurrentNote();
+    }
 }
 
 // 初始化文本编辑器
@@ -746,9 +774,19 @@ void MainWindow::setupTextEditor()
     m_textEditorManager = new TextEditorManager(this);
     connect(m_textEditorManager, SIGNAL(contentModified()), this, SLOT(handleContentModified()));
     
+    // 添加对contentChangedByInteraction的连接
+    connect(m_textEditorManager, SIGNAL(contentChangedByInteraction()), this, SLOT(handleContentModified()));
+    
     // 连接 AI 助手请求信号到新的带参数的槽
     connect(m_textEditorManager, &TextEditorManager::requestShowAiAssistant, 
-            this, &MainWindow::showAiAssistantWithText); // <--- 修改这里的连接
+            this, &MainWindow::showAiAssistantWithText);
+
+    // 设置数据库管理器引用
+    if (m_sidebarManager && m_sidebarManager->getDatabaseManager()) {
+        m_textEditorManager->setDatabaseManager(m_sidebarManager->getDatabaseManager());
+    } else {
+        qWarning() << "警告: 无法从侧边栏管理器获取数据库管理器，部分功能可能受限";
+    }
 
     QVBoxLayout *mainLayout = new QVBoxLayout(ui->mainContentContainer);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -901,10 +939,13 @@ void MainWindow::setupSettings()
     bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
     int autoSaveInterval = settings.value("General/AutoSaveInterval", 5).toInt();
     
-    // 如果启用了自动保存，则启动定时器
+    // 如果启用了自动保存，则根据间隔设置处理
     if (autoSaveEnabled) {
-        m_autoSaveTimer->start(autoSaveInterval * 60 * 1000); // 转换为毫秒
-        qDebug() << "自动保存已启用，间隔：" << autoSaveInterval << "分钟";
+        if (autoSaveInterval > 0) {
+            // 使用定时器进行定时保存
+            int msInterval = autoSaveInterval * 60 * 1000; // 转换为毫秒
+            m_autoSaveTimer->start(msInterval);
+        }
     }
 }
 

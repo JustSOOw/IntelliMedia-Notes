@@ -61,6 +61,7 @@
 class NoteTextEdit;
 class FloatingToolBar;
 class AiAssistantDialog; // 前向声明，因为 TextEditorManager 不再拥有它
+class DatabaseManager;
 
 // 自定义文本编辑器，用于扩展QTextEdit功能
 class NoteTextEdit : public QTextEdit 
@@ -220,6 +221,9 @@ public:
     QString currentNotePath() const { return m_currentNotePath; }
     bool hasUnsavedChanges() const { return m_hasUnsavedChanges; }
     
+    // 标记内容已修改（用于外部调用）
+    void markContentModified() { m_hasUnsavedChanges = true; m_saveAction->setEnabled(true); }
+    
     // 图片处理
     void showImageAnnotationDialog(const QString &imagePath);
     
@@ -250,6 +254,9 @@ public:
     
     // 获取悬浮工具栏
     QWidget* getFloatingToolBar() const { return m_floatingToolBar; }
+
+    // 设置数据库管理器
+    void setDatabaseManager(DatabaseManager *dbManager);
 
 signals:
     // 通知笔记内容已修改
@@ -341,6 +348,9 @@ private:
     QTextCharFormat currentCharFormat() const;
     void mergeFormatOnWordOrSelection(const QTextCharFormat &format);
     void setEllipsisDisplayText(QComboBox *comboBox, const QString &fullText, int maxLength, int keepLength);
+
+    // 数据库管理器指针
+    DatabaseManager *m_dbManager = nullptr;
 };
 
 #endif // TEXTEDITORMANAGER_H 

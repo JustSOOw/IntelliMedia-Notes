@@ -888,6 +888,7 @@ void SettingsDialog::setupGeneralTab()
     m_autoSaveCheck = new QCheckBox(tr("启用自动保存"));
     QLabel *autoSaveIntervalLabel = new QLabel(tr("自动保存间隔:"));
     m_autoSaveIntervalCombo = new QComboBox();
+    m_autoSaveIntervalCombo->addItem(tr("默认 (即时保存)"), 0);
     m_autoSaveIntervalCombo->addItem(tr("1分钟"), 1);
     m_autoSaveIntervalCombo->addItem(tr("5分钟"), 5);
     m_autoSaveIntervalCombo->addItem(tr("10分钟"), 10);
@@ -1348,6 +1349,24 @@ void SettingsDialog::loadSettings()
     bool checkUpdates = m_settings.value("General/CheckUpdatesAutomatically", true).toBool();
     m_checkUpdatesCheck->setChecked(checkUpdates);
     
+    // 加载自动保存设置
+    bool autoSaveEnabled = m_settings.value("General/AutoSaveEnabled", false).toBool();
+    m_autoSaveCheck->setChecked(autoSaveEnabled);
+    
+    // 加载自动保存间隔
+    int autoSaveInterval = m_settings.value("General/AutoSaveInterval", 5).toInt();
+    // 根据保存的间隔值设置下拉框
+    int index = 1; // 默认为5分钟
+    for (int i = 0; i < m_autoSaveIntervalCombo->count(); i++) {
+        if (m_autoSaveIntervalCombo->itemData(i).toInt() == autoSaveInterval) {
+            index = i;
+            break;
+        }
+    }
+    m_autoSaveIntervalCombo->setCurrentIndex(index);
+    // 根据自动保存是否启用设置间隔下拉框的启用状态
+    m_autoSaveIntervalCombo->setEnabled(autoSaveEnabled);
+    
     // 加载编辑器设置
     QString fontFamily = m_settings.value("Editor/FontFamily", "Arial").toString();
     int fontSize = m_settings.value("Editor/FontSize", 12).toInt();
@@ -1412,6 +1431,14 @@ void SettingsDialog::saveSettings()
     
     bool checkUpdates = m_checkUpdatesCheck->isChecked();
     m_settings.setValue("General/CheckUpdatesAutomatically", checkUpdates);
+    
+    // 保存自动保存设置
+    bool autoSaveEnabled = m_autoSaveCheck->isChecked();
+    m_settings.setValue("General/AutoSaveEnabled", autoSaveEnabled);
+    
+    // 保存自动保存间隔
+    int autoSaveInterval = m_autoSaveIntervalCombo->currentData().toInt();
+    m_settings.setValue("General/AutoSaveInterval", autoSaveInterval);
     
     // 保存编辑器设置
     m_settings.setValue("Editor/FontFamily", m_selectedFont.family());

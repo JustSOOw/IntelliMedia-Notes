@@ -164,6 +164,17 @@ IntelliMedia Notes通过Qt Linguist工具提供多语言支持：
 - **完整翻译**：所有UI元素和消息都有对应翻译
 - **翻译管理**：使用标准的Qt翻译文件(.ts)和二进制翻译文件(.qm)
 
+## 多语言支持
+
+IntelliMedia Notes 应用支持多语言界面，目前实现了中文和英文的完整支持。主要功能包括：
+
+- 所有界面元素的多语言文本支持，包括主窗口、侧边栏、编辑器和各种对话框
+- 使用QTranslator实现动态的语言切换
+- 支持跟随系统语言设置
+- 完整的英文翻译文件 (intellimedia_notes_en_US.ts)
+
+语言切换可在设置对话框的"常规"选项卡中进行，更改后需要重启应用程序以应用新的语言设置。
+
 ## 如何使用
 
 ### 编译环境需求
@@ -258,4 +269,21 @@ IntelliMedia Notes通过Qt Linguist工具提供多语言支持：
 7.  **手柄绘制 (`drawSelectionIndicator`)**: 手柄的绘制基于 `updateSelectionIndicator` 计算出的 `m_selectedImageRect`（图片在视口中的矩形）进行定位。
 8.  **强制重绘与焦点 (`dropEvent`)**: 在内部移动图片并更新光标后，调用 `viewport()->repaint()` 和 `setFocus()` 来解决光标视觉上卡死（不显示或不闪烁）的问题。
 
-这些措施共同解决了在图文混排时，图片选择不精确、手柄绘制混乱、拖动状态丢失、调整大小失败以及移动后光标显示异常等问题。 
+这些措施共同解决了在图文混排时，图片选择不精确、手柄绘制混乱、拖动状态丢失、调整大小失败以及移动后光标显示异常等问题。
+
+## 开发与维护说明
+
+### 翻译文件更新流程 (重要)
+
+在开发过程中发现，由于项目资源文件 (`resources/resources.qrc`) 直接嵌入了编译后的 `.qm` 文件 (`resources/translations/intellimedia_notes_en_US.qm`)，标准的 `lrelease` 工具在构建目录 (`build/`) 中生成的 `.qm` 文件并未被实际使用，导致即使修改了 `.ts` 文件并重新构建，部分界面的翻译也无法更新。
+
+**解决方案：**
+在修改了 `.ts` 文件 (例如 `resources/translations/intellimedia_notes_en_US.ts`) 之后，需要**手动运行 `lrelease` 命令**将最新的翻译直接生成到源文件目录下，**然后再进行项目构建** (`cmake --build build`)。
+
+**更新翻译所需命令 (在项目根目录运行):**
+
+```powershell
+lrelease resources/translations/intellimedia_notes_en_US.ts -qm resources/translations/intellimedia_notes_en_US.qm
+```
+
+运行此命令后再执行 `cmake --build build` 或在 IDE 中重新构建，即可确保最新的翻译被嵌入到应用程序中。 

@@ -1123,8 +1123,121 @@ Are you sure you want to continue?</translation>
 <context>
     <name>NoteTree</name>
     <message>
+        <location filename="../qml/NoteTree.qml" line="91"/>
+        <source>新建文件夹</source>
+        <translation>New Folder</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="92"/>
+        <source>请输入文件夹名称：</source>
+        <translation>Please enter the folder name:</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="93"/>
+        <source>新建文件夹</source>
+        <comment>Placeholder Text</comment>
+        <translation>New Folder</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="243"/>
+        <source>新建笔记</source>
+        <translation>New Note</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="244"/>
+        <source>请输入笔记名称：</source>
+        <translation>Please enter the note name:</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="245"/>
+        <source>新建笔记</source>
+        <comment>Placeholder Text</comment>
+        <translation>New Note</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="381"/>
+        <source>重命名</source>
+        <translation>Rename</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="382"/>
+        <source>请输入新名称：</source>
+        <translation>Please enter the new name:</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="402"/>
+        <source>确认删除</source>
+        <translation>Confirm Deletion</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="403"/>
+        <source>确定要删除该项目吗？此操作不可恢复。</source>
+        <translation>Are you sure you want to delete this item? This action cannot be undone.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="404"/>
+        <source>删除</source>
+        <translation>Delete</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="405"/>
+        <source>取消</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="423"/>
+        <source>错误</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="425"/>
+        <source>确定</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="110"/>
+        <source>文件夹嵌套层级已达上限（%1层）</source>
+        <translation>Maximum folder nesting level reached (%1 levels)</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="215"/>
+        <source>创建文件夹失败：%1</source>
+        <translation>Failed to create folder: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="314"/>
+        <source>创建笔记失败：%1</source>
+        <translation>Failed to create note: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="391"/>
+        <source>重命名失败：%1</source>
+        <translation>Failed to rename: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="414"/>
+        <source>删除失败：%1</source>
+        <translation>Failed to delete: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="457"/>
         <source>全部笔记</source>
         <translation>All Notes</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="597"/>
+        <source>深层级文件夹 (Level %1)</source>
+        <translation>Deep level folder (Level %1)</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="442"/>
+        <source>根目录</source>
+        <translation>Root</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoteTree.qml" line="524"/>
+        <source>Test String One</source>
+        <translation>Test String One Translated</translation>
     </message>
 </context>
 <context>
@@ -1276,6 +1389,55 @@ Are you sure you want to continue?</translation>
     <message>
         <source>从文件插入图片</source>
         <translation>Insert image from file</translation>
+    </message>
+    <message>
+        <location filename="../../src/texteditormanager.cpp" line="2437"/>
+        <source>欢迎使用IntelliMedia Notes！</source>
+        <translation>Welcome to IntelliMedia Notes!</translation>
+    </message>
+    <message>
+        <location filename="../../src/texteditormanager.cpp" line="2437"/>
+        <source>请从侧边栏选择一个笔记或创建新笔记开始。</source>
+        <translation>Please select a note from the sidebar or create a new note to start.</translation>
+    </message>
+    <message>
+        <location filename="../../src/texteditormanager.cpp" line="2441"/>
+        <source>笔记：</source>
+        <translation>Note:</translation>
+    </message>
+    <message>
+        <location filename="../../src/texteditormanager.cpp" line="2441"/>
+        <source>这是来自路径</source>
+        <translation>This is the note content from path </translation>
+    </message>
+    <message>
+        <location filename="../../src/texteditormanager.cpp" line="2441"/>
+        <source>的笔记内容</source>
+        <translation>   </translation>
+    </message>
+</context>
+
+<context>
+    <name>CustomDialog</name>
+    <message>
+        <location filename="../qml/CustomDialog.qml" line="10"/>
+        <source>标题</source>
+        <translation>Title</translation>
+    </message>
+    <message>
+        <location filename="../qml/CustomDialog.qml" line="11"/>
+        <source>消息内容</source>
+        <translation>Message content</translation>
+    </message>
+    <message>
+        <location filename="../qml/CustomDialog.qml" line="14"/>
+        <source>确定</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../qml/CustomDialog.qml" line="15"/>
+        <source>取消</source>
+        <translation>Cancel</translation>
     </message>
 </context>
 

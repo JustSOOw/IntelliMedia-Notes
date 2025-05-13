@@ -75,9 +75,9 @@ Item {
     // 自定义对话框实例
     CustomDialog {
         id: newFolderDialog
-        title: "新建文件夹"
-        message: "请输入文件夹名称："
-        placeholder: "新建文件夹"
+        title: qsTr("新建文件夹")
+        message: qsTr("请输入文件夹名称：")
+        placeholder: qsTr("新建文件夹")
         showInput: true
         parent: noteTree // 明确指定父级
         
@@ -95,7 +95,7 @@ Item {
                         if (item.path === parentPath) {
                             if (item.level >= noteTree.maxFolderLevel - 1) {
                                 // console.error("文件夹嵌套层级已达上限:", noteTree.maxFolderLevel)
-                                errorMessageDialog.message = "文件夹嵌套层级已达上限（" + noteTree.maxFolderLevel + "层）"
+                                errorMessageDialog.message = qsTr("文件夹嵌套层级已达上限（") + noteTree.maxFolderLevel + qsTr("层）")
                                 errorMessageDialog.open()
                                 return
                             }
@@ -203,7 +203,7 @@ Item {
                     
                 } else {
                     // console.error("文件夹创建失败:", inputText.trim());
-                    errorMessageDialog.message = "创建文件夹失败：" + inputText.trim()
+                    errorMessageDialog.message = qsTr("创建文件夹失败：") + inputText.trim()
                     errorMessageDialog.open()
                 }
             }
@@ -212,9 +212,9 @@ Item {
     
     CustomDialog {
         id: newNoteDialog
-        title: "新建笔记"
-        message: "请输入笔记名称："
-        placeholder: "新建笔记"
+        title: qsTr("新建笔记")
+        message: qsTr("请输入笔记名称：")
+        placeholder: qsTr("新建笔记")
         showInput: true
         parent: noteTree // 明确指定父级
         
@@ -231,7 +231,7 @@ Item {
                         if (item.path === parentPath) {
                             if (item.level >= noteTree.maxFolderLevel - 1) {
                                 // console.error("文件夹嵌套层级已达上限:", noteTree.maxFolderLevel)
-                                errorMessageDialog.message = "文件夹嵌套层级已达上限（" + noteTree.maxFolderLevel + "层）"
+                                errorMessageDialog.message = qsTr("文件夹嵌套层级已达上限（") + noteTree.maxFolderLevel + qsTr("层）")
                                 errorMessageDialog.open()
                                 return
                             }
@@ -339,7 +339,7 @@ Item {
                     
                 } else {
                     // console.error("笔记创建失败:", inputText.trim());
-                    errorMessageDialog.message = "创建笔记失败：" + inputText.trim()
+                    errorMessageDialog.message = qsTr("创建笔记失败：") + inputText.trim()
                     errorMessageDialog.open()
                 }
             }
@@ -348,8 +348,8 @@ Item {
     
     CustomDialog {
         id: renameDialog
-        title: "重命名"
-        message: "请输入新名称："
+        title: qsTr("重命名")
+        message: qsTr("请输入新名称：")
         showInput: true
         parent: noteTree // 明确指定父级
         
@@ -363,7 +363,7 @@ Item {
                     // 刷新在Connections的onFolderStructureChanged中处理
                 } else {
                     // console.error("项目重命名失败:", inputText.trim());
-                    errorMessageDialog.message = "重命名失败：" + inputText.trim()
+                    errorMessageDialog.message = qsTr("重命名失败：") + inputText.trim()
                     errorMessageDialog.open()
                 }
             }
@@ -372,10 +372,10 @@ Item {
     
     CustomDialog {
         id: deleteDialog
-        title: "确认删除"
-        message: "确定要删除该项目吗？此操作不可恢复。"
-        confirmText: "删除"
-        cancelText: "取消"
+        title: qsTr("确认删除")
+        message: qsTr("确定要删除该项目吗？此操作不可恢复。")
+        confirmText: qsTr("删除")
+        cancelText: qsTr("取消")
         isWarning: true
         parent: noteTree // 明确指定父级
         
@@ -388,7 +388,7 @@ Item {
                 // 刷新在Connections的onFolderStructureChanged中处理
             } else {
                 // console.error("项目删除失败:", itemPath);
-                errorMessageDialog.message = "删除失败：" + itemPath
+                errorMessageDialog.message = qsTr("删除失败：") + itemPath
                 errorMessageDialog.open()
             }
         }
@@ -397,10 +397,10 @@ Item {
     // 错误消息对话框
     CustomDialog {
         id: errorMessageDialog
-        title: "错误"
+        title: qsTr("错误")
         message: ""
         showInput: false
-        confirmText: "确定"
+        confirmText: qsTr("确定")
         cancelVisible: false
         isWarning: true
         parent: noteTree
@@ -428,7 +428,7 @@ Item {
                     // console.log("[NoteTree_Debug] 红色区域右键点击，打开根目录菜单");
                     contextMenu.isFolder = true
                     contextMenu.itemPath = "/root"
-                    contextMenu.itemName = "根目录"
+                    contextMenu.itemName = qsTr("根目录")
                     contextMenu.popup()
                 } else if (mouse.button === Qt.LeftButton) {
                     // 左键点击空白区域，取消选中
@@ -708,7 +708,7 @@ Item {
                                 
                                 // 显示深层级文本提示
                                 ToolTip {
-                                    text: "深层级文件夹 (Level " + model.level + ")"
+                                    text: qsTr("深层级文件夹 (Level ") + model.level + ")"
                                     visible: levelMouseArea.containsMouse
                                     delay: 500
                                 }

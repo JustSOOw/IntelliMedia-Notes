@@ -8,13 +8,13 @@ Popup {
     id: root
     
     // 可配置属性
-    property string title: "标题"
-    property string message: "消息内容"
+    property string title: qsTr("标题")
+    property string message: qsTr("消息内容")
     property string placeholder: ""  // 输入框占位符
     property string inputText: ""    // 输入框内容
     property bool showInput: false   // 是否显示输入框
-    property string confirmText: "确定"
-    property string cancelText: "取消"
+    property string confirmText: qsTr("确定")
+    property string cancelText: qsTr("取消")
     property bool isWarning: false   // 是否为警告对话框
     property bool cancelVisible: true // 是否显示取消按钮
     
@@ -48,8 +48,7 @@ Popup {
     signal cancelled()
     
     // 设置基础样式
-    width: 220
-    height: showInput ? 190 : 160
+    width: 220 // 调整宽度
     padding: 0
     modal: true
     focus: true
@@ -84,15 +83,19 @@ Popup {
         }
     }
     
-    // 主布局
-    contentItem: Item {
-        anchors.fill: parent
-        
+    // 主布局 - 改为ColumnLayout
+    contentItem: ColumnLayout { 
+        id: mainContentLayout
+        width: parent.width // 宽度绑定到父级
+        // implicitHeight 由子元素决定
+
         // 标题栏
         Rectangle {
             id: titleBar
-            width: parent.width
-            height: 50
+            // width: parent.width // 由Layout控制
+            // height: 50 // 由Layout控制
+            Layout.fillWidth: true
+            Layout.preferredHeight: 50
             radius: 12
             color: titleBarColor
             
@@ -113,14 +116,22 @@ Popup {
             }
         }
         
-        // 内容区域
+        // 内容区域 - 使用嵌套ColumnLayout并设置边距
         ColumnLayout {
-            anchors.top: titleBar.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: buttonBar.top
-            anchors.margins: 20
+            id: contentAreaLayout
+            Layout.fillWidth: true
+            // anchors 和 margins 改为 Layout margins
+            Layout.leftMargin: 20
+            Layout.rightMargin: 20
+            Layout.topMargin: 20 
+            Layout.bottomMargin: 15
             spacing: 15
+            // anchors.top: titleBar.bottom
+            // anchors.left: parent.left
+            // anchors.right: parent.right
+            // anchors.bottom: buttonBar.top
+            // anchors.margins: 20
+            // spacing: 15
             
             // 消息文本
             Label {
@@ -168,18 +179,20 @@ Popup {
                 }
             }
             
-            // 占位空间
+            /* // 移除固定占位空间
             Item {
                 Layout.fillHeight: true
-            }
+            }*/
         }
         
         // 按钮区域
         Rectangle {
             id: buttonBar
-            width: parent.width
-            height: 60
-            anchors.bottom: parent.bottom
+            // width: parent.width // 由Layout控制
+            // height: 60 // 由Layout控制
+            Layout.fillWidth: true
+            Layout.preferredHeight: 60
+            // anchors.bottom: parent.bottom // 由Layout控制
             color: "transparent"
             
             // 按钮布局
@@ -189,16 +202,14 @@ Popup {
                 spacing: 10
                 
                 // 占位空间
-                Item {
-                    Layout.fillWidth: true
-                }
+                Item { Layout.fillWidth: true }
                 
                 // 取消按钮
                 Button {
                     id: cancelButton
                     text: cancelText
                     visible: cancelVisible
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: Math.max(80, contentItem.implicitWidth + 20) // 自适应宽度，最小80
                     Layout.preferredHeight: 36
                     
                     contentItem: Text {
@@ -232,7 +243,7 @@ Popup {
                 Button {
                     id: confirmButton
                     text: confirmText
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: Math.max(80, contentItem.implicitWidth + 20) // 自适应宽度，最小80
                     Layout.preferredHeight: 36
                     
                     contentItem: Text {

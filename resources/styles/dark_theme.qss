@@ -267,6 +267,19 @@ QFontComboBox QAbstractItemView {
     outline: none;
 }
 
+/* 设置对话框字体选择器特定样式 */
+QFontComboBox#settingsFontComboBox {
+    max-width: 250px;
+    min-width: 250px;
+    width: 250px;
+}
+
+QFontComboBox#settingsFontComboBox QAbstractItemView {
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+}
+
 /* 分隔线样式 - 暗色主题 */
 QFrame[frameShape="5"], QFrame[frameShape="VLine"] {
     color: #4a4a4a;
@@ -313,8 +326,6 @@ SettingsDialog QTabBar::tab:selected {
     color: #ffffff;
     border-bottom: none;
 }
-
-
 
 /* 设置对话框标签样式 */
 SettingsDialog QLabel {
@@ -530,4 +541,76 @@ SettingsDialog QFrame {
 /* 设置对话框分组框内框架样式 - 没有边框 */
 SettingsDialog QGroupBox QFrame {
     border: none;
+}
+
+/* QDialog样式 - 深色主题 */
+QDialog {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    border: 1px solid #505050;
+}
+
+QDialog QLabel {
+    color: #f0f0f0;
+    background-color: transparent;
+    border: none;
+}
+
+QDialog QGroupBox {
+    border: 1px solid #505050;
+    border-radius: 4px;
+    margin-top: 20px;
+    color: #f0f0f0;
+    font-weight: bold;
+    background-color: #2d2d2d;
+}
+
+QDialog QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    color: #f0f0f0;
+}
+
+QDialog QPushButton {
+    background-color: #404040;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 6px 12px;
+    min-width: 80px;
+}
+
+QDialog QPushButton:hover {
+    background-color: #505050;
+    border: 1px solid #666666;
+}
+
+QDialog QPushButton:pressed {
+    background-color: #606060;
+}
+
+QDialog QFontComboBox {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 1px 1px 1px 3px;
+    min-height: 20px;
+}
+
+QDialog QFontComboBox QAbstractItemView {
+    background-color: #353535;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    selection-background-color: #505050;
+    selection-color: #ffffff;
+    outline: none;
+}
+
+QDialog QDialogButtonBox {
+    background-color: transparent;
 }

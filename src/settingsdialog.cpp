@@ -33,6 +33,9 @@
 #include <QPainter>
 #include <QPalette>
 #include <QFontMetrics>
+#include <QFontComboBox>
+#include <QDialogButtonBox>
+#include <QAbstractItemView> // 添加QAbstractItemView头文件
 
 // 自定义垂直标签栏，文字保持水平显示
 class VerticalTabBar : public QTabBar
@@ -114,11 +117,30 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         styleFile.close();
     }
     
+    // 应用当前的全局字体设置
+    QString fontFamily = m_settings.value("Editor/FontFamily", "Arial").toString();
+    if (!fontFamily.isEmpty()) {
+        QFont dialogFont(fontFamily);
+        this->setFont(dialogFont);
+    }
+    
     // 初始化UI
     setupUI();
     
     // 加载设置
     loadSettings();
+    
+    // 加载完成后再次遍历所有子控件，应用字体设置
+    if (!fontFamily.isEmpty()) {
+        QList<QWidget*> allWidgets = this->findChildren<QWidget*>();
+        for (QWidget* widget : allWidgets) {
+            if (widget) {
+                QFont widgetFont = widget->font();
+                widgetFont.setFamily(fontFamily);
+                widget->setFont(widgetFont);
+            }
+        }
+    }
     
     // 连接信号和槽 - 常规设置
     connect(m_themeGroup, &QButtonGroup::buttonClicked, this, &SettingsDialog::onThemeChanged);
@@ -169,12 +191,13 @@ void SettingsDialog::applySettings()
     
     // 应用编辑器字体设置 - 这也将成为应用程序的全局Widget字体
     QString fontFamily = settings.value("Editor/FontFamily", "Arial").toString();
-    int fontSize = settings.value("Editor/FontSize", 12).toInt();
-    QFont appWidgetFont(fontFamily, fontSize); 
+    int fontSize = settings.value("Editor/FontSize", 10).toInt();
+    
+    QFont appWidgetFont(fontFamily, fontSize);
     
     // 为所有Qt Widgets组件应用字体
     QApplication::setFont(appWidgetFont);
-    qDebug() << "应用全局Widget字体设置:" << fontFamily << fontSize << "pt";
+    qDebug() << "应用全局Widget字体设置:" << fontFamily << ", " << fontSize << "pt";
     
     // TextEditorManager会通过editorFontChanged信号独立处理编辑器本身的字体设置
 
@@ -384,21 +407,124 @@ void SettingsDialog::onCustomBackgroundClicked()
 // 选择字体按钮点击时的槽函数
 void SettingsDialog::onSelectFontClicked()
 {
-    bool ok;
-    QFont font = QFontDialog::getFont(&ok, m_selectedFont, this, tr("选择默认字体"));
+    // 创建自定义字体选择对话框
+    QDialog fontDialog(this);
+    fontDialog.setWindowTitle(tr("选择字体"));
+    fontDialog.setModal(true);
+    fontDialog.setMinimumWidth(350);
     
-    if (ok) {
-        m_selectedFont = font;
-        m_currentFontLabel->setText(QString("%1, %2pt").arg(font.family()).arg(font.pointSize()));
+    // 应用与主应用程序相同的样式表，确保对话框遵循当前主题
+    fontDialog.setStyleSheet(this->styleSheet());
+    
+    // 创建布局
+    QVBoxLayout *layout = new QVBoxLayout(&fontDialog);
+    layout->setSpacing(10);
+    layout->setContentsMargins(15, 15, 15, 15);
+    
+    // 添加说明标签
+    QLabel *label = new QLabel(tr("请选择字体家族:"), &fontDialog);
+    layout->addWidget(label);
+    
+    // 添加字体下拉框
+    QFontComboBox *fontComboBox = new QFontComboBox(&fontDialog);
+    fontComboBox->setObjectName("settingsFontComboBox"); // 设置对象名，便于样式表定位
+    fontComboBox->setCurrentFont(m_selectedFont);
+    fontComboBox->setEditable(true);
+    fontComboBox->lineEdit()->setReadOnly(true);
+    
+    // 调整字体下拉框的大小
+    fontComboBox->setFixedWidth(250);
+    
+    layout->addWidget(fontComboBox);
+    
+    // 添加字体大小选择
+    QHBoxLayout *fontSizeLayout = new QHBoxLayout();
+    QLabel *fontSizeLabel = new QLabel(tr("字体大小:"), &fontDialog);
+    QSpinBox *fontSizeSpinBox = new QSpinBox(&fontDialog);
+    fontSizeSpinBox->setRange(6, 72);
+    fontSizeSpinBox->setValue(m_selectedFont.pointSize() > 0 ? m_selectedFont.pointSize() : 10);
+    fontSizeSpinBox->setSuffix(tr(" pt"));
+    
+    fontSizeLayout->addWidget(fontSizeLabel);
+    fontSizeLayout->addWidget(fontSizeSpinBox);
+    layout->addLayout(fontSizeLayout);
+    
+    // 添加预览框
+    QGroupBox *previewGroup = new QGroupBox(tr("预览"), &fontDialog);
+    QVBoxLayout *previewLayout = new QVBoxLayout(previewGroup);
+    QLabel *previewLabel = new QLabel("AaBbCcYyZz 1234567890 汉字示例", &fontDialog);
+    previewLabel->setAlignment(Qt::AlignCenter);
+    previewLabel->setMinimumHeight(80);
+    previewLayout->addWidget(previewLabel);
+    layout->addWidget(previewGroup);
+    
+    // 连接字体选择变化到预览
+    connect(fontComboBox, &QFontComboBox::currentFontChanged, [previewLabel, fontSizeSpinBox](const QFont &font) {
+        QFont previewFont = font;
+        previewFont.setPointSize(fontSizeSpinBox->value());
+        previewLabel->setFont(previewFont);
+    });
+    
+    // 连接字体大小变化到预览
+    connect(fontSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [previewLabel, fontComboBox](int size) {
+        QFont previewFont = fontComboBox->currentFont();
+        previewFont.setPointSize(size);
+        previewLabel->setFont(previewFont);
+    });
+    
+    // 手动触发一次当前字体的预览
+    QFont initialPreviewFont = fontComboBox->currentFont();
+    initialPreviewFont.setPointSize(fontSizeSpinBox->value());
+    previewLabel->setFont(initialPreviewFont);
+    
+    // 按钮盒子
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, 
+        Qt::Horizontal, 
+        &fontDialog);
+    layout->addWidget(buttonBox);
+    
+    // 连接按钮信号
+    connect(buttonBox, &QDialogButtonBox::accepted, &fontDialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &fontDialog, &QDialog::reject);
+    
+    // 执行对话框
+    if (fontDialog.exec() == QDialog::Accepted) {
+        // 获取选定的字体
+        QFont selectedFont = fontComboBox->currentFont();
+        int fontSize = fontSizeSpinBox->value();
+        
+        // 保存字体和字号
+        m_selectedFont = selectedFont;
+        m_selectedFont.setPointSize(fontSize);
+        m_currentFontLabel->setText(QString("%1, %2pt").arg(selectedFont.family()).arg(fontSize));
         
         // 保存设置到INI文件
-        m_settings.setValue("Editor/FontFamily", font.family());
-        m_settings.setValue("Editor/FontSize", font.pointSize());
+        m_settings.setValue("Editor/FontFamily", selectedFont.family());
+        m_settings.setValue("Editor/FontSize", fontSize);
         
         // 发射信号通知应用字体变更
-        emit editorFontChanged(font.family(), font.pointSize());
+        emit editorFontChanged(selectedFont.family(), fontSize);
         
-        qDebug() << "发出编辑器字体变更信号：" << font.family() << font.pointSize() << "pt";
+        qDebug() << "发出编辑器字体变更信号：" << selectedFont.family() << ", " << fontSize << "pt";
+        
+        // 立即将新字体应用到设置对话框自身
+        QFont dialogFont(selectedFont.family(), fontSize);
+        this->setFont(dialogFont);
+        
+        // 遍历设置对话框中的所有子控件，应用新字体
+        QList<QWidget*> allWidgets = this->findChildren<QWidget*>();
+        for (QWidget* widget : allWidgets) {
+            if (widget) {
+                QFont widgetFont = widget->font();
+                widgetFont.setFamily(selectedFont.family());
+                widgetFont.setPointSize(fontSize);
+                widget->setFont(widgetFont);
+            }
+        }
+        
+        // 强制更新
+        this->update();
     }
 }
 
@@ -1014,7 +1140,7 @@ void SettingsDialog::setupEditorTab()
     
     QHBoxLayout *fontDisplayLayout = new QHBoxLayout();
     QLabel *fontLabel = new QLabel(tr("当前字体:"));
-    m_currentFontLabel = new QLabel(tr("Arial, 12pt"));
+    m_currentFontLabel = new QLabel(tr("Arial, 10pt"));
     m_currentFontLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     m_currentFontLabel->setMinimumWidth(200);
     
@@ -1446,11 +1572,27 @@ void SettingsDialog::loadSettings()
     // 根据自动保存是否启用设置间隔下拉框的启用状态
     m_autoSaveIntervalCombo->setEnabled(autoSaveEnabled);
     
-    // 加载编辑器设置
+    // 加载编辑器设置 - 加载字体家族和字号
     QString fontFamily = m_settings.value("Editor/FontFamily", "Arial").toString();
-    int fontSize = m_settings.value("Editor/FontSize", 12).toInt();
+    int fontSize = m_settings.value("Editor/FontSize", 10).toInt();
+    
     m_selectedFont = QFont(fontFamily, fontSize);
     m_currentFontLabel->setText(QString("%1, %2pt").arg(fontFamily).arg(fontSize));
+    
+    // 应用字体设置到对话框
+    QFont dialogFont(fontFamily, fontSize);
+    this->setFont(dialogFont);
+    
+    // 应用字体到所有子控件
+    QList<QWidget*> allWidgets = this->findChildren<QWidget*>();
+    for (QWidget* widget : allWidgets) {
+        if (widget) {
+            QFont widgetFont = widget->font();
+            widgetFont.setFamily(fontFamily);
+            widgetFont.setPointSize(fontSize);
+            widget->setFont(widgetFont);
+        }
+    }
     
     int tabWidth = m_settings.value("Editor/TabWidth", 4).toInt();
     m_tabWidthSpin->setValue(tabWidth);
@@ -1519,9 +1661,8 @@ void SettingsDialog::saveSettings()
     int autoSaveInterval = m_autoSaveIntervalCombo->currentData().toInt();
     m_settings.setValue("General/AutoSaveInterval", autoSaveInterval);
     
-    // 保存编辑器设置
+    // 保存编辑器设置 - 只保存字体家族，不再保存字号
     m_settings.setValue("Editor/FontFamily", m_selectedFont.family());
-    m_settings.setValue("Editor/FontSize", m_selectedFont.pointSize());
     m_settings.setValue("Editor/TabWidth", m_tabWidthSpin->value());
     m_settings.setValue("Editor/AutoPairEnabled", m_autoPairCheck->isChecked());
     

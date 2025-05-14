@@ -99,6 +99,8 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     // 重写滚动事件，用于同步选中框位置
     void scrollContentsBy(int dx, int dy) override;
+    // 新增：重写键盘按下事件，用于处理删除配对括号的特殊情况
+    void keyPressEvent(QKeyEvent *event) override;
     
 signals:
     // 文本选择改变时发出信号，用于显示浮动工具栏
@@ -125,6 +127,7 @@ private:
     int m_dragStartPosition = -1;          // 拖拽开始位置
     bool m_manualDragging = false;         // 手动拖拽模式标志
     QLabel *m_dragPreviewLabel = nullptr;  // 拖拽预览标签
+    bool m_justDeletedClosingPair = false; // 新增：标记是否刚刚删除了一个配对的右括号
 
     // 辅助函数
     void updateSelectionIndicator(); // 更新选中图片状态和矩形
@@ -132,6 +135,13 @@ private:
     int getHandleAtPos(const QPoint &pos) const; // 获取鼠标位置处的手柄索引，-1表示没有
     void updateImageSize(const QPoint &mousePos); // 根据鼠标位置更新图片大小
     void setCursorForHandle(int handleIndex); // 根据手柄设置鼠标光标
+
+    // 新增：静态配对表及其初始化函数
+    static QMap<QString, QString> initPairMap();
+    static const QMap<QString, QString> s_pairMap;
+
+private slots:
+    void handleTextChangedForAutoPair(); 
 };
 
 // 工具栏管理类
@@ -257,8 +267,15 @@ public:
     void triggerAiAssistant(); // 主动触发AI助手对话框
     
     // 设置数据库管理器
-    void setDatabaseManager(DatabaseManager *dbManager);
+    void setDatabaseManager(DatabaseManager *dbManager) { m_dbManager = dbManager; }
+    DatabaseManager* getDatabaseManager() const { return m_dbManager; }
     
+    // 应用编辑器设置
+    void applyEditorSettings();
+    void updateFont(const QString &family, int size);
+    void updateTabWidth(int spaces);
+    void updateAutoPairEnabled(bool enabled);
+
 signals:
     void contentModified();  // 内容被修改信号（字符级别的修改）
     void contentChangedByInteraction(); // 内容被用户交互修改信号（如图片拖拽、调整大小等）
@@ -267,10 +284,16 @@ signals:
 public slots:
     void insertImageFromButton(); // 添加从按钮插入图片的槽函数
     
+    // 设置相关槽函数 - 接收从设置对话框传来的设置变更
+    void onEditorFontSettingChanged(const QString &fontFamily, int fontSize);
+    void onTabWidthSettingChanged(int tabWidth);
+    void onAutoPairSettingChanged(bool enabled);
+    
 private slots:
     void handleSelectionChanged(const QPoint &pos, bool hasSelection);
     void handleEditorClicked(const QPoint &pos);
     void handleTextEditClicked(const QPoint &pos);
+    void handleCursorPositionChanged(); // 新增：处理光标位置变化的槽函数
     void documentModified();
     void updateToolBarForCurrentFormat();
     void setupFontComboBoxes();

@@ -76,6 +76,25 @@ signals:
      */
     void autoSaveIntervalChanged(int interval);
 
+    /**
+     * 编辑器字体设置更改信号
+     * @param fontFamily 字体家族名称
+     * @param fontSize 字体大小
+     */
+    void editorFontChanged(const QString &fontFamily, int fontSize);
+    
+    /**
+     * 制表符宽度更改信号
+     * @param tabWidth 制表符宽度（空格数）
+     */
+    void tabWidthChanged(int tabWidth);
+    
+    /**
+     * 自动配对括号设置更改信号
+     * @param enabled 是否启用
+     */
+    void autoPairChanged(bool enabled);
+
 protected:
     /**
      * 关闭事件处理
@@ -165,6 +184,12 @@ private slots:
      */
     void onImportNotesClicked();
 
+    /**
+     * 开机自动启动设置改变时的槽函数
+     * @param state 复选框状态
+     */
+    void onAutoStartChanged(int state);
+
 private:
     /**
      * 初始化UI
@@ -244,6 +269,19 @@ private:
      */
     bool importNotes(const QString &importPath);
     
+    /**
+     * 设置开机自动启动
+     * @param enable 是否启用
+     * @return 设置是否成功
+     */
+    bool setAutoStart(bool enable);
+    
+    /**
+     * 检查是否设置了开机自动启动
+     * @return 是否设置了开机自动启动
+     */
+    bool checkAutoStart();
+
     // UI元素
     QTabWidget *m_tabWidget;
     
@@ -259,6 +297,7 @@ private:
     QComboBox *m_autoSaveIntervalCombo;
     QCheckBox *m_startMinimizedCheck;
     QCheckBox *m_checkUpdatesCheck;
+    QCheckBox *m_autoStartCheck;
     
     // 编辑器设置
     QWidget *m_editorTab;

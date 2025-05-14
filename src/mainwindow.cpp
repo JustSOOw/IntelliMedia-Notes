@@ -471,6 +471,11 @@ void MainWindow::applySettings()
     
     // 应用语言设置（需要重启应用才能生效）
     QString language = settings.value("General/Language", "zh_CN").toString();
+    
+    // 应用编辑器设置
+    if (m_textEditorManager) {
+        m_textEditorManager->applyEditorSettings();
+    }
 }
 
 // 事件过滤器 - 用于处理窗口拖动和调整大小
@@ -1009,6 +1014,24 @@ void MainWindow::showSettingsDialog()
         connect(m_settingsDialog, &SettingsDialog::autoSaveIntervalChanged, this, &MainWindow::applyAutoSaveInterval);
         // 连接对话框关闭信号
         connect(m_settingsDialog, &QDialog::finished, this, &MainWindow::onSettingsClosed);
+        
+        // 连接编辑器设置相关信号
+        if (m_textEditorManager) {
+            // 字体设置变更信号
+            connect(m_settingsDialog, &SettingsDialog::editorFontChanged, 
+                    m_textEditorManager, &TextEditorManager::onEditorFontSettingChanged);
+            qDebug() << "已连接字体设置信号到编辑器管理器";
+            
+            // 制表符宽度变更信号
+            connect(m_settingsDialog, &SettingsDialog::tabWidthChanged, 
+                    m_textEditorManager, &TextEditorManager::onTabWidthSettingChanged);
+            qDebug() << "已连接制表符宽度设置信号到编辑器管理器";
+            
+            // 自动配对括号设置变更信号
+            connect(m_settingsDialog, &SettingsDialog::autoPairChanged, 
+                    m_textEditorManager, &TextEditorManager::onAutoPairSettingChanged);
+            qDebug() << "已连接自动配对括号设置信号到编辑器管理器";
+        }
     }
     m_settingsDialog->loadSettings(); // 打开对话框前加载当前设置
     m_settingsDialog->exec(); // 使用 exec() 以模态方式显示

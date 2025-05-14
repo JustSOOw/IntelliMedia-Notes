@@ -227,20 +227,27 @@ IntelliMedia Notes 应用支持多语言界面，目前实现了中文和英文�
   - databasemanager.cpp/h: 数据库管理
   - searchmanager.cpp/h: 搜索功能管理
   - settingsdialog.cpp/h: 设置对话框管理
+  - aiassistantdialog.cpp/h: AI助手对话框实现
+  - DeepSeekService.cpp/h: DeepSeek AI服务实现
+  - IAiService.h: AI服务接口
+  - fixedwidthfontcombo.h: 等宽字体选择器
   - main.cpp: 程序入口
 
 - **resources/qml/**: QML界面组件
   - Sidebar.qml: 侧边栏主组件
   - NoteTree.qml: 笔记树视图
   - SearchView.qml: 搜索界面
+  - ActionButtons.qml: 操作按钮组（文件、AI、搜索）
   - FileContextMenu.qml: 文件上下文菜单
   - AIView.qml: AI对话界面
   - UserPanel.qml: 用户面板
-  - ActionButtons.qml: 操作按钮组
+  - CustomDialog.qml: 自定义对话框
+  - Animations.qml: 动画效果
 
 - **resources/icons/**: SVG图标
-  - 主题自适应图标资源
+  - sidebar/: 侧边栏图标
   - editor/: 富文本编辑器图标
+  - 主题自适应图标资源
 
 - **resources/styles/**: QSS样式文件
   - light_theme.qss: 亮色主题样式
@@ -324,4 +331,15 @@ lrelease resources/translations/intellimedia_notes_en_US.ts -qm resources/transl
 
 ### 总结与启示
 
-这个案例突显了在使用QML进行复杂UI布局，尤其是在涉及动态显示/隐藏组件、窗口恢复以及多层嵌套布局时，理解和处理布局时序的重要性。QML的声明式特性和自动布局非常强大，但在某些边缘情况下，需要通过精细的延时控制和有条件的干预来确保布局的稳定性和正确性。避免不必要的显式尺寸设置，优先依赖布局元素的内置机制，并给予布局引擎充分的更新时间，是解决此类问题的关键。 
+这个案例突显了在使用QML进行复杂UI布局，尤其是在涉及动态显示/隐藏组件、窗口恢复以及多层嵌套布局时，理解和处理布局时序的重要性。QML的声明式特性和自动布局非常强大，但在某些边缘情况下，需要通过精细的延时控制和有条件的干预来确保布局的稳定性和正确性。避免不必要的显式尺寸设置，优先依赖布局元素的内置机制，并给予布局引擎充分的更新时间，是解决此类问题的关键。
+
+### 案例2：ActionButtons.qml 指示器布局与渲染顺序问题
+
+- **问题现象**：在`ActionButtons.qml`中，激活按钮下方的背景指示器(`activeIndicator`)在侧边栏宽度调整时，尤其当第一个按钮（"文件"）激活时，会出现定位不准确、推开按钮或覆盖按钮文字的情况。
+- **根本原因**：
+    1.  **布局干扰**：背景指示器作为按钮行布局(`RowLayout`)的直接子项参与了布局计算，导致其自身尺寸影响了其试图对齐的按钮的实际位置和空间分配。
+    2.  **渲染顺序**：指示器在QML结构中声明的顺序导致其渲染在按钮文字之上。
+- **解决方案**：
+    1.  **结构重组**：将指示器和按钮行(`buttonRowLayout`)共同放入一个新的父级`Item` (`buttonArea`)中。在`buttonArea`内，指示器和按钮行成为兄弟节点，指示器不再直接参与按钮行的内部布局流。
+    2.  **调整Z序**：在新的父级`Item` (`buttonArea`)中，将指示器的QML声明置于按钮行之前，确保指示器渲染在按钮（及其文字和图标）的下方。
+    通过这种方式，指示器变为一个不干扰按钮布局的纯视觉背景元素，其位置和大小能够准确、动态地响应所选按钮的几何变化。 

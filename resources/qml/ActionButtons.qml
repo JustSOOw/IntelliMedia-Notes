@@ -32,8 +32,8 @@ Rectangle {
     Animations { id: animations }
     
     // --- 目标几何属性 --- 
-    property real targetX: fileButton ? fileButton.x : 0
-    property real targetWidth: fileButton ? fileButton.width : 0
+    property real targetX: _calculateTargetX()
+    property real targetWidth: _calculateTargetWidth()
     property real targetY: 0
     property real targetHeight: 0
     
@@ -68,31 +68,26 @@ Rectangle {
     
     // --- 更新指示器几何属性的函数 ---
     function _updateIndicatorGeometry() {
-        var calcX = _calculateTargetX();
-        var calcWidth = _calculateTargetWidth();
-
-        if (calcWidth > 0 && actionButtons.width > 0 && actionButtons.height > 0 && actionButtons.visible) {
-            targetX = calcX;
-            targetWidth = calcWidth;
-            if (!activeIndicator.visible) activeIndicator.visible = true;
+        if (targetWidth > 0 && actionButtons.width > 0 && actionButtons.height > 0 && actionButtons.visible) {
+            if (!activeIndicator.visible) {
+                activeIndicator.visible = true;
+            }
         } else {
-            // console.log("ActionButtons._updateIndicatorGeometry: Invalid conditions (calcWidth=" + calcWidth + 
-            //             ", actionButtons.width=" + actionButtons.width + 
-            //             ", actionButtons.height=" + actionButtons.height + 
-            //             ", actionButtons.visible=" + actionButtons.visible + "). Hiding indicator.");
-            if (activeIndicator.visible) activeIndicator.visible = false;
+            if (activeIndicator.visible) {
+                activeIndicator.visible = false;
+            }
         }
     }
     
     // --- 响应 activeButton 变化 ---
     onActiveButtonChanged: {
-        _updateIndicatorGeometry(); // 更新指示器位置
         _updateButtonColors();    // 更新按钮颜色
+        Qt.callLater(_updateIndicatorGeometry); // 新代码：确保指示器可见性更新
     }
     
     // --- 响应宽度变化 (处理侧边栏拉伸) ---
     onWidthChanged: {
-        _updateIndicatorGeometry(); // 宽度变化时更新指示器位置
+        Qt.callLater(_updateIndicatorGeometry); // 新代码：确保指示器可见性更新
     }
     
     // --- 添加一个函数来更新所有按钮的颜色 ---
@@ -308,16 +303,15 @@ Rectangle {
             ]
         }
         
-        // 功能切换按钮组
-        RowLayout {
-            id: buttonRowLayout
-            Layout.preferredHeight: 40
-            spacing: 20 // 将间距从0修改为20
-            
-            // --- 流动的背景指示器 (定义在按钮之前，使其位于下方) ---
+        // 功能切换按钮组 - 修改开始
+        Item { // 新的父容器，用于容纳按钮行和覆盖指示器
+            id: buttonArea
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40 // 与原 buttonRowLayout 高度一致
+
+            // --- 流动的背景指示器 (现在是 buttonArea 的子项, 移到 buttonRowLayout 之前以确保在下方渲染) ---
             Rectangle {
                 id: activeIndicator
-                // x和width跟随target属性，y和height直接绑定fileButton
                 x: targetX
                 width: targetWidth
                 y: fileButton ? fileButton.y : 0
@@ -326,210 +320,214 @@ Rectangle {
                 visible: width > 0 && height > 0
                 opacity: 1.0
 
-                // 添加渐变背景 (与指示器协调)
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
                     GradientStop { 
                         position: 0.0 
-                        color: sidebarManager.isDarkTheme ? "#6abf0d" : "#8ccf0f" // 与新建按钮保持一致
+                        color: sidebarManager.isDarkTheme ? "#6abf0d" : "#8ccf0f"
                     } 
                     GradientStop { 
                         position: 1.0
-                        color: sidebarManager.isDarkTheme ? "#3275e4" : "#4285F4"  // 与新建按钮保持一致
+                        color: sidebarManager.isDarkTheme ? "#3275e4" : "#4285F4"
                     } 
                 }
 
-                // --- 优化动画 Behavior --- 
-                // 动画将自动应用于绑定的 targetX/Width 等属性的变化
-                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
-                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                // --- 优化动画 Behavior (恢复动画) ---
+                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } } 
+                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } } 
                 Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                 Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
 
                 Component.onCompleted: {
-                    _updateIndicatorGeometry(); // 初始化指示器位置
-                    _updateButtonColors();      // 初始化按钮颜色
+                    Qt.callLater(_updateIndicatorGeometry);
+                    Qt.callLater(_updateButtonColors);
                 }
             }
-            
-            // --- 文件按钮 (移除 z 属性) ---
-            Rectangle {
-                id: fileButton
-                Layout.fillWidth: true
-                Layout.preferredHeight: 36
-                radius: 18
-                color: "transparent"
-                
-                // 布局变化时刷新指示器
-                onWidthChanged: actionButtons._updateIndicatorGeometry()
-                onXChanged: actionButtons._updateIndicatorGeometry()
-                
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 2
 
-                    RowLayout {
-                        Layout.alignment: Qt.AlignCenter
-                        height: parent.height - 4
-                        spacing: 5
-                        
-                        Image {
-                            id: fileIcon
-                            source: "qrc:/icons/sidebar/file.svg"
-                            width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
-                            ColorOverlay {
-                                id: fileIconOverlay
-                                anchors.fill: parent
-                                source: parent
-                                color: activeButton === "file" ? "#ffffff" : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+            RowLayout {
+                id: buttonRowLayout
+                anchors.fill: parent
+                spacing: 20
+
+                // --- 文件按钮 (移除 z 属性) ---
+                Rectangle {
+                    id: fileButton
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    radius: 18
+                    color: "transparent"
+                    
+                    // 布局变化时刷新指示器
+                    // onWidthChanged: actionButtons._updateIndicatorGeometry() // 移除
+                    // onXChanged: actionButtons._updateIndicatorGeometry()   // 移除
+                    
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 2
+
+                        RowLayout {
+                            Layout.alignment: Qt.AlignCenter
+                            height: parent.height - 4
+                            spacing: 5
+                            
+                            Image {
+                                id: fileIcon
+                                source: "qrc:/icons/sidebar/file.svg"
+                                width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
+                                ColorOverlay {
+                                    id: fileIconOverlay
+                                    anchors.fill: parent
+                                    source: parent
+                                    color: activeButton === "file" ? "#ffffff" : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                                }
+                            }
+                            Text {
+                                id: fileText
+                                text: qsTr("文件")
+                                font.pixelSize: 13
+                                color: activeButton === "file" ? activeTextColor : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
-                        Text {
-                            id: fileText
-                            text: qsTr("文件")
-                            font.pixelSize: 13
-                            color: activeButton === "file" ? activeTextColor : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                    }
+
+                    MouseArea {
+                        id: fileClickArea
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true // 启用悬停检测
+                        onClicked: {
+                            activeButton = "file";
+                            fileButtonClicked();
+                            // 点击后也更新颜色状态
+                            _updateButtonColors();
                         }
-                    }
-                }
 
-                MouseArea {
-                    id: fileClickArea
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true // 启用悬停检测
-                    onClicked: {
-                        activeButton = "file";
-                        fileButtonClicked();
-                        // 点击后也更新颜色状态
-                        _updateButtonColors();
+                        // 添加悬停处理
+                        onHoveredChanged: _updateButtonColors()
                     }
-
-                    // 添加悬停处理
-                    onHoveredChanged: _updateButtonColors()
+                     // 添加按下缩放效果
+                    scale: fileClickArea.pressed ? 0.95 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100 } }
                 }
-                 // 添加按下缩放效果
-                scale: fileClickArea.pressed ? 0.95 : 1.0
-                Behavior on scale { NumberAnimation { duration: 100 } }
-            }
-            
-            // --- AI按钮 (移除 z 属性) ---
-            Rectangle {
-                id: aiButton
-                Layout.fillWidth: true
-                Layout.preferredHeight: 36
-                radius: 18
-                color: "transparent" 
                 
-                // 布局变化时刷新指示器
-                onWidthChanged: actionButtons._updateIndicatorGeometry()
-                onXChanged: actionButtons._updateIndicatorGeometry()
-                
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 2
-                    RowLayout {
-                        Layout.alignment: Qt.AlignCenter
-                        height: parent.height - 4
-                        spacing: 5
-                        
-                        Image {
-                            id: aiIcon
-                            source: "qrc:/icons/sidebar/ai.svg"
-                            width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
-                            ColorOverlay {
-                                id: aiIconOverlay
-                                anchors.fill: parent
-                                source: parent
-                                color: activeButton === "ai" ? "#ffffff" : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                // --- AI按钮 (移除 z 属性) ---
+                Rectangle {
+                    id: aiButton
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    radius: 18
+                    color: "transparent" 
+                    
+                    // 布局变化时刷新指示器
+                    // onWidthChanged: actionButtons._updateIndicatorGeometry() // 移除
+                    // onXChanged: actionButtons._updateIndicatorGeometry()   // 移除
+                    
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 2
+                        RowLayout {
+                            Layout.alignment: Qt.AlignCenter
+                            height: parent.height - 4
+                            spacing: 5
+                            
+                            Image {
+                                id: aiIcon
+                                source: "qrc:/icons/sidebar/ai.svg"
+                                width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
+                                ColorOverlay {
+                                    id: aiIconOverlay
+                                    anchors.fill: parent
+                                    source: parent
+                                    color: activeButton === "ai" ? "#ffffff" : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                                }
+                            }
+                            Text {
+                                id: aiText
+                                text: qsTr("AI")
+                                font.pixelSize: 13
+                                color: activeButton === "ai" ? activeTextColor : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
-                        Text {
-                            id: aiText
-                            text: qsTr("AI")
-                            font.pixelSize: 13
-                            color: activeButton === "ai" ? activeTextColor : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                    }
+                    MouseArea {
+                        id: aiClickArea
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onClicked: {
+                            activeButton = "ai";
+                            aiButtonClicked();
+                            _updateButtonColors();
                         }
-                    }
-                }
-                MouseArea {
-                    id: aiClickArea
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onClicked: {
-                        activeButton = "ai";
-                        aiButtonClicked();
-                        _updateButtonColors();
-                    }
 
-                    // 添加悬停处理
-                    onHoveredChanged: _updateButtonColors()
+                        // 添加悬停处理
+                        onHoveredChanged: _updateButtonColors()
+                    }
+                    // 添加按下缩放效果
+                    scale: aiClickArea.pressed ? 0.95 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100 } }
                 }
-                // 添加按下缩放效果
-                scale: aiClickArea.pressed ? 0.95 : 1.0
-                Behavior on scale { NumberAnimation { duration: 100 } }
-            }
-            
-            // --- 搜索按钮 (移除 z 属性) ---
-            Rectangle {
-                id: searchButton
-                Layout.fillWidth: true
-                Layout.preferredHeight: 36
-                radius: 18
-                color: "transparent"
-
-                // 布局变化时刷新指示器
-                onWidthChanged: actionButtons._updateIndicatorGeometry()
-                onXChanged: actionButtons._updateIndicatorGeometry()
                 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 2
-                    RowLayout {
-                        Layout.alignment: Qt.AlignCenter
-                        height: parent.height - 4
-                        spacing: 5
-                        
-                        Image {
-                            id: searchIcon
-                            source: "qrc:/icons/sidebar/search.svg"
-                            width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
-                            ColorOverlay {
-                                id: searchIconOverlay
-                                anchors.fill: parent
-                                source: parent
-                                color: activeButton === "search" ? "#ffffff" : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                // --- 搜索按钮 (移除 z 属性) ---
+                Rectangle {
+                    id: searchButton
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    radius: 18
+                    color: "transparent"
+
+                    // 布局变化时刷新指示器
+                    // onWidthChanged: actionButtons._updateIndicatorGeometry() // 移除
+                    // onXChanged: actionButtons._updateIndicatorGeometry()   // 移除
+                    
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 2
+                        RowLayout {
+                            Layout.alignment: Qt.AlignCenter
+                            height: parent.height - 4
+                            spacing: 5
+                            
+                            Image {
+                                id: searchIcon
+                                source: "qrc:/icons/sidebar/search.svg"
+                                width: 18; height: 18; sourceSize.width: width; sourceSize.height: height
+                                ColorOverlay {
+                                    id: searchIconOverlay
+                                    anchors.fill: parent
+                                    source: parent
+                                    color: activeButton === "search" ? "#ffffff" : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                                }
+                            }
+                            Text {
+                                id: searchText
+                                text: qsTr("搜索")
+                                font.pixelSize: 13
+                                color: activeButton === "search" ? activeTextColor : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
-                        Text {
-                            id: searchText
-                            text: qsTr("搜索")
-                            font.pixelSize: 13
-                            color: activeButton === "search" ? activeTextColor : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
+                    }
+                    MouseArea {
+                        id: searchClickArea
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onClicked: {
+                            activeButton = "search";
+                            searchButtonClicked();
+                            _updateButtonColors();
+                            // 实际的搜索触发逻辑应在此处或信号处理器中
+                            console.log("Search button clicked, state updated");
                         }
-                    }
-                }
-                MouseArea {
-                    id: searchClickArea
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onClicked: {
-                        activeButton = "search";
-                        searchButtonClicked();
-                        _updateButtonColors();
-                        // 实际的搜索触发逻辑应在此处或信号处理器中
-                        console.log("Search button clicked, state updated");
-                    }
 
-                    // 添加悬停处理
-                    onHoveredChanged: _updateButtonColors()
+                        // 添加悬停处理
+                        onHoveredChanged: _updateButtonColors()
+                    }
+                     // 添加按下缩放效果
+                    scale: searchClickArea.pressed ? 0.95 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100 } }
                 }
-                 // 添加按下缩放效果
-                scale: searchClickArea.pressed ? 0.95 : 1.0
-                Behavior on scale { NumberAnimation { duration: 100 } }
             }
-        }
+        } // 功能切换按钮组 - 修改结束
     }
 } 

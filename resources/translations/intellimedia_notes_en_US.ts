@@ -689,6 +689,26 @@ Are you sure you want to continue?</translation>
         <translation>Automatically Check for Updates</translation>
     </message>
     <message>
+        <source>开机自动启动</source>
+        <translation>Start with Windows</translation>
+    </message>
+    <message>
+        <source>无法设置开机自动启动，可能需要管理员权限。</source>
+        <translation>Unable to set startup with Windows. Administrator privileges may be required.</translation>
+    </message>
+    <message>
+        <source>无法取消开机自动启动，可能需要管理员权限。</source>
+        <translation>Unable to disable startup with Windows. Administrator privileges may be required.</translation>
+    </message>
+    <message>
+        <source>功能未实现</source>
+        <translation>Feature not implemented</translation>
+    </message>
+    <message>
+        <source>当前平台暂不支持开机自动启动功能。</source>
+        <translation>Automatic startup is not supported on the current platform.</translation>
+    </message>
+    <message>
         <location filename="../../src/settingsdialog.cpp" line="936"/>
         <source>字体设置</source>
         <translation>Font Settings</translation>

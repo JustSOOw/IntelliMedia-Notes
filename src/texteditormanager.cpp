@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-13 14:24:02
+ * @LastEditTime: 2025-05-14 20:18:43
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -77,11 +77,37 @@
 #include <QDesktopServices>
 #include <QKeyEvent>
 #include <QSvgRenderer>
+#include <QSettings>
 #include "databasemanager.h"
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
 const int HANDLE_HALF_SIZE = HANDLE_SIZE / 2;
+
+// 初始化 NoteTextEdit 的静态配对表
+QMap<QString, QString> NoteTextEdit::initPairMap() {
+    QMap<QString, QString> map;
+    // 英文括号和引号
+    map.insert("(", ")");
+    map.insert("[", "]");
+    map.insert("{", "}");
+    map.insert("\"", "\""); // 标准双引号
+    map.insert("'", "'");   // 标准单引号
+    map.insert("<", ">");
+
+    // 中文括号 (直接使用字符串，因为QTextEdit通常能正确处理)
+    map.insert("（", "）");
+    map.insert("【", "】");
+    map.insert("《", "》");
+    map.insert(QString(QChar(0x201C)), QString(QChar(0x201D)));  // 中文双引号 “ ”
+    map.insert(QString(QChar(0x2018)), QString(QChar(0x2019)));  // 中文单引号 ‘ ’
+    map.insert(QString(QChar(0x300C)), QString(QChar(0x300D)));  // 中文直角引号 「 」
+    map.insert(QString(QChar(0x300E)), QString(QChar(0x300F)));  // 中文双直角引号 『 』
+    // 您可以在这里添加更多需要配对的字符
+    return map;
+}
+
+const QMap<QString, QString> NoteTextEdit::s_pairMap = NoteTextEdit::initPairMap();
 
 //=======================================================================================
 // NoteTextEdit 实现
@@ -107,9 +133,26 @@ NoteTextEdit::NoteTextEdit(QWidget *parent)
     setFrameStyle(QFrame::NoFrame);
     viewport()->setCursor(Qt::IBeamCursor);
     
+    // 从应用程序设置中应用字体设置
+    QSettings settings;
+    QString fontFamily = settings.value("Editor/FontFamily", "Arial").toString();
+    int fontSize = settings.value("Editor/FontSize", 12).toInt();
+    QFont editorFont(fontFamily, fontSize);
+    setFont(editorFont);
+    
+    // 从应用程序设置中应用制表符宽度设置
+    int tabWidth = settings.value("Editor/TabWidth", 4).toInt();
+    QFontMetrics fm(editorFont);
+    setTabStopDistance(tabWidth * fm.horizontalAdvance(' '));
+    
+    // 自动配对括号设置会在事件过滤器中使用
+    
     // 启用拖放功能
     setAcceptDrops(true);
     setContextMenuPolicy(Qt::DefaultContextMenu);
+
+    // 连接textChanged信号到新的自动配对槽函数
+    connect(this, &QTextEdit::textChanged, this, &NoteTextEdit::handleTextChangedForAutoPair);
 }
 
 void NoteTextEdit::mousePressEvent(QMouseEvent *event)
@@ -633,7 +676,140 @@ bool NoteTextEdit::eventFilter(QObject *watched, QEvent *event)
             emit selectionChanged(mouseEvent->pos(), hasSelection);
         }
     }
+    
+    // 处理键盘事件，实现自动配对括号和引号
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        QString text = keyEvent->text();
+        
+        // 调试输出键盘输入内容和Unicode码点 - 更详细的信息
+        if (!text.isEmpty()) {
+            QString charInfo;
+            for (int i = 0; i < text.length(); i++) {
+                charInfo += QString("字符[%1]: '%2'(U+%3) ")
+                            .arg(i)
+                            .arg(text[i])
+                            .arg(text[i].unicode(), 4, 16, QChar('0'));
+            }
+            qDebug() << "键盘输入:" << charInfo;
+            
+            // 输出映射表中的所有键，以便于找出问题
+            static QMap<QString, QString> pairMap;
+            // 懒加载方式初始化映射表
+            if (pairMap.isEmpty()) {
+                // 英文括号和引号
+                pairMap.insert("(", ")");
+                pairMap.insert("[", "]");
+                pairMap.insert("{", "}");
+                pairMap.insert("\"", "\"");
+                pairMap.insert("'", "'");
+                
+                // 中文括号 - 改回使用Unicode码点，以避免源代码编码问题
+                // 使用Unicode码点定义中文括号
+                pairMap.insert(QString(QChar(0xFF08)), QString(QChar(0xFF09)));  // 中文圆括号（）
+                pairMap.insert(QString(QChar(0x3010)), QString(QChar(0x3011)));  // 中文方括号【】
+                pairMap.insert(QString(QChar(0x300A)), QString(QChar(0x300B)));  // 中文尖括号《》
+                pairMap.insert(QString(QChar(0x201C)), QString(QChar(0x201D)));  // 中文引号""
+                pairMap.insert(QString(QChar(0x2018)), QString(QChar(0x2019)));  // 中文单引号''
+                pairMap.insert(QString(QChar(0x300C)), QString(QChar(0x300D)));  // 中文角括号「」
+                pairMap.insert(QString(QChar(0x300E)), QString(QChar(0x300F)));  // 中文双直角引号 『』
+                pairMap.insert(QString(QChar(0x3008)), QString(QChar(0x3009)));  // 中文单书名号〈〉
+                pairMap.insert(QString(QChar(0x3014)), QString(QChar(0x3015)));  // 中文方括号变体〔〕
+                pairMap.insert(QString(QChar(0x3016)), QString(QChar(0x3017)));  // 中文方头括号〖〗
+                pairMap.insert(QString(QChar(0x301D)), QString(QChar(0x301E)));  // 中文特殊引号〝〞
+            }
+            
+            // 输出用户输入字符的详细信息
+            qDebug() << "是否配对检查中 - 当前文本:" << text << "字符总数:" << text.length();
+            qDebug() << "第一个字符Unicode:" << text[0].unicode() << "十六进制:" << QString("0x%1").arg(text[0].unicode(), 4, 16, QChar('0'));
+            
+            // 检查映射表中每个键，输出它们的Unicode码点以便比较
+            qDebug() << "映射表中所有中文括号的Unicode值:";
+            for (auto it = pairMap.begin(); it != pairMap.end(); ++it) {
+                if (it.key().length() > 0 && it.key()[0].unicode() > 0x00FF) {  // 只输出中文字符
+                    qDebug() << "  键:" << it.key() 
+                            << "Unicode值:" << it.key()[0].unicode()
+                            << "十六进制:" << QString("0x%1").arg(it.key()[0].unicode(), 4, 16, QChar('0'));
+                }
+            }
+        }
+        
+        // 检查是否启用了自动配对括号设置
+        QSettings settings;
+        bool autoPairEnabled = settings.value("Editor/AutoPairEnabled", true).toBool();
+        
+        if (autoPairEnabled) {
+            // 如果text为空，并且事件是KeyPress，则先打印详细按键信息
+            if (text.isEmpty() && event->type() == QEvent::KeyPress) {
+                QKeyEvent *dbgKeyEvent = static_cast<QKeyEvent*>(event); // 重新获取以确保类型正确
+                qDebug() << "[AutoPair EventFilter] KeyPress事件的text为空。按键信息 - Key:" << dbgKeyEvent->key()
+                         << "ScanCode:" << dbgKeyEvent->nativeScanCode()
+                         << "VirtualKey:" << dbgKeyEvent->nativeVirtualKey()
+                         << "Modifiers:" << dbgKeyEvent->modifiers()
+                         << "isAutoRepeat:" << dbgKeyEvent->isAutoRepeat();
+            }
+            // 注意：原先在此处的自动配对逻辑已被移至 handleTextChangedForAutoPair 槽函数
+            // eventFilter中不再处理基于keyEvent->text()的配对，以避免与IME冲突
+
+        } else {
+            qDebug() << "[AutoPair EventFilter] 自动配对括号已禁用";
+        }
+    }
+    
     return QTextEdit::eventFilter(watched, event);
+}
+
+void NoteTextEdit::handleTextChangedForAutoPair()
+{
+    // 检查是否因刚刚删除配对右括号而应跳过此次配对
+    if (m_justDeletedClosingPair) {
+
+        m_justDeletedClosingPair = false; // 消耗标志
+        return;
+    }
+
+    QSettings settings;
+    bool autoPairEnabled = settings.value("Editor/AutoPairEnabled", true).toBool();
+    if (!autoPairEnabled) {
+        return;
+    }
+
+
+
+    QTextCursor cursor = textCursor();
+    int originalPos = cursor.position();
+
+    // 检查光标前一个字符
+    cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, 1);
+    QString lastChar = cursor.selectedText();
+    cursor.clearSelection(); // 清除选择，恢复光标到单个字符前
+    cursor.setPosition(originalPos); // 将光标移回原始位置，以便插入
+
+    if (lastChar.length() == 1 && s_pairMap.contains(lastChar)) { // 使用 s_pairMap
+        QString openingChar = lastChar;
+        QString closingChar = s_pairMap.value(openingChar); // 使用 s_pairMap
+        
+
+
+        // 检查当前光标位置的字符，避免重复插入
+        QTextCursor checkCursor = textCursor();
+        checkCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+        QString charAtCursor = checkCursor.selectedText();
+
+        if (charAtCursor != closingChar) {
+            // 阻止信号递归调用
+            QSignalBlocker blocker(this);
+
+            QTextCursor insertCursor = textCursor(); // 使用一个新的光标对象进行插入
+            insertCursor.insertText(closingChar);
+            insertCursor.movePosition(QTextCursor::PreviousCharacter);
+            setTextCursor(insertCursor); // 更新编辑器的光标
+            
+
+        } else {
+
+        }
+    }
 }
 
 void NoteTextEdit::contextMenuEvent(QContextMenuEvent *event)
@@ -1709,6 +1885,8 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     // 连接信号和槽
     connect(m_textEdit, &NoteTextEdit::selectionChanged, this, &TextEditorManager::handleSelectionChanged);
     connect(m_textEdit, &NoteTextEdit::editorClicked, this, &TextEditorManager::handleTextEditClicked);
+    // 添加光标位置变化的连接
+    connect(m_textEdit, &QTextEdit::cursorPositionChanged, this, &TextEditorManager::handleCursorPositionChanged);
     // 将 textChanged 信号连接到 documentModified 槽，以在文本更改时启用保存按钮
     connect(m_textEdit, &QTextEdit::textChanged, this, &TextEditorManager::documentModified);
     connect(m_textEdit, &NoteTextEdit::imageResized, this, &TextEditorManager::documentModified);
@@ -1748,6 +1926,9 @@ TextEditorManager::TextEditorManager(QWidget *parent)
     if (m_showAiAssistantAction) {
         m_showAiAssistantAction->setEnabled(false);
     }
+    
+    // 应用编辑器设置
+    applyEditorSettings();
 }
 
 TextEditorManager::~TextEditorManager()
@@ -1993,8 +2174,6 @@ QIcon TextEditorManager::createColorIcon(const QString &path, const QColor &colo
         // 还可能在fill="currentColor"或stroke="currentColor"中出现，确保全部替换
         svgContent.replace("fill=\"currentColor\"", QString("fill=\"%1\"").arg(color.name()).toLatin1());
         svgContent.replace("stroke=\"currentColor\"", QString("stroke=\"%1\"").arg(color.name()).toLatin1());
-        svgContent.replace("fill='currentColor'", QString("fill='%1'").arg(color.name()).toLatin1());
-        svgContent.replace("stroke='currentColor'", QString("stroke='%1'").arg(color.name()).toLatin1());
     } else {
         qWarning() << "无法打开SVG文件:" << path;
         normalPainter.end();
@@ -2127,36 +2306,30 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     m_floatingToolBar->alignRightButton()->setChecked(alignment == Qt::AlignRight);
     m_floatingToolBar->alignJustifyButton()->setChecked(alignment == Qt::AlignJustify);
     
-    // --- 同步阻断标志，防止更新操作触发信号导致循环 ---
-    static bool isUpdating = false;
-    if (isUpdating) return;
-    isUpdating = true;
-    
     // 更新顶部工具栏的字体、字号选择器
     if (format.hasProperty(QTextFormat::FontFamilies)) {
         QStringList families = format.fontFamilies().toStringList();
         if (!families.isEmpty()) {
-            // 更新顶部工具栏字体
             QString fontFamily = families.first();
-            m_fontComboBox->setCurrentText(fontFamily);
-            
-            // 设置显示用的省略文本
-            QString displayText = fontFamily;
-            if (displayText.length() > 15) {
-                displayText = displayText.left(12) + "...";
+            QFont targetFont;
+            targetFont.setFamily(fontFamily);
+
+            // 更新顶部工具栏字体
+            {
+                QSignalBlocker blocker(m_fontComboBox);
+                if (m_fontComboBox->currentFont().family() != fontFamily) {
+                    m_fontComboBox->setCurrentFont(targetFont);
+                }
+                setEllipsisDisplayText(m_fontComboBox, fontFamily, 15, 12); // topToolbarMaxLength, topToolbarKeepLength
             }
-            m_fontComboBox->lineEdit()->setText(displayText);
             
             // 同步更新浮动工具栏的字体
-            if (m_floatingToolBar->fontComboBox()) {
-                m_floatingToolBar->fontComboBox()->setCurrentText(fontFamily);
-                
-                // 设置浮动工具栏字体显示的省略文本
-                QString floatDisplayText = fontFamily;
-                if (floatDisplayText.length() > 10) {
-                    floatDisplayText = floatDisplayText.left(7) + "...";
+            if (m_floatingToolBar && m_floatingToolBar->fontComboBox()) {
+                QSignalBlocker blocker(m_floatingToolBar->fontComboBox());
+                if (m_floatingToolBar->fontComboBox()->currentFont().family() != fontFamily) {
+                    m_floatingToolBar->fontComboBox()->setCurrentFont(targetFont);
                 }
-                m_floatingToolBar->fontComboBox()->lineEdit()->setText(floatDisplayText);
+                setEllipsisDisplayText(m_floatingToolBar->fontComboBox(), fontFamily, 8, 5); // floatToolbarMaxLength, floatToolbarKeepLength
             }
         }
     }
@@ -2167,10 +2340,14 @@ void TextEditorManager::updateToolBarForCurrentFormat()
         QString fontSizeText = QString::number(fontSize);
         
         // 更新顶部工具栏字号
-        m_fontSizeComboBox->setCurrentText(fontSizeText);
+        {
+            QSignalBlocker fsBlocker(m_fontSizeComboBox); // 添加信号阻止器
+            m_fontSizeComboBox->setCurrentText(fontSizeText);
+        }
         
         // 同步更新浮动工具栏字号
-        if (m_floatingToolBar->fontSizeComboBox()) {
+        if (m_floatingToolBar && m_floatingToolBar->fontSizeComboBox()) {
+            QSignalBlocker floatFsBlocker(m_floatingToolBar->fontSizeComboBox()); // 添加信号阻止器
             m_floatingToolBar->fontSizeComboBox()->setCurrentText(fontSizeText);
         }
     }
@@ -2179,22 +2356,22 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     // 根据当前块的字体大小和粗细来判断标题级别
     int headingIndex = 0; // 默认为正文
     
-    int fontSize = static_cast<int>(format.fontPointSize());
+    int currentFontSize = static_cast<int>(format.fontPointSize()); // 使用 currentFontSize 替代 fontSize
     bool isBold = (format.fontWeight() >= QFont::Bold);
     
-    if (!isBold || fontSize <= 12) {
+    if (!isBold || currentFontSize <= 12) { // 使用 currentFontSize
         headingIndex = 0; // 正文
     } else {
         // 根据字体大小判断标题级别
-        if (fontSize >= 24) {
+        if (currentFontSize >= 24) { // 使用 currentFontSize
             headingIndex = 1; // 一级标题
-        } else if (fontSize >= 20) {
+        } else if (currentFontSize >= 20) { // 使用 currentFontSize
             headingIndex = 2; // 二级标题
-        } else if (fontSize >= 18) {
+        } else if (currentFontSize >= 18) { // 使用 currentFontSize
             headingIndex = 3; // 三级标题
-        } else if (fontSize >= 16) {
+        } else if (currentFontSize >= 16) { // 使用 currentFontSize
             headingIndex = 4; // 四级标题
-        } else if (fontSize >= 14) {
+        } else if (currentFontSize >= 14) { // 使用 currentFontSize
             headingIndex = 5; // 五级标题
         } else {
             headingIndex = 6; // 六级标题
@@ -2202,14 +2379,16 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     }
     
     // 更新顶部工具栏标题级别
-    m_headingComboBox->setCurrentIndex(headingIndex);
-    
-    // 同步更新浮动工具栏标题级别
-    if (m_floatingToolBar->headingComboBox()) {
-        m_floatingToolBar->headingComboBox()->setCurrentIndex(headingIndex);
+    {
+        QSignalBlocker hBlocker(m_headingComboBox); // 添加信号阻止器
+        m_headingComboBox->setCurrentIndex(headingIndex);
     }
     
-    isUpdating = false;
+    // 同步更新浮动工具栏标题级别
+    if (m_floatingToolBar && m_floatingToolBar->headingComboBox()) {
+        QSignalBlocker floatHBlocker(m_floatingToolBar->headingComboBox()); // 添加信号阻止器
+        m_floatingToolBar->headingComboBox()->setCurrentIndex(headingIndex);
+    }
 }
 
 QTextCharFormat TextEditorManager::currentCharFormat() const
@@ -2858,9 +3037,263 @@ void TextEditorManager::insertAiContent(const QString &content)
     }
 }
 
-// 添加setDatabaseManager方法实现
-void TextEditorManager::setDatabaseManager(DatabaseManager *dbManager)
+// TextEditorManager应用设置方法
+void TextEditorManager::applyEditorSettings()
 {
-    m_dbManager = dbManager;
+    QSettings settings;
+    
+    // 应用字体设置
+    QString fontFamily = settings.value("Editor/FontFamily", "Arial").toString();
+    int fontSize = settings.value("Editor/FontSize", 12).toInt();
+    updateFont(fontFamily, fontSize);
+    
+    // 应用制表符宽度设置
+    int tabWidth = settings.value("Editor/TabWidth", 4).toInt();
+    updateTabWidth(tabWidth);
+    
+    // 应用自动配对括号设置
+    bool autoPairEnabled = settings.value("Editor/AutoPairEnabled", true).toBool();
+    updateAutoPairEnabled(autoPairEnabled);
+}
+
+void TextEditorManager::updateFont(const QString &family, int size)
+{
+    if (!m_textEdit) return;
+    
+    // 设置编辑器默认字体
+    QFont editorFont(family, size);
+    m_textEdit->setFont(editorFont);
+    
+    // 更新设置
+    QSettings settings;
+    settings.setValue("Editor/FontFamily", family);
+    settings.setValue("Editor/FontSize", size);
+    
+    // 更新顶部工具栏的Font ComboBox
+    if (m_fontComboBox) {
+        QSignalBlocker blocker(m_fontComboBox);
+        m_fontComboBox->setCurrentFont(QFont(family));
+        // 设置显示用的省略文本
+        QString displayText = family;
+        if (displayText.length() > 15) {
+            displayText = displayText.left(12) + "...";
+        }
+        m_fontComboBox->lineEdit()->setText(displayText);
+    }
+    
+    // 更新浮动工具栏的Font ComboBox
+    if (m_floatingToolBar && m_floatingToolBar->fontComboBox()) {
+        QSignalBlocker blocker(m_floatingToolBar->fontComboBox());
+        m_floatingToolBar->fontComboBox()->setCurrentFont(QFont(family));
+        // 设置浮动工具栏字体显示的省略文本
+        QString floatDisplayText = family;
+        if (floatDisplayText.length() > 10) {
+            floatDisplayText = floatDisplayText.left(7) + "...";
+        }
+        m_floatingToolBar->fontComboBox()->lineEdit()->setText(floatDisplayText);
+    }
+    
+    // 更新顶部工具栏字号ComboBox
+    if (m_fontSizeComboBox) {
+        QSignalBlocker blocker(m_fontSizeComboBox);
+        QString sizeStr = QString::number(size);
+        int index = m_fontSizeComboBox->findText(sizeStr);
+        if (index >= 0) {
+            m_fontSizeComboBox->setCurrentIndex(index);
+        } else {
+            // 如果找不到精确匹配，直接设置文本
+            m_fontSizeComboBox->setCurrentText(sizeStr);
+        }
+    }
+    
+    // 更新浮动工具栏字号ComboBox
+    if (m_floatingToolBar && m_floatingToolBar->fontSizeComboBox()) {
+        QSignalBlocker blocker(m_floatingToolBar->fontSizeComboBox());
+        QString sizeStr = QString::number(size);
+        int index = m_floatingToolBar->fontSizeComboBox()->findText(sizeStr);
+        if (index >= 0) {
+            m_floatingToolBar->fontSizeComboBox()->setCurrentIndex(index);
+        } else {
+            // 如果找不到精确匹配，直接设置文本
+            m_floatingToolBar->fontSizeComboBox()->setCurrentText(sizeStr);
+        }
+    }
+    
+    // 强制所有文本重新应用字体 - 通过标记文档被修改并重画
+    QTextDocument* doc = m_textEdit->document();
+    bool wasModified = doc->isModified();
+    doc->setModified(true);
+    doc->setModified(wasModified);
+    
+    // 强制视图更新
+    m_textEdit->viewport()->update();
+    m_textEdit->document()->markContentsDirty(0, m_textEdit->document()->characterCount());
+}
+
+void TextEditorManager::updateTabWidth(int spaces)
+{
+    if (!m_textEdit) return;
+    
+    // 计算空格宽度并设置制表符宽度
+    QFontMetrics fm(m_textEdit->font());
+    qreal spaceWidth = fm.horizontalAdvance(' ');
+    qreal tabPixels = spaces * spaceWidth;
+    
+    // 方法1: 设置编辑器的tabStopDistance
+    m_textEdit->setTabStopDistance(tabPixels);
+    
+    // 更新设置
+    QSettings settings;
+    settings.setValue("Editor/TabWidth", spaces);
+    
+    // 方法2: 设置文档的QTextOption
+    QTextDocument *doc = m_textEdit->document();
+    QTextOption option = doc->defaultTextOption();
+    option.setTabStopDistance(tabPixels);
+    doc->setDefaultTextOption(option);
+    
+    // 方法3: 同时设置所有块的格式
+    QTextCursor cursor(doc);
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::Start);
+    while (!cursor.atEnd()) {
+        QTextBlockFormat format = cursor.blockFormat();
+        format.setTabPositions(QList<QTextOption::Tab>()); // 清除所有自定义制表位
+        cursor.setBlockFormat(format);
+        cursor.movePosition(QTextCursor::NextBlock);
+    }
+    cursor.endEditBlock();
+    
+    // 强制重新布局文档
+    doc->documentLayout()->documentSizeChanged(doc->documentLayout()->documentSize());
+    doc->markContentsDirty(0, doc->characterCount());
+    
+    // 通过修改状态并还原来强制刷新
+    bool wasModified = doc->isModified();
+    doc->setModified(true);
+    doc->setModified(wasModified);
+    
+    // 刷新视图
+    m_textEdit->viewport()->update();
+}
+
+void TextEditorManager::updateAutoPairEnabled(bool enabled)
+{
+    // 更新设置 (实际行为由NoteTextEdit的eventFilter处理)
+    QSettings settings;
+    settings.setValue("Editor/AutoPairEnabled", enabled);
+}
+
+// 从设置对话框接收字体设置变更
+void TextEditorManager::onEditorFontSettingChanged(const QString &fontFamily, int fontSize)
+{
+    // 更新字体
+    updateFont(fontFamily, fontSize);
+}
+
+// 从设置对话框接收制表符宽度设置变更
+void TextEditorManager::onTabWidthSettingChanged(int tabWidth)
+{
+    updateTabWidth(tabWidth);
+}
+
+// 从设置对话框接收自动配对括号设置变更
+void TextEditorManager::onAutoPairSettingChanged(bool enabled)
+{
+    updateAutoPairEnabled(enabled);
+}
+
+// 新增：处理键盘按下事件，用于检测是否删除了配对的右括号
+void NoteTextEdit::keyPressEvent(QKeyEvent *event)
+{
+    m_justDeletedClosingPair = false; // 默认重置标志
+
+    QSettings settings;
+    bool autoPairEnabled = settings.value("Editor/AutoPairEnabled", true).toBool();
+
+    if (autoPairEnabled && (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete)) {
+        QTextCursor cursor = textCursor();
+        if (!cursor.hasSelection()) { // 只处理单字符删除的情况
+            if (event->key() == Qt::Key_Backspace && cursor.position() > 0) {
+                QTextCursor inspectCursor = cursor;
+                inspectCursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, 1);
+                QString charToBeDeleted = inspectCursor.selectedText(); // 即将被退格删除的字符
+
+                if (charToBeDeleted.length() == 1 && s_pairMap.values().contains(charToBeDeleted)) {
+                    // 即将被删除的是一个已知的右括号
+                    QString openingPartner;
+                    for (auto it = s_pairMap.constBegin(); it != s_pairMap.constEnd(); ++it) {
+                        if (it.value() == charToBeDeleted) {
+                            openingPartner = it.key();
+                            break;
+                        }
+                    }
+
+                    if (!openingPartner.isEmpty()) {
+                        inspectCursor.movePosition(QTextCursor::PreviousCharacter); // 移动到右括号之前的位置
+                        if (inspectCursor.position() > 0) { // 确保不是文档开头
+                            inspectCursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, 1);
+                            if (inspectCursor.selectedText() == openingPartner) {
+                                // 发现模式：左括号 + 右括号(将被删除)
+                                m_justDeletedClosingPair = true;
+
+                            }
+                        }
+                    }
+                }
+            } else if (event->key() == Qt::Key_Delete && cursor.position() < document()->characterCount()) {
+                QTextCursor inspectCursor = cursor;
+                inspectCursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+                QString charToBeDeleted = inspectCursor.selectedText(); // 即将被Delete键删除的字符
+
+                if (charToBeDeleted.length() == 1 && s_pairMap.values().contains(charToBeDeleted)) {
+                    // 即将被删除的是一个已知的右括号
+                    QString openingPartner;
+                    for (auto it = s_pairMap.constBegin(); it != s_pairMap.constEnd(); ++it) {
+                        if (it.value() == charToBeDeleted) {
+                            openingPartner = it.key();
+                            break;
+                        }
+                    }
+                    if (!openingPartner.isEmpty() && cursor.position() > 0) {
+                        QTextCursor checkBeforeCursor = cursor; // 当前光标在假设左括号之后
+                        checkBeforeCursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, 1);
+                        if (checkBeforeCursor.selectedText() == openingPartner) {
+                            // 发现模式：光标在左括号和右括号之间，Delete将删除右括号
+                            m_justDeletedClosingPair = true;
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    bool isEnterKey = (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter);
+    QTextCharFormat formatToCarryOver;
+
+    if (isEnterKey) {
+        // 捕获回车键按下前光标处的字符格式
+        formatToCarryOver = textCursor().charFormat();
+    }
+
+    QTextEdit::keyPressEvent(event); // 调用基类处理实际的按键操作
+
+    if (isEnterKey && !formatToCarryOver.isEmpty()) {
+        // 如果是回车键，并且成功捕获了格式
+        // 确保这是一个有效的、用户设置的格式（而不是空的默认格式）
+        // 使用 fontFamilies() 返回的 QStringList 的 isEmpty() 方法
+        if (!formatToCarryOver.fontFamilies().toStringList().isEmpty() && formatToCarryOver.fontPointSize() > 0) {
+            // 在基类处理完回车键（创建了新行）后，将捕获的格式应用为当前输入的格式
+             setCurrentCharFormat(formatToCarryOver);
+        }
+    }
+}
+
+// 在TextEditorManager类中添加处理光标位置变化的槽函数
+void TextEditorManager::handleCursorPositionChanged()
+{
+    // 启动更新计时器，避免频繁更新
+    m_updateToolBarTimer->start();
 }
 

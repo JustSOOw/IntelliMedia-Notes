@@ -167,9 +167,24 @@ void SettingsDialog::applySettings()
     // 因此，这里不再需要进行任何主题相关的 setPalette() 或 setStyle() 调用。
     qDebug() << "SettingsDialog::applySettings() called, but theme application is deferred to MainWindow.";
     
-    // 应用编辑器设置
-    QFont defaultFont;
-    defaultFont.fromString(settings.value("Editor/DefaultFont", QFont("Segoe UI", 11).toString()).toString());
+    // 应用编辑器字体设置 - 这也将成为应用程序的全局Widget字体
+    QString fontFamily = settings.value("Editor/FontFamily", "Arial").toString();
+    int fontSize = settings.value("Editor/FontSize", 12).toInt();
+    QFont appWidgetFont(fontFamily, fontSize); 
+    
+    // 为所有Qt Widgets组件应用字体
+    QApplication::setFont(appWidgetFont);
+    qDebug() << "应用全局Widget字体设置:" << fontFamily << fontSize << "pt";
+    
+    // TextEditorManager会通过editorFontChanged信号独立处理编辑器本身的字体设置
+
+    // 应用制表符宽度设置
+    int tabWidth = settings.value("Editor/TabWidth", 4).toInt();
+    qDebug() << "应用制表符宽度设置:" << tabWidth << "个空格";
+    
+    // 应用自动配对括号设置
+    bool autoPair = settings.value("Editor/AutoPairEnabled", true).toBool();
+    qDebug() << "应用自动配对括号设置:" << (autoPair ? "启用" : "禁用");
     
     // 应用数据与存储设置
     // 检查是否需要进行自动备份
@@ -375,21 +390,56 @@ void SettingsDialog::onSelectFontClicked()
     if (ok) {
         m_selectedFont = font;
         m_currentFontLabel->setText(QString("%1, %2pt").arg(font.family()).arg(font.pointSize()));
+        
+        // 保存设置到INI文件
+        m_settings.setValue("Editor/FontFamily", font.family());
+        m_settings.setValue("Editor/FontSize", font.pointSize());
+        
+        // 发射信号通知应用字体变更
+        emit editorFontChanged(font.family(), font.pointSize());
+        
+        qDebug() << "发出编辑器字体变更信号：" << font.family() << font.pointSize() << "pt";
     }
 }
 
 // 制表符宽度改变时的槽函数
 void SettingsDialog::onTabWidthChanged(int value)
 {
-    // 这里可以添加实时预览制表符宽度的代码
+    // 保存新的制表符宽度设置
+    m_settings.setValue("Editor/TabWidth", value);
+    
+    // 在日志中记录更改
     qDebug() << "制表符宽度已更改为: " << value;
+    
+    // 向应用程序其他部分发出信号，通知制表符宽度已更改
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, 
+                     QApplication::organizationName(), QApplication::applicationName());
+    settings.setValue("Editor/TabWidth", value);
+    
+    // 发射信号通知应用制表符宽度变更
+    emit tabWidthChanged(value);
+    qDebug() << "发出制表符宽度变更信号：" << value << "个空格";
 }
 
 // 自动配对括号/引号设置改变时的槽函数
 void SettingsDialog::onAutoPairChanged(int state)
 {
-    // 这里可以添加实时预览自动配对括号/引号的代码
-    qDebug() << "自动配对括号/引号已" << (state == Qt::Checked ? "启用" : "禁用");
+    bool enabled = (state == Qt::Checked);
+    
+    // 保存自动配对设置
+    m_settings.setValue("Editor/AutoPairEnabled", enabled);
+    
+    // 在日志中记录更改
+    qDebug() << "自动配对括号/引号已" << (enabled ? "启用" : "禁用");
+    
+    // 将设置保存到全局设置
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, 
+                     QApplication::organizationName(), QApplication::applicationName());
+    settings.setValue("Editor/AutoPairEnabled", enabled);
+    
+    // 发射信号通知应用自动配对括号设置变更
+    emit autoPairChanged(enabled);
+    qDebug() << "发出自动配对括号设置变更信号：" << (enabled ? "启用" : "禁用");
 }
 
 // 显示/隐藏API密钥按钮点击时的槽函数
@@ -927,11 +977,13 @@ void SettingsDialog::setupGeneralTab()
     QGroupBox *otherGroup = new QGroupBox(tr("其他设置"));
     QVBoxLayout *otherLayout = new QVBoxLayout(otherGroup);
     
-    QCheckBox *startMinimizedCheck = new QCheckBox(tr("启动时最小化到系统托盘"));
-    QCheckBox *checkUpdatesCheck = new QCheckBox(tr("自动检查更新"));
+    m_startMinimizedCheck = new QCheckBox(tr("启动时最小化到系统托盘"));
+    m_checkUpdatesCheck = new QCheckBox(tr("自动检查更新"));
+    m_autoStartCheck = new QCheckBox(tr("开机自动启动"));
     
-    otherLayout->addWidget(startMinimizedCheck);
-    otherLayout->addWidget(checkUpdatesCheck);
+    otherLayout->addWidget(m_startMinimizedCheck);
+    otherLayout->addWidget(m_checkUpdatesCheck);
+    otherLayout->addWidget(m_autoStartCheck);
     
     // 添加所有组到主布局
     mainLayout->addWidget(themeGroup);
@@ -945,10 +997,7 @@ void SettingsDialog::setupGeneralTab()
     connect(m_customBackgroundBtn, &QPushButton::clicked, this, &SettingsDialog::onCustomBackgroundClicked);
     connect(m_autoSaveCheck, &QCheckBox::stateChanged, this, &SettingsDialog::onAutoSaveChanged);
     connect(m_autoSaveIntervalCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsDialog::onAutoSaveIntervalChanged);
-    
-    // 保存对startMinimizedCheck和checkUpdatesCheck的引用
-    m_startMinimizedCheck = startMinimizedCheck;
-    m_checkUpdatesCheck = checkUpdatesCheck;
+    connect(m_autoStartCheck, &QCheckBox::stateChanged, this, &SettingsDialog::onAutoStartChanged);
 }
 
 // 初始化编辑器设置标签页
@@ -1374,6 +1423,10 @@ void SettingsDialog::loadSettings()
     
     bool checkUpdates = m_settings.value("General/CheckUpdatesAutomatically", true).toBool();
     m_checkUpdatesCheck->setChecked(checkUpdates);
+    
+    // 加载开机自动启动设置
+    bool autoStart = checkAutoStart();
+    m_autoStartCheck->setChecked(autoStart);
     
     // 加载自动保存设置
     bool autoSaveEnabled = m_settings.value("General/AutoSaveEnabled", false).toBool();
@@ -1886,6 +1939,85 @@ bool SettingsDialog::importNotes(const QString &importPath)
         return importCount > 0;
     } catch (const std::exception &e) {
         qCritical() << "Exception during import:" << e.what();
+        return false;
+    }
+}
+
+// 开机自动启动设置改变时的槽函数
+void SettingsDialog::onAutoStartChanged(int state)
+{
+    bool enable = (state == Qt::Checked);
+    
+    // 设置开机自动启动
+    bool success = setAutoStart(enable);
+    
+    if (!success) {
+        // 如果设置失败，恢复复选框状态
+        QSignalBlocker blocker(m_autoStartCheck);
+        m_autoStartCheck->setChecked(!enable);
+        
+        // 显示错误消息
+        QString errorMsg = enable ? 
+            tr("无法设置开机自动启动，可能需要管理员权限。") : 
+            tr("无法取消开机自动启动，可能需要管理员权限。");
+        QMessageBox::warning(this, tr("设置失败"), errorMsg);
+    }
+}
+
+// 设置开机自动启动
+bool SettingsDialog::setAutoStart(bool enable)
+{
+    try {
+        #ifdef Q_OS_WIN
+            // Windows平台使用注册表设置开机自动启动
+            QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", 
+                              QSettings::NativeFormat);
+            
+            QString appName = QApplication::applicationName();
+            
+            if (enable) {
+                // 获取应用程序路径
+                QString appPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+                // 设置注册表键值
+                settings.setValue(appName, appPath);
+            } else {
+                // 删除注册表键值
+                settings.remove(appName);
+            }
+            
+            return true;
+        #else
+            // 其他平台暂不实现
+            // TODO: 实现其他平台的开机自动启动设置
+            QMessageBox::information(this, tr("功能未实现"), 
+                tr("当前平台暂不支持开机自动启动功能。"));
+            return false;
+        #endif
+    } catch (const std::exception &e) {
+        qCritical() << "设置开机自动启动异常:" << e.what();
+        return false;
+    }
+}
+
+// 检查是否设置了开机自动启动
+bool SettingsDialog::checkAutoStart()
+{
+    try {
+        #ifdef Q_OS_WIN
+            // Windows平台使用注册表检查开机自动启动
+            QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", 
+                              QSettings::NativeFormat);
+            
+            QString appName = QApplication::applicationName();
+            
+            // 检查注册表键值是否存在
+            return settings.contains(appName);
+        #else
+            // 其他平台暂不实现
+            return false;
+        #endif
+    } catch (const std::exception &e) {
+        qCritical() << "检查开机自动启动异常:" << e.what();
         return false;
     }
 } 

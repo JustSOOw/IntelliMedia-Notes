@@ -2313,7 +2313,7 @@ void TextEditorManager::updateToolBarForCurrentFormat()
             QString fontFamily = families.first();
             QFont targetFont;
             targetFont.setFamily(fontFamily);
-
+            
             // 更新顶部工具栏字体
             {
                 QSignalBlocker blocker(m_fontComboBox);
@@ -2342,7 +2342,7 @@ void TextEditorManager::updateToolBarForCurrentFormat()
         // 更新顶部工具栏字号
         {
             QSignalBlocker fsBlocker(m_fontSizeComboBox); // 添加信号阻止器
-            m_fontSizeComboBox->setCurrentText(fontSizeText);
+        m_fontSizeComboBox->setCurrentText(fontSizeText);
         }
         
         // 同步更新浮动工具栏字号
@@ -2381,7 +2381,7 @@ void TextEditorManager::updateToolBarForCurrentFormat()
     // 更新顶部工具栏标题级别
     {
         QSignalBlocker hBlocker(m_headingComboBox); // 添加信号阻止器
-        m_headingComboBox->setCurrentIndex(headingIndex);
+    m_headingComboBox->setCurrentIndex(headingIndex);
     }
     
     // 同步更新浮动工具栏标题级别
@@ -2597,7 +2597,25 @@ void TextEditorManager::loadNote(const QString &notePath)
     
     // 如果路径为空，加载默认内容
     if (notePath.isEmpty()) {
-        m_textEdit->setHtml("<html><body><p>" + tr("欢迎使用IntelliMedia Notes！") + "</p><p>" + tr("请从侧边栏选择一个笔记或创建新笔记开始。") + "</p></body></html>");
+        // 获取全局字体设置
+        QSettings settings;
+        QString fontFamily = settings.value("Editor/FontFamily", "Arial").toString();
+        
+        // 创建带有样式的HTML内容：第一行一级标题，第二行12号字体
+        QString welcomeHtml = QString(
+            "<html><body>"
+            "<h1 style=\"font-family: %1; font-size: 24pt; font-weight: bold; margin-bottom: 10px;\">"
+            "%2"
+            "</h1>"
+            "<p style=\"font-family: %1; font-size: 12pt; margin-top: 5px;\">"
+            "%3"
+            "</p>"
+            "</body></html>"
+        ).arg(fontFamily)
+         .arg(tr("欢迎使用IntelliMedia Notes！"))
+         .arg(tr("请从侧边栏选择一个笔记或创建新笔记开始。"));
+        
+        m_textEdit->setHtml(welcomeHtml);
         return;
     }
     
@@ -3061,13 +3079,32 @@ void TextEditorManager::updateFont(const QString &family, int size)
     if (!m_textEdit) return;
     
     // 设置编辑器默认字体
-    QFont editorFont(family, size);
+    QFont editorFont;
+    if (size > 0) {
+        // 使用指定的字体和大小
+        editorFont = QFont(family, size);
+        // 更新字号设置
+        QSettings settings;
+        settings.setValue("Editor/FontSize", size);
+    } else {
+        // 仅使用字体家族，大小使用系统默认值
+        editorFont = QFont(family);
+        // 如果已存在字号设置，则使用它，否则使用系统默认
+        QSettings settings;
+        if (settings.contains("Editor/FontSize")) {
+            int storedSize = settings.value("Editor/FontSize", 12).toInt();
+            editorFont.setPointSize(storedSize);
+            size = storedSize; // 用于更新UI
+        } else {
+            size = editorFont.pointSize(); // 获取系统默认字号以更新UI
+        }
+    }
+    
     m_textEdit->setFont(editorFont);
     
-    // 更新设置
+    // 更新设置 - 只保存字体家族
     QSettings settings;
     settings.setValue("Editor/FontFamily", family);
-    settings.setValue("Editor/FontSize", size);
     
     // 更新顶部工具栏的Font ComboBox
     if (m_fontComboBox) {
@@ -3187,7 +3224,7 @@ void TextEditorManager::updateAutoPairEnabled(bool enabled)
 // 从设置对话框接收字体设置变更
 void TextEditorManager::onEditorFontSettingChanged(const QString &fontFamily, int fontSize)
 {
-    // 更新字体
+    // 更新字体，fontSize为0表示使用系统默认字号
     updateFont(fontFamily, fontSize);
 }
 

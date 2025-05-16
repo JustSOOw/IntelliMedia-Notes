@@ -10,6 +10,7 @@
  */
 #include "aiassistantdialog.h"
 #include "IAiService.h"
+#include "DeepSeekService.h"
 #include <QShowEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -24,7 +25,6 @@
 #include <QTimer>
 #include <QFile>
 #include <QMessageBox>
-#include "DeepSeekService.h"
 
 // 构造函数
 AiAssistantDialog::AiAssistantDialog(QWidget *parent)
@@ -719,6 +719,8 @@ void AiAssistantDialog::sendMessage()
         return;
     }
     
+
+    
     // 处理AI请求
     processAiRequest();
 }
@@ -828,6 +830,8 @@ void AiAssistantDialog::setAiService(IAiService *service)
     if (m_aiService) {
         // 连接AI服务信号
         connectAiServiceSignals();
+        
+
     }
 }
 

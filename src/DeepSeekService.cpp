@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2025-05-13 09:40:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-06 15:24:13
+ * @LastEditTime: 2025-05-15 17:20:13
  * @FilePath: \IntelliMedia_Notes\src\DeepSeekService.cpp
  * @Description: DeepSeek API服务实现
  * 
@@ -18,7 +18,7 @@
 // DeepSeek API 常量
 const QString API_ENDPOINT = "https://api.deepseek.com/chat/completions";
 const QString MODEL_NAME = "deepseek-chat"; // DeepSeek-V3 模型
-const QString DEFAULT_API_KEY = "sk-99853683dd524fda89a8fda9f0447e09"; // 请替换为实际的DeepSeek API密钥
+const QString DEFAULT_API_KEY = ""; // 设置为空字符串，便于后续判断
 
 // 构造函数
 DeepSeekService::DeepSeekService(QObject *parent)
@@ -48,6 +48,7 @@ DeepSeekService::~DeepSeekService()
 // 设置API密钥
 void DeepSeekService::setApiKey(const QString& apiKey)
 {
+    qDebug() << "DeepSeekService::setApiKey - 设置API密钥，长度:" << apiKey.length();
     m_apiKey = apiKey;
 }
 
@@ -132,25 +133,20 @@ void DeepSeekService::sendRequest(const QString& operation, const QString& origi
     }
 
     // 检查API密钥
-    if (m_apiKey.isEmpty()) {
+    if (m_apiKey.isEmpty() || m_apiKey.trimmed().isEmpty()) {
         emit aiError(operationToDescription(operation), "API密钥未设置，请在设置中配置有效的DeepSeek API密钥");
         return;
     }
     
     // 检查是否使用了默认API密钥
     if (m_apiKey == DEFAULT_API_KEY) {
-        // 如果默认密钥不是一个有效的密钥格式，发出警告
-        if (!m_apiKey.startsWith("sk-") || m_apiKey.length() < 20) {
-            emit aiError(operationToDescription(operation), "使用了默认API密钥，请在设置中配置有效的DeepSeek API密钥");
-            return;
-        } else {
-            qWarning() << "使用默认API密钥！建议更换为您自己的API密钥";
-        }
+        emit aiError(operationToDescription(operation), "使用了默认API密钥，请在设置中配置有效的DeepSeek API密钥");
+        return;
     }
     
     // 检查API密钥格式
     if (!m_apiKey.startsWith("sk-") || m_apiKey.length() < 20) {
-        emit aiError(operationToDescription(operation), "API密钥格式不正确，有效的DeepSeek API密钥应以'sk-'开头");
+        emit aiError(operationToDescription(operation), "API密钥格式不正确，有效的DeepSeek API密钥应以'sk-'开头且长度至少为20个字符");
         return;
     }
 

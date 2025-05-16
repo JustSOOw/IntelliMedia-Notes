@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-14 17:37:03
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-14 22:12:39
+ * @LastEditTime: 2025-05-15 18:08:28
  * @FilePath: \IntelliMedia_Notes\src\mainwindow.cpp
  * @Description: 
  * 
@@ -15,6 +15,7 @@
 #include "texteditormanager.h" // 包含文本编辑器管理器头文件
 #include "aiassistantdialog.h" // 包含AI助手对话框头文件
 #include "IAiService.h" // 包含AI服务接口头文件
+#include "DeepSeekService.h" // 包含DeepSeek服务头文件
 #include "settingsdialog.h" // 包含设置对话框头文件
 
 #include <QToolButton>
@@ -431,6 +432,8 @@ void MainWindow::onSettingsClosed()
     // 应用除主题外的其他设置
     applySettings();
     
+
+    
     // 不再调用applyThemeFromSettings()，因为主题已经通过信号直接应用
 }
 
@@ -461,6 +464,32 @@ void MainWindow::applySettings()
         }
     } else {
         qDebug() << "应用新设置：自动保存已禁用";
+    }
+    
+    // 应用AI服务设置
+    if (m_aiService) {
+        // 读取API密钥设置
+        QString apiKey = settings.value("AIService/APIKey", "").toString();
+        
+        if (!apiKey.isEmpty()) {
+            // 解混淆API密钥
+            QString deobfuscatedKey = "";
+            for (QChar c : apiKey) {
+                deobfuscatedKey.append(QChar(c.unicode() - 1));
+            }
+            // 设置到AI服务
+            m_aiService->setApiKey(deobfuscatedKey);
+        }
+        
+        // 读取API端点设置
+        QString apiEndpoint = settings.value("AIService/APIEndpoint", "https://api.deepseek.com/chat/completions").toString();
+        if (!apiEndpoint.isEmpty() && m_aiService->metaObject()->indexOfMethod("setApiEndpoint(QString)") != -1) {
+            // 使用QMetaObject来调用可能存在的setApiEndpoint方法
+            QMetaObject::invokeMethod(m_aiService, "setApiEndpoint", Q_ARG(QString, apiEndpoint));
+            qDebug() << "应用新设置：已更新AI服务API端点 -" << apiEndpoint;
+        }
+    } else {
+        qWarning() << "应用新设置：AI服务实例为空，无法更新API设置";
     }
     
     // 应用自定义背景（如果有）
@@ -972,6 +1001,18 @@ void MainWindow::setupSettings()
     m_autoSaveTimer = new QTimer(this);
     connect(m_autoSaveTimer, &QTimer::timeout, this, &MainWindow::saveCurrentNote);
     
+    // 初始化自动备份检查定时器 - 每24小时检查一次
+    m_backupCheckTimer = new QTimer(this);
+    connect(m_backupCheckTimer, &QTimer::timeout, this, [this]() {
+        // 调用静态方法执行备份检查
+        SettingsDialog::applySettings();
+        qDebug() << "已执行定期备份检查";
+    });
+    
+    // 启动备份检查定时器（24小时 = 24 * 60 * 60 * 1000毫秒）
+    m_backupCheckTimer->start(24 * 60 * 60 * 1000);
+    qDebug() << "自动备份检查定时器已启动，间隔=24小时";
+    
     // 从设置中读取自动保存配置
     QSettings settings(QSettings::IniFormat, QSettings::UserScope, QApplication::organizationName(), QApplication::applicationName());
     bool autoSaveEnabled = settings.value("General/AutoSaveEnabled", false).toBool();
@@ -1021,6 +1062,16 @@ void MainWindow::showSettingsDialog()
             connect(m_settingsDialog, &SettingsDialog::editorFontChanged, 
                     m_textEditorManager, &TextEditorManager::onEditorFontSettingChanged);
             qDebug() << "已连接字体设置信号到编辑器管理器";
+            
+            // 向侧边栏管理器传递字体变更
+            if (m_sidebarManager) {
+                connect(m_settingsDialog, &SettingsDialog::editorFontChanged, 
+                        this, [this](const QString &fontFamily, int) {
+                            m_sidebarManager->updateGlobalFont(fontFamily);
+                            qDebug() << "已更新侧边栏QML界面的全局字体:" << fontFamily;
+                        });
+                qDebug() << "已连接字体设置信号到侧边栏管理器";
+            }
             
             // 制表符宽度变更信号
             connect(m_settingsDialog, &SettingsDialog::tabWidthChanged, 

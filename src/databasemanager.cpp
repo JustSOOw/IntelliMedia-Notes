@@ -2,13 +2,14 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-17 12:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-04-17 12:00:00
+ * @LastEditTime: 2025-05-15 22:13:00
  * @FilePath: \IntelliMedia_Notes\src\databasemanager.cpp
  * @Description: 数据库管理类实现
  * 
  * Copyright (c) 2025 by Furdow, All Rights Reserved. 
  */
 #include "databasemanager.h"
+#include "settingsdialog.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QSqlQuery>
@@ -30,9 +31,9 @@ DatabaseManager::~DatabaseManager()
 
 bool DatabaseManager::initialize()
 {
-    // 设置数据库文件路径（使用应用程序数据目录）
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir dir(appDataPath);
+    // 使用 SettingsDialog::getNotebookPath() 获取笔记库位置
+    QString notebookPath = SettingsDialog::getNotebookPath();
+    QDir dir(notebookPath);
     
     // 确保目录存在
     if (!dir.exists()) {
@@ -40,11 +41,11 @@ bool DatabaseManager::initialize()
     }
     
     // 数据库文件路径
-    m_dbPath = appDataPath + "/notes.db";
+    m_dbPath = notebookPath + "/notes.db";
     qDebug() << "数据库路径:" << m_dbPath;
     
     // 媒体文件夹路径
-    m_mediaPath = appDataPath + "/notes_media";
+    m_mediaPath = notebookPath + "/notes_media";
     QDir mediaDir(m_mediaPath);
     if (!mediaDir.exists()) {
         mediaDir.mkpath(".");
@@ -866,8 +867,8 @@ QString DatabaseManager::getMediaAbsolutePath(const QString &relative_path)
         return relative_path;
     }
     
-    // 从相对路径构建绝对路径
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    // 从相对路径构建绝对路径 - 使用 SettingsDialog::getNotebookPath()
+    QString notebookPath = SettingsDialog::getNotebookPath();
     
     // 如果相对路径以notes_media/开头，去掉这个前缀
     QString path = relative_path;
@@ -875,7 +876,7 @@ QString DatabaseManager::getMediaAbsolutePath(const QString &relative_path)
         path = path.mid(12);
     }
     
-    return appDataPath + "/notes_media/" + path;
+    return notebookPath + "/notes_media/" + path;
 }
 
 QString DatabaseManager::generateUniqueFilename(const QString &original_name)

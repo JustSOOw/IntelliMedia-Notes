@@ -34,7 +34,7 @@ public:
      * 构造函数
      * @param parent 父窗口
      */
-    explicit SettingsDialog(QWidget *parent = nullptr);
+    SettingsDialog(QWidget *parent = nullptr);
     
     /**
      * 析构函数
@@ -42,20 +42,38 @@ public:
     ~SettingsDialog();
 
     /**
-     * 静态方法，应用设置
+     * 打开设置对话框
+     * @param parent 父窗口
+     */
+    static void showSettings(QWidget *parent = nullptr);
+    
+    /**
+     * 应用设置
      */
     static void applySettings();
     
     /**
-     * 加载设置
-     */
-    void loadSettings();
-    
-    /**
-     * 获取笔记库路径的静态方法
+     * 获取笔记库路径
      * @return 笔记库路径
      */
     static QString getNotebookPath();
+    
+    /**
+     * 执行待处理的笔记库位置移动
+     * @return 是否成功
+     */
+    static bool executePendingNotebookMove();
+
+    /**
+     * 执行待处理的备份恢复操作
+     * @return 是否成功
+     */
+    static bool executePendingRestore();
+
+    /**
+     * 加载设置
+     */
+    void loadSettings();
 
 signals:
     /**
@@ -250,9 +268,9 @@ private:
     /**
      * 从指定路径恢复备份
      * @param backupPath 备份路径
-     * @return 恢复是否成功
+     * @return 是否成功
      */
-    bool restoreFromBackup(const QString &backupPath);
+    static bool restoreFromBackup(const QString &backupPath);
     
     /**
      * 导出笔记到指定路径和格式

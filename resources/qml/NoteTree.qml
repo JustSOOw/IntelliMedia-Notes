@@ -8,6 +8,9 @@ import QtQml 2.15
 Item {
     id: noteTree
     
+    // 全局字体属性
+    property string globalFontFamily: parent.globalFontFamily || "Arial"
+    
     // 属性
     property string selectedNotePath: ""
     property string selectedNoteType: "" // folder 或 note
@@ -52,6 +55,7 @@ Item {
     // 右键菜单
     FileContextMenu {
         id: contextMenu
+        globalFontFamily: noteTree.globalFontFamily
     }
     
     // 添加 Connections 元素来连接 contextMenu 的信号
@@ -80,6 +84,7 @@ Item {
         placeholder: qsTr("新建文件夹")
         showInput: true
         parent: noteTree // 明确指定父级
+        globalFontFamily: noteTree.globalFontFamily
         
         property string parentPath: ""
         property int newFolderId: -1 // 存储新创建的文件夹ID
@@ -217,6 +222,7 @@ Item {
         placeholder: qsTr("新建笔记")
         showInput: true
         parent: noteTree // 明确指定父级
+        globalFontFamily: noteTree.globalFontFamily
         
         property string parentPath: ""
         property int newNoteId: -1 // 存储新创建的笔记ID
@@ -352,6 +358,7 @@ Item {
         message: qsTr("请输入新名称：")
         showInput: true
         parent: noteTree // 明确指定父级
+        globalFontFamily: noteTree.globalFontFamily
         
         property string itemPath: ""
         
@@ -378,6 +385,7 @@ Item {
         cancelText: qsTr("取消")
         isWarning: true
         parent: noteTree // 明确指定父级
+        globalFontFamily: noteTree.globalFontFamily
         
         property string itemPath: ""
         
@@ -404,6 +412,7 @@ Item {
         cancelVisible: false
         isWarning: true
         parent: noteTree
+        globalFontFamily: noteTree.globalFontFamily
     }
     
     // 主容器
@@ -461,8 +470,11 @@ Item {
             Text {
                 id: headerText
                 text: qsTr("全部笔记")
-                font.pixelSize: 16
-                font.bold: true
+                font {
+                    pixelSize: 16
+                    bold: true
+                    family: globalFontFamily
+                }
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 15
@@ -787,10 +799,13 @@ Item {
                         Label {
                             id: nameLabel
                             text: model.name
-                            font.pixelSize: 14
-                            font.weight: noteTree.selectedNotePath === model.path ? 
+                            font {
+                                pixelSize: 14
+                                weight: noteTree.selectedNotePath === model.path ? 
                                        Font.DemiBold : Font.Normal // 选中时加粗
-                                elide: Text.ElideMiddle // 从中间省略，而不是右侧
+                                family: globalFontFamily // 使用全局字体
+                            }
+                            elide: Text.ElideMiddle // 从中间省略，而不是右侧
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
                             color: {

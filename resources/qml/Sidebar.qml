@@ -10,6 +10,9 @@ Rectangle {
     // 根据主题动态设置背景色
     color: sidebarManager.isDarkTheme ? "#353535" : "#ffffff"
     
+    // 添加全局字体属性
+    property string globalFontFamily: sidebarManager.globalFontFamily
+    
     // 添加阴影效果
     layer.enabled: true
     layer.effect: DropShadow {
@@ -48,6 +51,7 @@ Rectangle {
         anchors.right: parent.right
         username: sidebarManager.getUserName()
         userStatus: sidebarManager.getUserStatus()
+        globalFontFamily: sidebarRoot.globalFontFamily // 传递全局字体属性
     }
     
     // 操作按钮区域 (使用 anchors)
@@ -133,6 +137,7 @@ Rectangle {
         // 文件树视图
         Local.NoteTree {
             id: noteTree
+            globalFontFamily: sidebarRoot.globalFontFamily
             
             onNoteSelected: function(path, type) {
                 // console.log("[Sidebar_Debug] Received noteSelected signal - Path:", path, "Type:", type); // 添加日志

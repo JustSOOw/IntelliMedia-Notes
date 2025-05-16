@@ -14,6 +14,7 @@ Rectangle {
     property string username: "15039630768"
     property string userStatus: qsTr("在线")
     property string userAvatar: ""
+    property string globalFontFamily: "Arial" // 全局字体属性
     
     // 主题相关颜色属性
     property color textColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
@@ -98,8 +99,11 @@ Rectangle {
             
             Text {
                 text: username
-                font.pixelSize: 16
-                font.bold: true
+                font {
+                    pixelSize: 16
+                    bold: true
+                    family: globalFontFamily // 使用全局字体
+                }
                 color: textColor
                 Layout.fillWidth: true
                 elide: Text.ElideRight
@@ -107,7 +111,10 @@ Rectangle {
             
             Text {
                 text: userStatus
-                font.pixelSize: 12
+                font {
+                    pixelSize: 12
+                    family: globalFontFamily // 使用全局字体
+                }
                 color: subtextColor
                 Layout.fillWidth: true
             }

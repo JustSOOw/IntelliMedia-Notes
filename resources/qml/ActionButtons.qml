@@ -11,6 +11,9 @@ Rectangle {
     height: 120
     color: "transparent"
     
+    // 全局字体属性
+    property string globalFontFamily: parent ? (parent.globalFontFamily || "Arial") : "Arial"
+    
     // 当前选中的按钮 (file, ai, search)
     property string activeButton: "file"
     
@@ -249,8 +252,11 @@ Rectangle {
                 
                 Text {
                     text: qsTr("新建")
-                    font.pixelSize: 14
-                    font.bold: true
+                    font {
+                        pixelSize: 14
+                        bold: true
+                        family: globalFontFamily
+                    }
                     color: "white"
                 }
             }
@@ -384,7 +390,10 @@ Rectangle {
                             Text {
                                 id: fileText
                                 text: qsTr("文件")
-                                font.pixelSize: 13
+                                font {
+                                    pixelSize: 13
+                                    family: globalFontFamily
+                                }
                                 color: activeButton === "file" ? activeTextColor : (fileClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
@@ -444,7 +453,10 @@ Rectangle {
                             Text {
                                 id: aiText
                                 text: qsTr("AI")
-                                font.pixelSize: 13
+                                font {
+                                    pixelSize: 13
+                                    family: globalFontFamily
+                                }
                                 color: activeButton === "ai" ? activeTextColor : (aiClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }
@@ -502,7 +514,10 @@ Rectangle {
                             Text {
                                 id: searchText
                                 text: qsTr("搜索")
-                                font.pixelSize: 13
+                                font {
+                                    pixelSize: 13
+                                    family: globalFontFamily
+                                }
                                 color: activeButton === "search" ? activeTextColor : (searchClickArea.containsMouse ? hoverTextColor : inactiveTextColor)
                             }
                         }

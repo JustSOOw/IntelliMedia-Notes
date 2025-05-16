@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "DeepSeekService.h"
+#include "settingsdialog.h"
 
 #include <QApplication>
 #include <QFile>
@@ -72,11 +73,24 @@ void loadTranslation(QApplication &app)
 
 int main(int argc, char *argv[])
 {
+  // 实现应用程序重启机制
+    int exitCode = 0;
+    do {
     QApplication a(argc, argv);
     
     // 设置组织名和应用名，用于QSettings和QStandardPaths
     QApplication::setOrganizationName("IntelliMedia");
     QApplication::setApplicationName("IntelliMedia_Notes");
+        
+        // 检查并执行待处理的笔记库位置移动
+        if (SettingsDialog::executePendingNotebookMove()) {
+            qDebug() << "成功执行笔记库位置移动";
+        }
+        
+        // 检查并执行待处理的备份恢复操作
+        if (SettingsDialog::executePendingRestore()) {
+            qDebug() << "成功执行备份恢复操作";
+        }
     
     // 加载翻译文件
     loadTranslation(a);
@@ -90,7 +104,6 @@ int main(int argc, char *argv[])
     
     // 应用组合样式
     a.setStyleSheet(globalStyle + lightThemeStyle);
-
     // 创建DeepSeek AI服务
     DeepSeekService *aiService = new DeepSeekService();
     
@@ -99,9 +112,21 @@ int main(int argc, char *argv[])
     aiService->setApiEndpoint(correctApiEndpoint);
     qDebug() << "主程序确认API端点:" << correctApiEndpoint;
     
-    // 如果有需要，这里可以从配置文件或环境变量中读取API密钥
-    // 目前使用的是DeepSeekService中默认硬编码的密钥
-
+    // 从设置中读取API密钥并设置
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, 
+                      QApplication::organizationName(), QApplication::applicationName());
+    QString apiKey = settings.value("AIService/APIKey", "").toString();
+    
+    if (!apiKey.isEmpty()) {
+        // 解混淆API密钥
+        QString deobfuscatedKey = "";
+        for (QChar c : apiKey) {
+            deobfuscatedKey.append(QChar(c.unicode() - 1));
+        }
+        // 设置到AI服务
+        aiService->setApiKey(deobfuscatedKey);
+    }
+    
     MainWindow w;
     
     // 将AI服务传递给主窗口
@@ -114,5 +139,16 @@ int main(int argc, char *argv[])
         delete aiService;
     });
     
-    return a.exec();
+        // 执行应用程序，获取退出代码
+        exitCode = a.exec();
+        
+        // 如果退出代码是1000，输出重启信息
+        if (exitCode == 1000) {
+            qDebug() << "应用程序正在重新启动...";
+        }
+        
+    } while (exitCode == 1000); // 如果退出代码为1000则重新启动应用程序
+    
+    return exitCode;
+       
 }

@@ -2,7 +2,7 @@
  * @Author: Furdow wang22338014@gmail.com
  * @Date: 2025-04-17 12:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-06 15:58:42
+ * @LastEditTime: 2025-05-15 22:02:53
  * @FilePath: \IntelliMedia_Notes\src\sidebarmanager.cpp
  * @Description: 侧边栏管理器实现
  * 
@@ -15,6 +15,8 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QTimer>
+#include <QSettings>
+#include <QApplication>
 
 // 构造函数
 SidebarManager::SidebarManager(QQuickWidget *quickWidget, QObject *parent)
@@ -23,6 +25,7 @@ SidebarManager::SidebarManager(QQuickWidget *quickWidget, QObject *parent)
     , m_rootObject(nullptr)
     , m_dbManager(nullptr)
     , m_isDarkTheme(false)
+    , m_globalFontFamily("Arial") // 默认字体
 {
     // 初始化笔记存储
     initializeNoteStorage();
@@ -31,6 +34,14 @@ SidebarManager::SidebarManager(QQuickWidget *quickWidget, QObject *parent)
     m_dbManager = new DatabaseManager(this);
     if (!m_dbManager->initialize()) {
         qWarning() << "数据库初始化失败!";
+    }
+    
+    // 读取当前的全局字体设置
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, 
+                      QApplication::organizationName(), QApplication::applicationName());
+    QString fontFamily = settings.value("Editor/FontFamily", "Arial").toString();
+    if (!fontFamily.isEmpty()) {
+        m_globalFontFamily = fontFamily;
     }
 }
 
@@ -734,5 +745,15 @@ void SidebarManager::updateTheme(bool isDarkTheme)
         m_isDarkTheme = isDarkTheme;
         emit themeChanged();
         qDebug() << "侧边栏主题已更新为:" << (m_isDarkTheme ? "暗色主题" : "亮色主题");
+    }
+}
+
+// 更新全局字体设置
+void SidebarManager::updateGlobalFont(const QString &fontFamily)
+{
+    if (m_globalFontFamily != fontFamily) {
+        m_globalFontFamily = fontFamily;
+        emit fontChanged();
+        qDebug() << "侧边栏全局字体已更新为:" << fontFamily;
     }
 } 

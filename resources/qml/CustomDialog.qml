@@ -7,6 +7,9 @@ import Qt5Compat.GraphicalEffects
 Popup {
     id: root
     
+    // 全局字体属性
+    property string globalFontFamily: parent ? (parent.globalFontFamily || "Arial") : "Arial"
+    
     // 可配置属性
     property string title: qsTr("标题")
     property string message: qsTr("消息内容")
@@ -109,8 +112,11 @@ Popup {
             
             Label {
                 text: title
-                font.pixelSize: 16
-                font.bold: true
+                font {
+                    pixelSize: 16
+                    bold: true
+                    family: globalFontFamily
+                }
                 color: titleTextColor
                 anchors.centerIn: parent
             }
@@ -136,7 +142,10 @@ Popup {
             // 消息文本
             Label {
                 text: message
-                font.pixelSize: 14
+                font {
+                    pixelSize: 14
+                    family: globalFontFamily
+                }
                 color: messageTextColor
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
@@ -150,7 +159,10 @@ Popup {
                 placeholderText: placeholder
                 text: root.inputText
                 selectByMouse: true
-                font.pixelSize: 14
+                font {
+                    pixelSize: 14
+                    family: globalFontFamily
+                }
                 Layout.fillWidth: true
                 Layout.preferredHeight: 36
                 horizontalAlignment: Text.AlignLeft
@@ -214,7 +226,10 @@ Popup {
                     
                     contentItem: Text {
                         text: cancelButton.text
-                        font.pixelSize: 14
+                        font {
+                            pixelSize: 14
+                            family: globalFontFamily
+                        }
                         color: cancelTextColor
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -248,7 +263,10 @@ Popup {
                     
                     contentItem: Text {
                         text: confirmButton.text
-                        font.pixelSize: 14
+                        font {
+                            pixelSize: 14
+                            family: globalFontFamily
+                        }
                         color: confirmTextColor
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter

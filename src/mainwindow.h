@@ -177,6 +177,7 @@ private:
     // 设置相关
     SettingsDialog *m_settingsDialog = nullptr; // 设置对话框
     QTimer *m_autoSaveTimer = nullptr;         // 自动保存定时器
+    QTimer *m_backupCheckTimer = nullptr;      // 自动备份检查定时器
     
     // 系统托盘相关
     QSystemTrayIcon *m_trayIcon = nullptr; // 系统托盘图标

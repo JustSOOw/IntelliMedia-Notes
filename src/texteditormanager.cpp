@@ -2,7 +2,7 @@
  * @Author: cursor AI
  * @Date: 2023-05-05 10:00:00
  * @LastEditors: Furdow wang22338014@gmail.com
- * @LastEditTime: 2025-05-14 20:18:43
+ * @LastEditTime: 2025-05-15 22:05:38
  * @FilePath: \IntelliMedia_Notes\src\texteditormanager.cpp
  * @Description: QTextEdit编辑器管理类实现
  * 
@@ -79,6 +79,7 @@
 #include <QSvgRenderer>
 #include <QSettings>
 #include "databasemanager.h"
+#include "settingsdialog.h"
 
 // 新增常量定义
 const int HANDLE_SIZE = 8; // 手柄大小
@@ -1063,28 +1064,35 @@ void NoteTextEdit::dropEvent(QDropEvent *event)
 
 bool NoteTextEdit::insertImageFromFile(const QString &filePath, int maxWidth)
 {
+    qDebug() << "insertImageFromFile - 开始处理图片:" << filePath << "最大宽度:" << maxWidth;
+    
     QImageReader reader(filePath);
     QImage image = reader.read();
     
     if (image.isNull()) {
-        qDebug() << "无法加载图片:" << filePath << reader.errorString();
+        qDebug() << "insertImageFromFile - 无法加载图片:" << filePath << reader.errorString();
         return false;
     }
+    
+    qDebug() << "insertImageFromFile - 成功加载图片，原始尺寸:" << image.width() << "x" << image.height();
     
     // 调整图片大小，如果超过最大宽度
     QSize originalSize = image.size();
     if (maxWidth > 0 && image.width() > maxWidth) {
-        qDebug() << "Resizing image from" << originalSize << "to max width" << maxWidth;
+        qDebug() << "insertImageFromFile - 调整图片尺寸从" << originalSize << "到最大宽度" << maxWidth;
         image = image.scaledToWidth(maxWidth, Qt::SmoothTransformation);
-        qDebug() << " -> New size:" << image.size();
+        qDebug() << "insertImageFromFile - 调整后尺寸:" << image.size();
     }
     
     // 保存图片到媒体文件夹
+    qDebug() << "insertImageFromFile - 开始保存图片到媒体文件夹";
     QString savedImagePath = saveImageToMediaFolder(filePath);
     if (savedImagePath.isEmpty()) {
-        qDebug() << "无法保存图片到媒体文件夹";
+        qDebug() << "insertImageFromFile - 无法保存图片到媒体文件夹";
         return false;
     }
+    
+    qDebug() << "insertImageFromFile - 图片已保存到:" << savedImagePath;
     
     // 插入图片到文档
     QTextCursor cursor = textCursor();
@@ -1094,20 +1102,30 @@ bool NoteTextEdit::insertImageFromFile(const QString &filePath, int maxWidth)
     imageFormat.setName(savedImagePath);
     imageFormat.setWidth(image.width());
     imageFormat.setHeight(image.height());
-    // imageFormat.setProperty(QTextFormat::FullWidthSelection, true); // 暂时移除，观察效果
+    
+    qDebug() << "insertImageFromFile - 将图片插入文档，尺寸:" << image.width() << "x" << image.height();
     
     cursor.insertImage(imageFormat);
-    // cursor.insertBlock(); // 暂时移除，让图片更像行内元素
     setTextCursor(cursor); // 更新编辑器光标
-    qDebug() << "insertImageFromFile: Inserted image" << savedImagePath << "New cursor pos:" << textCursor().position(); // 添加日志
+    qDebug() << "insertImageFromFile - 图片已插入到位置:" << textCursor().position();
+    
+    // 确保编辑器获得焦点并触发内容变更
+    setFocus();
+    emit contentChangedByInteraction();
     
     return true;
 }
 
 QString NoteTextEdit::saveImageToMediaFolder(const QString &sourceFilePath)
 {
-    // 确保媒体文件夹存在
-    QString mediaFolderPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/IntelliMedia_Notes/media";
+    // 使用应用程序数据位置而不是文档位置，与数据库管理器保持一致
+    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QString mediaFolderPath = appDataPath + "/notes_media";
+    
+    // 添加调试日志
+    qDebug() << "保存图片 - 源文件路径:" << sourceFilePath;
+    qDebug() << "保存图片 - 媒体文件夹路径:" << mediaFolderPath;
+    
     QDir mediaDir(mediaFolderPath);
     
     if (!mediaDir.exists()) {
@@ -1123,12 +1141,16 @@ QString NoteTextEdit::saveImageToMediaFolder(const QString &sourceFilePath)
     QString uniqueFileName = QUuid::createUuid().toString(QUuid::WithoutBraces) + "." + extension;
     QString targetFilePath = mediaFolderPath + "/" + uniqueFileName;
     
+    // 添加调试日志
+    qDebug() << "保存图片 - 目标文件路径:" << targetFilePath;
+    
     // 复制原始图片到媒体文件夹
     if (!QFile::copy(sourceFilePath, targetFilePath)) {
         qDebug() << "无法复制图片到:" << targetFilePath;
         return QString();
     }
     
+    qDebug() << "保存图片 - 成功保存图片到:" << targetFilePath;
     return targetFilePath;
 }
 
@@ -2571,12 +2593,18 @@ void TextEditorManager::onPasteTriggered()
 
 void TextEditorManager::onInsertImageTriggered()
 {
+    qDebug() << "触发插入图片操作 - 开始选择文件";
+    
     QString filePath = QFileDialog::getOpenFileName(
         m_textEdit, tr("选择图片"),
         QString(), tr("图像文件 (*.png *.jpg *.jpeg *.bmp *.gif)"));
     
+    qDebug() << "用户选择的图片文件路径:" << (filePath.isEmpty() ? "未选择文件" : filePath);
+    
     if (!filePath.isEmpty()) {
-        m_textEdit->insertImageFromFile(filePath);
+        qDebug() << "开始插入图片到编辑器";
+        bool success = m_textEdit->insertImageFromFile(filePath);
+        qDebug() << "图片插入" << (success ? "成功" : "失败");
     }
 }
 
@@ -2685,6 +2713,9 @@ void TextEditorManager::saveNote()
         return;
     }
     
+    // 添加调试日志 - 当前笔记路径
+    qDebug() << "保存笔记 - 当前笔记路径:" << m_currentNotePath;
+    
     // 从路径中提取笔记ID
     QRegularExpression noteIdPattern("note_(\\d+)$");
     QRegularExpressionMatch match = noteIdPattern.match(m_currentNotePath);
@@ -2697,11 +2728,24 @@ void TextEditorManager::saveNote()
     int noteId = match.captured(1).toInt();
     QString content = m_textEdit->toHtml(); // 获取当前编辑器内容
     
+    // 添加调试日志 - 提取的笔记ID
+    qDebug() << "保存笔记 - 笔记ID:" << noteId;
+    
     // 检查是否设置了数据库管理器
     if (!m_dbManager) {
         qWarning() << "无法保存笔记：数据库管理器未设置";
         return;
     }
+    
+    // 获取笔记存储的物理路径
+    QString notebookPath = SettingsDialog::getNotebookPath();
+    QString dbFilePath = notebookPath + "/notes.db";
+    QString mediaFolderPath = notebookPath + "/notes_media";
+    
+    // 添加调试日志 - 笔记库路径
+    qDebug() << "保存笔记 - 笔记库路径:" << notebookPath;
+    qDebug() << "保存笔记 - 数据库文件路径:" << dbFilePath;
+    qDebug() << "保存笔记 - 媒体文件夹路径:" << mediaFolderPath;
     
     // 创建一个内容块保存HTML内容
     QList<ContentBlock> blocks;
@@ -2712,11 +2756,17 @@ void TextEditorManager::saveNote()
     block.content_text = content;
     blocks.append(block);
     
+    // 检查内容中是否包含图片
+    int imageCount = content.count("<img ");
+    if (imageCount > 0) {
+        qDebug() << "保存笔记 - 笔记中包含" << imageCount << "个图片";
+    }
+    
     // 保存内容块到数据库
     bool success = m_dbManager->saveNoteContent(noteId, blocks);
     
     if (success) {
-        qDebug() << "笔记保存成功，ID:" << noteId;
+        qDebug() << "笔记保存成功，ID:" << noteId << "，物理路径:" << dbFilePath;
         
         // 重置未保存状态
         m_hasUnsavedChanges = false;

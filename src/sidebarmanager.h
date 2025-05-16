@@ -32,6 +32,9 @@ class SidebarManager : public QObject
     // 添加一个主题属性，用于QML获取当前主题状态
     Q_PROPERTY(bool isDarkTheme READ isDarkTheme NOTIFY themeChanged)
     
+    // 添加全局字体属性，用于QML获取当前字体设置
+    Q_PROPERTY(QString globalFontFamily READ globalFontFamily NOTIFY fontChanged)
+    
 public:
     explicit SidebarManager(QQuickWidget *quickWidget, QObject *parent = nullptr);
     ~SidebarManager();
@@ -69,8 +72,14 @@ public:
     // 获取当前主题状态
     bool isDarkTheme() const { return m_isDarkTheme; }
     
+    // 获取当前全局字体
+    QString globalFontFamily() const { return m_globalFontFamily; }
+    
     // 更新主题设置
     void updateTheme(bool isDarkTheme);
+    
+    // 更新全局字体设置
+    void updateGlobalFont(const QString &fontFamily);
     
     // 通过路径打开笔记（用于重启后恢复打开的笔记）
     void openNoteByPath(const QString &path);
@@ -100,6 +109,7 @@ signals:
     void folderStructureChanged(); // 文件夹结构变化信号
     void searchButtonClicked(); // 搜索按钮点击信号
     void themeChanged(); // 主题改变的信号
+    void fontChanged(); // 字体改变的信号
     
 private:
     QQuickWidget *m_quickWidget; // QQuickWidget实例的引用
@@ -107,6 +117,7 @@ private:
     QString m_rootPath;          // 笔记根目录路径
     DatabaseManager *m_dbManager; // 数据库管理器
     bool m_isDarkTheme = false;  // 当前主题状态，默认为浅色主题
+    QString m_globalFontFamily = "Arial"; // 当前全局字体，默认为Arial
     
     // 初始化笔记存储目录
     void initializeNoteStorage();

@@ -9,6 +9,9 @@ Rectangle {
     width: parent.width
     color: "transparent"
     
+    // 添加全局字体属性
+    property string globalFontFamily: parent.globalFontFamily || "Arial"
+    
     // 主题相关颜色
     property color titleTextColor: sidebarManager.isDarkTheme ? "#e0e0e0" : "#333333"
     property color userMessageBgColor: sidebarManager.isDarkTheme ? "#3a5a8c" : "#e3f2fd"
@@ -35,8 +38,11 @@ Rectangle {
         
         Text {
             text: "AI 助手"
-            font.pixelSize: 16
-            font.bold: true
+            font {
+                pixelSize: 16
+                bold: true
+                family: globalFontFamily
+            }
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.leftMargin: 15
@@ -80,8 +86,11 @@ Rectangle {
                 // 角色标签
                 Text {
                     text: model.role === "user" ? "你" : "AI 助手"
-                    font.pixelSize: 12
-                    font.bold: true
+                    font {
+                        pixelSize: 12
+                        bold: true
+                        family: globalFontFamily
+                    }
                     color: model.role === "user" ? userLabelColor : aiLabelColor
                     Layout.alignment: model.role === "user" ? Qt.AlignRight : Qt.AlignLeft
                 }
@@ -89,7 +98,10 @@ Rectangle {
                 // 消息内容
                 Text {
                     text: model.message
-                    font.pixelSize: 14
+                    font {
+                        pixelSize: 14
+                        family: globalFontFamily
+                    }
                     wrapMode: Text.Wrap
                     color: messageTextColor
                     Layout.fillWidth: true
@@ -99,7 +111,10 @@ Rectangle {
                 // 时间戳
                 Text {
                     text: model.timestamp
-                    font.pixelSize: 10
+                    font {
+                        pixelSize: 10
+                        family: globalFontFamily
+                    }
                     color: timestampColor
                     Layout.alignment: model.role === "user" ? Qt.AlignRight : Qt.AlignLeft
                 }
@@ -142,7 +157,10 @@ Rectangle {
                     anchors.leftMargin: 15
                     anchors.rightMargin: 15
                     verticalAlignment: TextInput.AlignVCenter
-                    font.pixelSize: 14
+                    font {
+                        pixelSize: 14
+                        family: globalFontFamily
+                    }
                     clip: true
                     selectByMouse: true
                     color: inputTextColor
@@ -152,7 +170,10 @@ Rectangle {
                     Text {
                         anchors.fill: parent
                         verticalAlignment: TextInput.AlignVCenter
-                        font.pixelSize: 14
+                        font {
+                            pixelSize: 14
+                            family: globalFontFamily
+                        }
                         text: messageInput.placeholderText
                         color: inputPlaceholderColor
                         visible: !messageInput.text && !messageInput.activeFocus

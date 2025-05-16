@@ -7,6 +7,9 @@ Menu {
     id: contextMenu
     width: 180
     
+    // 全局字体属性
+    property string globalFontFamily: parent ? (parent.globalFontFamily || "Arial") : "Arial"
+    
     // 上下文属性
     property bool isFolder: false
     property string itemPath: ""
@@ -70,7 +73,10 @@ Menu {
             Text {
                 text: menuItem.text
                 color: textColor
-                font.pixelSize: 14
+                font {
+                    pixelSize: 14
+                    family: globalFontFamily
+                }
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
